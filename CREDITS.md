@@ -82,6 +82,12 @@ These are written instructions ("skills") that the AI coding assistant was given
 | interview | Questions to the builder before the redesign | Johnathan Mo, https://github.com/23jmo/jmo-skills | MIT |
 | unslop | Review of the interface for an AI-generated look | Damir Sokolovsky (@heydamir), https://github.com/heydamir/unslop | CC BY 4.0 |
 
+## AI-made images
+
+| Item | Use | How it was made | Label on screen |
+|---|---|---|---|
+| `img/walker.png`, an astronaut walk-cycle strip of ten frames (800 x 80 pixels) | The walker figure in the 3D view | Drawn by a program that an AI agent wrote, at the team's request. It shows no real person and no agency mark | The 3D view's credit line reads "Walker figure made with AI" whenever the figure is shown |
+
 ## AI use
 
 See the "Use of AI" section in [README.md](README.md).
