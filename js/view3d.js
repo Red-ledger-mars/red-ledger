@@ -18,6 +18,12 @@ const TILE = 256;
 const MAX_TEXTURE_PX = 2048;
 const MESH_STEP = 2; // every second elevation cell
 const BASE_GROUND = '#9a6445'; // flat warm colour shown until imagery arrives
+// Tablets and phones. Their browsers can wipe a large drawing canvas held on
+// the GPU when memory runs short, and the ground then uploads as black. On
+// these devices the big canvases are kept in ordinary memory instead
+// (willReadFrequently), and the picture is not drawn at 2x.
+const TOUCH = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+const BIG_CANVAS = TOUCH ? { willReadFrequently: true } : undefined;
 // With less motion asked for, the camera jumps to a new view instead of gliding.
 const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -358,7 +364,7 @@ function slopeLayer(terrain, maps) {
   const canvas = document.createElement('canvas');
   canvas.width = w;
   canvas.height = h;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', BIG_CANVAS);
   const img = ctx.createImageData(w, h);
   const deg = samplePixels(terrain.slope, terrain, maps, NaN);
   const data = img.data;
@@ -384,7 +390,7 @@ function shadeCanvases(factors, w, h) {
     const canvas = document.createElement('canvas');
     canvas.width = w;
     canvas.height = h;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', BIG_CANVAS);
     const img = ctx.createImageData(w, h);
     const d = img.data;
     for (let k = 0; k < factors.length; k++) {
@@ -560,10 +566,11 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
   } catch {
     return inertView(root, '3D view could not start the graphics driver. The map view still works.');
   }
-  // High-density screens (2x and up) are drawn at 2x so the ground is sharp;
-  // other screens keep the 1.5x cap that keeps weak laptops smooth.
+  // High-density laptop and desktop screens (2x and up) are drawn at 2x so the
+  // ground is sharp; other screens, and all tablets and phones (see TOUCH),
+  // keep the 1.5x cap that keeps weak devices smooth and within memory.
   const dpr = window.devicePixelRatio || 1;
-  renderer.setPixelRatio(dpr >= 2 ? 2 : Math.min(dpr, 1.5));
+  renderer.setPixelRatio(dpr >= 2 && !TOUCH ? 2 : Math.min(dpr, 1.5));
   renderer.domElement.className = 'v3d-canvas';
   root.appendChild(renderer.domElement);
 
@@ -591,7 +598,7 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
   const imageCanvas = document.createElement('canvas');
   imageCanvas.width = texW;
   imageCanvas.height = texH;
-  const imageCtx = imageCanvas.getContext('2d');
+  const imageCtx = imageCanvas.getContext('2d', BIG_CANVAS);
   imageCtx.fillStyle = BASE_GROUND;
   imageCtx.fillRect(0, 0, texW, texH);
 
@@ -616,7 +623,7 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
     tex.minFilter = mips ? THREE.LinearMipmapLinearFilter : THREE.LinearFilter;
     tex.magFilter = THREE.LinearFilter;
     tex.anisotropy = Math.min(8, caps.getMaxAnisotropy()); // keeps the ground sharp toward the horizon in the follow view
-    return { canvas, ctx: canvas.getContext('2d'), tex };
+    return { canvas, ctx: canvas.getContext('2d', BIG_CANVAS), tex };
   };
   const plain = makeShown();
   let tinted = null; // made when the slope tint is first asked for
