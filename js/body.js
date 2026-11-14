@@ -21,7 +21,7 @@ export const SOURCES = {
   people: {
     label: 'NASA suited walking tests: Walkback Test (NTRS 20070016007, 20080014853) and Integrated Suit Test 2 (NASA/TP-2010-216125)',
     url: 'https://ntrs.nasa.gov/citations/20110003409',
-    what: 'Measured metabolic rates of people walking in the Mark III suit at 0.12 to 0.38 of Earth gravity, on the level and on slopes up to 30%. The model was tested against them: on the level it predicted too little, so the level cost is multiplied by 1.364 (spread 1.155 to 1.637); on slopes it predicted up to twice too much, so the slope cost is now scaled by gravity. After the change, twelve sloped measurements lie within 5% (median) of the model. All but one value were read from the reports\' plotted lines.',
+    what: 'Metabolic rates that NASA measured on people walking in the Mark III suit, and without a suit, at 0.12 to 0.38 of Earth gravity, on the level and on slopes up to 30%. The model was tested against them: on the level it predicted too little, so the level cost is multiplied by 1.364 (spread 1.155 to 1.637); on slopes it predicted up to 2.2 times too much, so the slope cost is now scaled by gravity. After the change, all twelve sloped measurements lie within 14% of the model (median 3% high). All but one value were read from the reports\' plotted lines.',
     status: 'primary',
   },
   suitMass: {
@@ -93,7 +93,7 @@ export const SOURCES = {
   shielding: {
     label: 'Guo et al. 2026, JGR Planets, Table 1',
     url: 'https://elib.dlr.de/224554/',
-    what: 'At eight places Curiosity measured 2% to 19% less dose where terrain blocked more sky: about 1% less dose for each extra percentage point of sky blocked (0.7 to 1.5 across the sites, no error bars given). The model applies 1% per point, counted from the 10% of sky blocked in the reference period of Guo et al. 2021. Applying it to dose equivalent is our assumption.',
+    what: 'In eight measurement periods at five places Curiosity measured 2% to 19% less dose where terrain blocked more sky: about 1% less dose for each extra percentage point of sky blocked (0.7 to 1.5 across the sites, no error bars given). The model applies 1% per point, counted from the 10% of sky blocked in the reference period of Guo et al. 2021. Applying it to dose equivalent is our assumption.',
     status: 'assumption',
   },
   comms: {
