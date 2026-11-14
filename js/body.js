@@ -56,7 +56,7 @@ export const SOURCES = {
   },
   coreTemp: {
     label: 'Specific heat of the body, 3.47 kJ/kg/°C',
-    url: 'https://pubmed.ncbi.nlm.nih.gov/35389752/',
+    url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC10274559/',
     what: 'The conventional value used to turn stored heat into a mean body temperature rise. A 2022 paper notes it was never directly measured.',
     status: 'assumption',
   },
