@@ -7,7 +7,7 @@
 // tools/plan_routes.mjs) and the body model (js/body.js). This file adds no
 // science of its own.
 import { loadTerrain } from './terrain.js';
-import { MODEL, SOURCES } from './body.js';
+import { MODEL, SOURCES, energyLeftPct } from './body.js';
 import { pointAt } from './route.js';
 import { createView3D } from './view3d.js';
 import { heatColor, heatShare } from './heat.js';
@@ -29,7 +29,7 @@ const ROUTES = [
 
 // Seconds of autoplay. The legs of the walk share PLAY.walk by length, so
 // the whole story runs for about a minute.
-const PLAY = { title: 5, routes: 8, walk: 36, verdict: 6 };
+const PLAY = { title: 5, routes: 8, walk: 34, verdict: 5, test: 8 };
 
 const state = {
   routes: {},       // id -> planned route with no load carried
@@ -120,7 +120,7 @@ function routeDetail() {
         <dt>Climb</dt><dd>${fmt(t.climb)} m</dd>
         <dt>Steepest</dt><dd>${fmt(t.steepestDeg)}° · ${fmt(t.beyondMeasured)} m beyond tested slope</dd>
         <dt>Planned rests</dt><dd>${t.restCount} · ${minutes(t.restSeconds)} min</dd>
-        <dt>Heat on people</dt><dd>${t.peakHeatRange.map((v) => fmt(v, 1)).join(' to ')} kJ/kg across the spread measured</dd>
+        <dt>Range from the test on people</dt><dd>${t.peakHeatRange.map((v) => fmt(v, 1)).join(' to ')} kJ/kg</dd>
       </dl>
     </div>`;
 }
@@ -139,6 +139,7 @@ function build() {
         <h1 class="title">Mars is<br>costly</h1>
         <p class="lede">Two routes to the same rocks. What each one costs the body, step by step.</p>
         <p class="cue mono">Scroll ↓ or press Auto</p>
+        <p class="quiet">A planning forecast, not a diagnosis.</p>
       </div>
     </section>`);
 
@@ -148,7 +149,7 @@ function build() {
         <p class="kicker mono">Two ways to walk it</p>
         <h2>Same stops.<br>Different heat.</h2>
         <div class="routes">${ROUTES.map(routeButton).join('')}</div>
-        <p class="lede">Each big number is the body heat stored at its peak if the walker never rests. NASA's limit is <b>${fmt(MODEL.heatLimitKJkg, 1)} kJ/kg</b>.</p>
+        <p class="lede">Each big number is the most body heat the walker would store with no rest. <a href="${esc(SOURCES.heatLimit.url)}" target="_blank" rel="noopener">NASA's limit</a> for suited work is <b>${fmt(MODEL.heatLimitKJkg, 1)} kJ/kg</b>.</p>
         ${FULL ? routeDetail() : ''}
       </div>
     </section>`);
@@ -170,19 +171,27 @@ function build() {
       </section>`);
   }
 
-  const over = ROUTES.filter((d) => state.routes[d.id].totals.peakHeatNoRest > MODEL.heatLimitKJkg);
-  const verdict = over.length === ROUTES.length
-    ? 'Both routes go over the heat limit unless the walker rests.'
-    : over.length === 1
-      ? `Only the ${over[0].name.toLowerCase()} route goes over the heat limit without rests.`
-      : 'Neither route reaches the heat limit.';
+  // Wording from the Main chat. Any other outcome of the data shows no
+  // verdict line, so the page never says something nobody has checked.
+  const bothOver = ROUTES.every((d) => state.routes[d.id].totals.peakHeatNoRest > MODEL.heatLimitKJkg);
+  if (!bothOver) console.warn('Story: the routes no longer both pass the heat limit; the verdict line is hidden.');
   const restsKeepUnder = ROUTES.every((d) => state.routes[d.id].totals.peakHeat < MODEL.heatLimitKJkg);
   html.push(`
     <section class="chapter centred" data-kind="verdict" data-play="${PLAY.verdict}">
       <div class="chapter-body">
         <p class="kicker mono">Home · the verdict</p>
-        <h2>${verdict}</h2>
+        ${bothOver ? '<h2 class="long">By the model\'s central estimate, both routes go over the heat limit unless the walker rests.</h2>' : ''}
         ${restsKeepUnder ? `<p class="lede">With the planned rests, both stay under ${fmt(MODEL.heatLimitKJkg, 1)} kJ/kg.</p>` : ''}
+      </div>
+    </section>`);
+
+  html.push(`
+    <section class="chapter centred" data-kind="test" data-play="${PLAY.test}">
+      <div class="chapter-body">
+        <p class="kicker mono">The test on people</p>
+        <h2 class="long">We tested the model on people. It failed.</h2>
+        <p class="lede">We fixed the test and the pass mark before we had the data. Against 40 NASA measurements of people walking in a spacesuit, the model predicted too little energy on level ground (people used 36% more) and too much on climbs (up to 2 times). We corrected it by the rule we had set. The revised model is within 14% of 12 sloped measurements, a fix made after seeing them.</p>
+        <p class="actions"><a class="act mono" href="classic.html#proof">→ How we tested it</a></p>
       </div>
     </section>`);
 
@@ -264,7 +273,7 @@ function renderHud(p, route) {
   const rest = route.restStops.find((r) => p.dist >= r.dist && p.dist < r.dist + 30);
   $('hud-event').textContent = rest ? `Planned rest · ${minutes(rest.seconds)} min` : '';
   if (FULL) {
-    const left = ((MODEL.energyBudgetKcal - p.kcal - p.backKcal) / MODEL.energyBudgetKcal) * 100;
+    const left = energyLeftPct(p.kcal, p.backKcal);
     $('hud-rows').innerHTML = `
       <dt>Energy <span class="unit">kcal</span></dt><dd>${num(p.kcal, 0, { assumed: true })}</dd>
       <dt>Radiation <span class="unit">µSv</span></dt><dd>${num(p.dose, 1, { assumed: true })}</dd>
@@ -301,7 +310,7 @@ function update() {
     const a = route.stops[c.leg].dist;
     const b = route.stops[c.leg + 1].dist;
     dist = a + clamp01((y - c.top) / c.h) * (b - a);
-  } else if (c.kind === 'verdict' || c.kind === 'end') {
+  } else if (c.kind === 'verdict' || c.kind === 'test' || c.kind === 'end') {
     dist = route.totals.dist;
   }
   setChapter(c);
