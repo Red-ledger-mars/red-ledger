@@ -1,6 +1,7 @@
 import { SITE, LAYERS } from './layers.js';
 import { loadTerrain, slopeImage, SLOPE_RAMP } from './terrain.js';
 import { loadSky, skyImage, SKY_RAMP } from './sky.js';
+import { loadComms, commsImage, COMMS_RAMP } from './comms.js';
 import { planWalk, pointAt, returnCost } from './route.js';
 import { SOURCES, MODEL, MAX_MEASURED_GRADIENT, tempRiseC } from './body.js';
 
@@ -40,6 +41,10 @@ const state = {
   active: 'direct',
   dist: 0,          // metres walked along the active route
   playing: false,
+  comms: null,      // orbiter visibility over the terrain
+  startMinute: 0,   // minute of the sol at which the walk starts
+  contact: {},      // route id -> which points have an orbiter in view
+  view3d: null,     // the 3D view, made the first time it is opened
   nextStop: 1,      // index of the next stop the walker will reach
   sequence: false,  // true while the recorded sequence is playing
   onWalkEnd: null,  // called when a played walk reaches its end
@@ -70,6 +75,8 @@ map.on('mousemove', (e) => {
   }
   const sky = state.sky?.at(lat, lng);
   if (sky != null) text += `  ·  sky blocked ${sky.toFixed(0)}%`;
+  const inView = state.comms?.at(lat, lng);
+  if (inView != null) text += `  ·  orbiter in view ${inView} min/sol`;
   $('cursor-coord').textContent = text;
 });
 map.on('mouseout', () => { $('cursor-coord').textContent = ''; });
@@ -104,7 +111,7 @@ function buildImagery() {
   }
 }
 
-function buildOverlays(terrain, sky) {
+function buildOverlays(terrain, sky, comms) {
   const thermal = Object.fromEntries(LAYERS.filter((l) => l.kind === 'image').map((l) => [l.id, l]));
   state.overlays = [
     { id: 'none', label: 'Imagery' },
@@ -125,6 +132,15 @@ function buildOverlays(terrain, sky) {
       credit: `Sky blocked by terrain, computed from the elevation model with the method of Guo et al. 2026 (Curiosity RAD). ${sky.meta.credit}`,
     },
   ];
+  if (comms) {
+    state.overlays.push({
+      id: 'comms',
+      label: 'Comms',
+      ramp: COMMS_RAMP,
+      leaf: L.imageOverlay(commsImage(comms), comms.bounds, { opacity: 0.8 }),
+      credit: 'Comms shadow: minutes per sol with a relay orbiter above the terrain. Orbiter positions: NASA/JPL Horizons, sol 4752. Line of sight only',
+    });
+  }
   state.overlays.forEach((overlay, i) => {
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -145,6 +161,7 @@ function setOverlay(id) {
     if (on) overlay.leaf.addTo(map); else overlay.leaf.remove();
     if (on) showLegend(overlay.ramp);
   }
+  state.view3d?.setSlopeTint(id === 'slope');
   if (!state.overlays.find((o) => o.id === id)?.ramp) $('legend').hidden = true;
 }
 
@@ -161,7 +178,7 @@ function showLegend(ramp) {
   }
   const mid = (ramp.min + ramp.max) / 2;
   $('legend-title').textContent = ramp.title;
-  $('legend-ticks').innerHTML = `<span>under ${ramp.min}${ramp.unit}</span><span>${mid}${ramp.unit}</span><span>${ramp.max}${ramp.unit} and over</span>`;
+  $('legend-ticks').innerHTML = `<span>under ${ramp.min}${ramp.unit}</span><span>${Math.round(mid)}</span><span>${ramp.max} and over</span>`;
   $('legend').hidden = false;
 }
 
@@ -192,6 +209,12 @@ async function buildWeather() {
     <p>Ground <b>${summary.ground_min_c.min} to ${summary.ground_max_c.max} °C</b></p>
     <p>Pressure <b>${summary.pressure_pa.min} to ${summary.pressure_pa.max} Pa</b>, under 1% of Earth's at sea level</p>
     <p><a href="${source}" target="_blank" rel="noopener">Curiosity REMS weather station</a>, published for outreach.</p>`;
+  // How far away help is, on the sol the orbiter positions are for.
+  const comms = await fetch('data/comms/summary.json').then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  if (comms) {
+    const oneWay = comms.light_time.one_way_minutes_at_start;
+    $('weather-body').insertAdjacentHTML('beforeend', `<p>Earth was <b>${oneWay.toFixed(1)} light-minutes</b> away on sol ${comms.sol}: a question and its answer take at least ${Math.ceil(oneWay * 2)} minutes. <a href="https://ssd.jpl.nasa.gov/horizons/" target="_blank" rel="noopener">NASA/JPL Horizons</a></p>`);
+  }
 }
 
 /* Body ledger */
@@ -366,8 +389,46 @@ function arrive(index) {
 
 /* Routes */
 
+/* Contact with a relay orbiter */
+
+// For each route, whether an orbiter is above the terrain at every point,
+// given when the walk starts.
+function computeContact() {
+  if (!state.comms) return;
+  for (const def of ROUTES) state.contact[def.id] = state.comms.routeContact(state.routes[def.id].points, state.startMinute);
+}
+
+const contactShare = (contact) => contact.inContact.filter(Boolean).length / contact.inContact.length;
+
+// The start times offered: every 20 minutes of daylight on the sol the
+// orbiter positions are for. The first choice is the planner's pick, the
+// start that keeps the body-cost route in contact for longest.
+function buildStartTimes() {
+  if (!state.comms) { $('start-wrap').hidden = true; return; }
+  const select = $('start-time');
+  let best = { minute: 640, share: -1 };
+  for (let minute = 640; minute <= 1360; minute += 20) {
+    const share = contactShare(state.comms.routeContact(state.routes.body.points, minute));
+    if (share > best.share) best = { minute, share };
+    const option = document.createElement('option');
+    option.value = String(minute);
+    option.textContent = `${state.comms.localTime(minute)} · ${Math.round(share * 100)}% in contact`;
+    select.append(option);
+  }
+  state.startMinute = best.minute;
+  select.value = String(best.minute);
+  select.addEventListener('change', () => {
+    setPlaying(false);
+    state.startMinute = Number(select.value);
+    computeContact();
+    buildRouteCards();
+    drawProfile();
+    renderWalk();
+  });
+}
+
 // The two route cards and the difference between them. Called again
-// whenever the carried load changes.
+// whenever the carried load or the start time changes.
 function buildRouteCards() {
   const [a, b] = ROUTES.map((def) => state.routes[def.id].totals);
   const card = (def) => {
@@ -390,7 +451,7 @@ function buildRouteCards() {
       <div class="route-small">${(t.dist / 1000).toFixed(2)} km · ${t.climb.toFixed(0)} m climb · steepest ${t.steepestDeg.toFixed(0)}°${
   t.beyondMeasured > 0
     ? `<span class="route-flag" title="${t.beyondMeasured.toFixed(0)} m of this route is steeper than any walking study has measured (over ${steepLimit}°). The energy there is an extrapolation.">${t.beyondMeasured.toFixed(0)} m beyond tested slope</span>`
-    : ''}</div>`;
+    : ''}</div>${contactLine(def.id)}`;
     btn.addEventListener('click', () => selectRoute(def.id, true));
     return btn;
   };
@@ -402,6 +463,16 @@ function buildRouteCards() {
     <b>${signed((b.seconds - a.seconds) / 60)} min</b>
     <span>${signed((b.dist - a.dist) / 1000, 2)} km · ${signed(b.kcal - a.kcal)} kcal</span>`;
   $('routes').replaceChildren(card(ROUTES[0]), delta, card(ROUTES[1]));
+}
+
+// One line on a route card: how much of the walk has an orbiter in view.
+function contactLine(id) {
+  const contact = state.contact[id];
+  if (!contact) return '';
+  const share = Math.round(contactShare(contact) * 100);
+  return share === 100
+    ? '<div class="route-small contact">Orbiter in view for the whole walk</div>'
+    : `<div class="route-small contact out">Orbiter in view ${share}% of the walk · up to ${contact.longestGapMin.toFixed(0)} min with no contact</div>`;
 }
 
 // Small marks where the plan makes the walker stand still to shed heat.
@@ -426,7 +497,9 @@ function setLoad(loadKg, ease = true) {
     lines.line.setLatLngs(latlngs);
     lines.casing.setLatLngs(latlngs);
   }
+  computeContact();
   buildRouteCards();
+  state.view3d?.setRoutes(state.routes);
   if (state.lines[state.active]) selectRoute(state.active, ease);
 }
 
@@ -457,6 +530,8 @@ function selectRoute(id, ease = false) {
   }
   drawRestMarks();
   drawProfile();
+  state.view3d?.setRoute(id);
+  if (state.view3d?.isShown()) setFollow(false);
   renderWalk(ease);
 }
 
@@ -505,10 +580,22 @@ function renderWalk(ease = false) {
   walker.setLatLng([p.lat, p.lon]);
   $('progress').value = String(Math.round((state.dist / route.totals.dist) * 1000));
   $('progress-text').textContent = state.dist > 0
-    ? `${(p.seconds / 60).toFixed(0)} min · ${Math.abs(Math.atan(p.gradient) * 180 / Math.PI).toFixed(0)}° ${p.gradient >= 0 ? 'up' : 'down'} · ${p.speed.toFixed(1)} m/s · ${Math.round(p.metabolicW)} W`
+    ? `${(p.seconds / 60).toFixed(0)} min · ${Math.abs(Math.atan(p.gradient) * 180 / Math.PI).toFixed(0)}° ${p.gradient >= 0 ? 'up' : 'down'} · ${p.speed.toFixed(1)} m/s · ${Math.round(p.metabolicW)} W${contactNow(p)}`
     : 'Press Walk, or drag the slider';
+  if (state.view3d?.isShown()) state.view3d.setWalker(state.dist);
   renderLedger(ease);
   drawProfileCursor();
+}
+
+// What the walker can reach by radio at this moment of the walk.
+function contactNow(p) {
+  if (!state.comms) return '';
+  const minute = state.startMinute + p.seconds / 60;
+  const names = state.comms.inView(p.lat, p.lon, minute);
+  if (names == null) return '';
+  if (names.length) return ` · ${names.join(' and ')} in view`;
+  const blocked = state.comms.blockedBy(p.lat, p.lon, minute);
+  return blocked?.length ? ` · terrain blocks ${blocked.join(' and ')}` : ' · no orbiter in view';
 }
 
 /* Elevation profile */
@@ -553,6 +640,15 @@ function drawProfile() {
     ctx.lineTo(x(b.dist), y(b.elev));
     ctx.stroke();
   }
+  // A strip along the bottom: blue where an orbiter is in view, dark where not.
+  const contact = state.contact[state.active];
+  if (contact) {
+    const h = 3 * devicePixelRatio;
+    for (let i = 1; i < route.points.length; i++) {
+      ctx.fillStyle = contact.inContact[i] ? '#6aa8ff' : '#4a332c';
+      ctx.fillRect(x(route.points[i - 1].dist), canvas.height - h, Math.max(1, x(route.points[i].dist) - x(route.points[i - 1].dist)), h);
+    }
+  }
   ctx.fillStyle = '#c4b5a5';
   ctx.font = `${12 * devicePixelRatio}px ui-monospace, monospace`;
   route.stops.forEach((s, i) => {
@@ -580,6 +676,59 @@ function drawProfileCursor() {
   ctx.arc(x(p.dist), y(p.elev), 5 * devicePixelRatio, 0, 2 * Math.PI);
   ctx.fill();
   ctx.stroke();
+}
+
+/* 3D view */
+
+// The 3D view is made the first time it is opened, because it has to load
+// and stitch the imagery for the terrain.
+async function setView3D(on) {
+  $('view-map').setAttribute('aria-pressed', String(!on));
+  $('view-3d').setAttribute('aria-pressed', String(on));
+  for (const id of ['view-follow', 'view-height']) $(id).hidden = !on;
+  $('view3d').hidden = !on;
+  if (!on) { state.view3d?.hide(); return; }
+  if (!state.view3d) {
+    $('view-3d').textContent = 'Loading…';
+    const { createView3D } = await import('./view3d.js');
+    state.view3d = await createView3D($('view3d'), {
+      terrain: state.terrain,
+      routes: state.routes,
+      colors: Object.fromEntries(ROUTES.map((def) => [def.id, def.color])),
+    });
+    $('view-3d').textContent = '3D';
+  }
+  // Without WebGL the walk simply stays on the map.
+  if (!state.view3d.available) { setView3D(false); return; }
+  state.view3d.show();
+  state.view3d.resize();
+  state.view3d.setRoute(state.active);
+  state.view3d.setWalker(state.dist);
+  state.view3d.setSlopeTint($('overlay-slope').getAttribute('aria-pressed') === 'true');
+}
+
+function setFollow(on) {
+  $('view-follow').setAttribute('aria-pressed', String(on));
+  state.view3d?.setMode(on ? 'chase' : 'orbit');
+}
+
+// Pressing Walk moves to the 3D view and follows the walker over the ground.
+async function startWalk() {
+  await setView3D(true);
+  if (state.view3d?.isShown()) setFollow(true);
+  setPlaying(true);
+}
+
+function buildViewSwitch() {
+  $('view-map').addEventListener('click', () => setView3D(false));
+  $('view-3d').addEventListener('click', () => setView3D(true));
+  $('view-follow').addEventListener('click', (e) => setFollow(e.currentTarget.getAttribute('aria-pressed') !== 'true'));
+  $('view-height').addEventListener('click', (e) => {
+    const on = e.currentTarget.getAttribute('aria-pressed') !== 'true';
+    e.currentTarget.setAttribute('aria-pressed', String(on));
+    state.view3d?.setExaggeration(on ? 2 : 1);
+  });
+  window.addEventListener('resize', () => state.view3d?.resize());
 }
 
 /* Walk control */
@@ -648,7 +797,7 @@ function setPlaying(on) {
 function buildWalkControls() {
   $('play').disabled = false;
   $('progress').disabled = false;
-  $('play').addEventListener('click', () => setPlaying(!state.playing));
+  $('play').addEventListener('click', () => (state.playing ? setPlaying(false) : startWalk()));
   $('progress').addEventListener('input', (e) => {
     setPlaying(false);
     const route = state.routes[state.active];
@@ -664,8 +813,9 @@ function buildWalkControls() {
   // pauses, D and B choose the route, 1 to 5 choose the overlay.
   window.addEventListener('keydown', (e) => {
     if (e.target.closest('input, button, summary, dialog') && e.key !== ' ') return;
-    if (e.key === ' ') { e.preventDefault(); setPlaying(!state.playing); }
+    if (e.key === ' ') { e.preventDefault(); if (state.playing) setPlaying(false); else startWalk(); }
     if (e.key === 'r' || e.key === 'R') document.body.classList.toggle('rec');
+    if (e.key === 'v' || e.key === 'V') setView3D($('view3d').hidden);
     if (e.key === 'p' || e.key === 'P') runSequence();
     if (e.key === 'Escape') stopSequence();
     if (e.key === 'd' || e.key === 'D') selectRoute('direct', true);
@@ -688,7 +838,7 @@ function walkOnce(seconds) {
     state.dist = 0;
     state.nextStop = 1;
     state.onWalkEnd = done;
-    setPlaying(true);
+    startWalk();
   });
 }
 
@@ -756,14 +906,16 @@ async function start() {
   buildWeather();
   buildProof();
 
-  const [terrain, sky, walk, photos] = await Promise.all([
+  const [terrain, sky, comms, walk, photos] = await Promise.all([
     loadTerrain(),
     loadSky(),
+    loadComms().catch(() => null), // the page still works without the comms data
     fetch('data/walk.json').then((r) => r.json()),
     fetch('data/photos.json').then((r) => r.json()),
   ]);
-  Object.assign(state, { terrain, sky, walk, photos: photos.photos });
-  buildOverlays(terrain, sky);
+  Object.assign(state, { terrain, sky, comms, walk, photos: photos.photos });
+  buildOverlays(terrain, sky, comms);
+  buildViewSwitch();
   buildMapCredits(terrain);
 
   document.body.classList.remove('booting');
@@ -785,6 +937,7 @@ async function start() {
   }
   state.routes = state.plans[0];
   buildLoads();
+  buildStartTimes();
   setLoad(0, false);
   buildWalkControls();
   $('ledger-note').innerHTML = `An ${MODEL.bodyMassKg} kg walker in a ${MODEL.suitMassKg} kg suit. Pace ${MODEL.paceMs.toFixed(1)} m/s, slower on climbs to stay under ${MODEL.workLimitW} W. The suit removes ${MODEL.coolingW} W of heat.`;

@@ -23,10 +23,12 @@ Work in progress. This section is updated as parts are finished.
 - [x] Curiosity's measured temperature and pressure range for the site
 
 - [x] Heat decides the walk: with a 30 kg load the direct route passes NASA's stored-heat limit (3.7 against 3.0 kJ/kg), so the plan adds a 7 minute rest and the route takes 56 minutes; the body-cost route needs no rest and takes 45
+- [x] Comms shadow: when a relay orbiter (MRO, Mars Odyssey, Trace Gas Orbiter, Mars Express) is above the terrain as seen by the walker, from NASA/JPL Horizons orbit data for sol 4752, with a start-time choice and the share of each route in contact. An independent recomputation matched within 1 minute
+- [x] 3D view of the walk on the real terrain (HiRISE imagery over the 4 m elevation model); pressing Walk switches to it and follows the walker
 - [x] Radiation layer: how much sky the terrain blocks, computed with the method of the Curiosity RAD team and checked against the eight places where the rover measured a dose drop (6 of 8 within 1 percentage point; shown in the page under "Check vs RAD")
 - [x] A whole-Mars globe (`globe.html`): the surveyed patch is ringed and opens the walk; any other point shows its coordinates and MOLA elevation and is labelled as not yet surveyed at walk scale
 
-Keys on the walk page: Space plays or pauses the walk, D and B choose the direct or the body-cost route, 1 to 5 choose the overlay, L changes the carried load, R switches the clean screen for filming on and off, P plays a fixed sequence (Escape stops it). Opening `globe.html?rec` plays everything in one take, from the whole planet to the end of the walk.
+Keys on the walk page: Space plays or pauses the walk, D and B choose the direct or the body-cost route, 1 to 5 choose the overlay, L changes the carried load, V switches between the map and the 3D view, R switches the clean screen for filming on and off, P plays a fixed sequence (Escape stops it). Opening `globe.html?rec` plays everything in one take, from the whole planet to the end of the walk.
 
 ## Run it
 
@@ -49,6 +51,8 @@ Then open http://localhost:8765 for the walk, or http://localhost:8765/globe.htm
 - The suit is modelled as removing 370 W of heat and nothing more. That figure is a prototype evaporator rating in a Mars environment, not a flight suit value.
 - Time spent working at the stops is not counted, only walking.
 
+- Comms shadow is line of sight only, for one sol (18 December 2025). Real relay sessions are scheduled and need link margin. The elevation model ends 14 to 17 km east and west of the site, so low passes may be blocked more than shown. MAVEN is left out because NASA lost contact with it on 6 December 2025.
+- The 3D view uses every second elevation cell (8 m), so it is a picture of the ground, not a measurement tool; numbers come from the 4 m grid.
 - The model has not been tested on people. An earlier route planner of this kind (MIT's SEXTANT) was found in a field test to predict less time and energy than explorers actually used; the same may be true here. See "Related work" in [CREDITS.md](CREDITS.md).
 
 ## How the numbers are made

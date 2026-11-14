@@ -1,0 +1,33 @@
+{
+ "what": "Terrain horizon elevation angle per azimuth at each point of the 16 m walk-area grid (same grid as data/shielding/boxwork_sky_blocked.json), including the curvature of Mars.",
+ "file": "horizon.bin",
+ "encoding": "int8, degrees = value / 2 (half-degree steps, clipped to -64..63.5); point-major: index = (row * cols + col) * azimuths + k, azimuth = k * 5 deg clockwise from north; rows go south from the north-west point",
+ "cols": 97,
+ "rows": 119,
+ "spacing_m": 16,
+ "azimuths": 72,
+ "az_step_deg": 5,
+ "origin": "centre of the north-west point",
+ "origin_x_m": 8142569.4928,
+ "origin_y_m": -283933.07519999996,
+ "origin_lon": 137.37007244277245,
+ "origin_lat": -4.790122717848713,
+ "projection": "equirectangular, centre longitude 0, sphere R = 3396190 m: x = R * lon_rad, y = R * lat_rad; rows go south",
+ "settings": {
+  "azStepDeg": 5,
+  "viewHeight": 1.7,
+  "nearStep": 4,
+  "farStep": 32,
+  "growth": 0.01,
+  "maxDist": 20000,
+  "view_height_note": "ASSUMPTION: 1.7 m, the antenna height of a standing walker",
+  "near": "data/shielding/near_boxwork_4m (4 m)",
+  "far": "data/shielding/far_32m (32 m)"
+ },
+ "min_deg": -5.5,
+ "max_deg": 60,
+ "rays_ending_before_20km_fraction": 0.69,
+ "compute_seconds": 12.068,
+ "limits": "The elevation model ends 14 to 17 km east and west of the walk area, and the summit of Mount Sharp lies outside it, so the horizon to the south-east is a lower bound. 5 deg azimuth sampling can miss narrow peaks.",
+ "credit": "Elevation: NASA/JPL-Caltech/University of Arizona/USGS (MSL Gale Merged DEM 1 m v3)"
+}

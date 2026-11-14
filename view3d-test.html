@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D view test</title>
+<link rel="stylesheet" href="css/view3d.css">
+<style>
+  :root {
+    --bg: #0c0908; --panel: rgba(14, 10, 8, 0.88); --panel-quiet: rgba(14, 10, 8, 0.72);
+    --line: rgba(255, 214, 190, 0.18); --text: #f3ebe0; --dim: #c4b5a5; --red: #ff5533;
+    --amber: #ffb547; --ok: #63d6c1;
+    --mono: ui-monospace, "SFMono-Regular", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  }
+  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 var(--sans); overflow: hidden; }
+  #stage { position: fixed; inset: 0; }
+  .bar {
+    position: fixed; z-index: 10; left: 0; right: 0; top: 0; display: flex; flex-wrap: wrap; gap: 14px;
+    align-items: center; padding: 10px 20px; background: linear-gradient(to bottom, rgba(8,5,4,.92), rgba(8,5,4,.55) 80%, transparent);
+  }
+  .bar label { display: flex; gap: 6px; align-items: center; color: var(--dim); }
+  .bar select, .bar button { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; font: inherit; }
+  .bar input[type=range] { width: min(36vw, 420px); accent-color: var(--amber); }
+  #readout { font: 12px var(--mono); color: var(--dim); min-width: 11em; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div class="bar">
+  <label>Distance <input id="dist" type="range" min="0" max="1" step="1" value="0"></label>
+  <span id="readout"></span>
+  <button id="play">Play</button>
+  <label>Route <select id="route"><option value="direct">Direct</option><option value="body">Body cost</option></select></label>
+  <label>Camera <select id="mode"><option value="orbit">Orbit</option><option value="chase">Chase</option></select></label>
+  <label>Height <select id="exag"><option value="1">x1</option><option value="2">x2</option></select></label>
+  <label><input id="tint" type="checkbox"> Slope tint</label>
+  <label>Load kg <select id="load"></select></label>
+</div>
+<script type="module">
+import { loadTerrain } from './js/terrain.js';
+import { createView3D } from './js/view3d.js';
+
+// Query string sets the start state, so a screenshot can be taken without clicking:
+// ?route=body&mode=chase&d=700&x=2&tint=1&load=15&az=40&pol=50&dist=900
+const q = new URLSearchParams(location.search);
+const colors = { direct: '#ffb547', body: '#63d6c1' };
+const $ = (id) => document.getElementById(id);
+
+const [terrain, data] = await Promise.all([loadTerrain(), fetch('data/routes.json').then((r) => r.json())]);
+
+// routes.json may hold one set of routes or one set per carried load.
+const sets = data.loads || { 0: data.routes };
+for (const kg of Object.keys(sets)) $('load').add(new Option(kg, kg));
+$('load').value = q.get('load') && sets[q.get('load')] ? q.get('load') : Object.keys(sets)[0];
+const current = () => sets[$('load').value];
+
+const view = await createView3D($('stage'), { terrain, routes: current(), colors });
+window.view = view;
+
+let route = q.get('route') === 'body' ? 'body' : 'direct';
+const total = () => current()[route].points.at(-1).dist;
+function setDist(d) {
+  $('dist').value = d;
+  $('readout').textContent = `${Math.round(d)} of ${Math.round(total())} m`;
+  view.setWalker(d);
+}
+function syncSlider() {
+  $('dist').max = Math.round(total());
+}
+
+$('route').value = route;
+view.setRoute(route);
+syncSlider();
+$('mode').value = q.get('mode') === 'chase' ? 'chase' : 'orbit';
+view.setMode($('mode').value);
+$('exag').value = q.get('x') === '2' ? '2' : '1';
+view.setExaggeration(Number($('exag').value));
+$('tint').checked = q.get('tint') === '1';
+view.setSlopeTint($('tint').checked);
+setDist(Math.min(Number(q.get('d')) || 0, total()));
+if (q.has('az') || q.has('pol') || q.has('dist')) {
+  const o = {};
+  if (q.has('az')) o.az = Number(q.get('az')) * Math.PI / 180;
+  if (q.has('pol')) o.pol = Number(q.get('pol')) * Math.PI / 180;
+  if (q.has('dist')) o.dist = Number(q.get('dist'));
+  view.debug.setOrbit(o);
+}
+view.show();
+if (q.has('settle')) view.debug.settle(); // draws now, without waiting for animation frames
+
+$('dist').oninput = (e) => setDist(Number(e.target.value));
+$('route').onchange = (e) => { route = e.target.value; view.setRoute(route); syncSlider(); setDist(Math.min(Number($('dist').value), total())); };
+$('mode').onchange = (e) => view.setMode(e.target.value);
+$('exag').onchange = (e) => view.setExaggeration(Number(e.target.value));
+$('tint').onchange = (e) => view.setSlopeTint(e.target.checked);
+$('load').onchange = () => { view.setRoutes(current()); syncSlider(); setDist(Math.min(Number($('dist').value), total())); };
+
+// Play walks at 40 m per second so the chase view can be watched.
+let timer = 0;
+$('play').onclick = () => {
+  if (timer) { clearInterval(timer); timer = 0; $('play').textContent = 'Play'; return; }
+  $('play').textContent = 'Pause';
+  let last = performance.now();
+  timer = setInterval(() => {
+    const now = performance.now();
+    let d = Number($('dist').value) + ((now - last) / 1000) * 40;
+    last = now;
+    if (d >= total()) d = 0;
+    setDist(d);
+  }, 33);
+};
+window.addEventListener('resize', () => view.resize());
+</script>
+</body>
+</html>

@@ -6,10 +6,12 @@
   <title>Red Ledger: what a Marswalk costs the body</title>
   <meta name="description" content="A helmet display for one Marswalk at Gale crater. Every route is priced in energy, heat, radiation dose and the way back. Made with NASA open data.">
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="css/view3d.css">
   <link rel="stylesheet" href="css/hud.css">
 </head>
 <body class="booting">
   <div id="map" aria-label="Map of the walk area at Gale crater, Mars"></div>
+  <div id="view3d" hidden></div>
   <div class="visor" aria-hidden="true"></div>
 
   <header class="top">
@@ -25,6 +27,12 @@
       <summary>Site weather</summary>
       <div class="pop" id="weather-body"></div>
     </details>
+    <nav class="overlays" id="views" aria-label="View">
+      <button type="button" id="view-map" aria-pressed="true">Map</button>
+      <button type="button" id="view-3d" aria-pressed="false" title="The walk on real terrain (key V)">3D</button>
+      <button type="button" id="view-follow" aria-pressed="false" hidden>Follow</button>
+      <button type="button" id="view-height" aria-pressed="false" hidden>Height ×2</button>
+    </nav>
     <nav class="overlays" id="overlays" aria-label="Map overlay"></nav>
   </header>
 
@@ -71,6 +79,7 @@
     <div class="routes" id="routes"></div>
     <div class="scrub">
       <button id="play" type="button" disabled>Walk</button>
+      <label class="start" id="start-wrap">Start <select id="start-time" title="Local time on Mars when the walk starts. The share is how much of the body-cost route has a relay orbiter in view."></select></label>
       <input id="progress" type="range" min="0" max="1000" value="0" disabled aria-label="Position along the route">
       <span id="progress-text" class="mono"></span>
     </div>

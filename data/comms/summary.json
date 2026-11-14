@@ -1,0 +1,767 @@
+{
+ "what": "Comms shadow over the walk area: when a walker 1.7 m above the ground has a line of sight to a Mars relay orbiter over the terrain.",
+ "date_utc": "2025-12-18",
+ "sol": 4752,
+ "window": "2025-12-18 00:00 UTC + 1480 min (one sol is 1479.6 min)",
+ "why_this_date": "Earth date of sol 4752 in data/rems_boxwork.json; Curiosity was parked at the ridges stop from sol 4752.",
+ "orbiters_used": [
+  "Mars Reconnaissance Orbiter (Horizons -74)",
+  "Mars Odyssey (Horizons -53)",
+  "ExoMars Trace Gas Orbiter (Horizons -143)",
+  "Mars Express (Horizons -41)"
+ ],
+ "orbiters_missing": [],
+ "maven_note": "MAVEN is not counted. NASA lost contact with it on 6 December 2025, twelve days before this sol, and later ended the mission. Horizons still gives its trajectory, which is why it has to be left out by hand.",
+ "sun_check": {
+  "what": "Sun (Horizons 10) from the same site, same sol. Azimuth read as clockwise from north (Horizons header: North(0) -> East(90) -> South(180) -> West(270)).",
+  "sunrise_utc_minute": 636.7,
+  "sunrise_azimuth_deg": 94.6,
+  "sunset_utc_minute": 1379.7,
+  "sunset_azimuth_deg": 265.3,
+  "highest": {
+   "minute": 1008,
+   "azimuth_deg": 16.3,
+   "elevation_deg": 89.8,
+   "ltst": "12:00",
+   "lmst": "11:20"
+  },
+  "day_length_horizons_min": 743,
+  "minutes_above_flat_horizon_in_window": 743,
+  "rems": {
+   "sunrise": "05:18",
+   "sunset": "17:21",
+   "ls": 190,
+   "day_length_min": 742.9,
+   "note": "REMS times are Mars local hours; 1 Mars hour = 61.65 Earth minutes. Whether REMS uses mean or true solar time is not stated in the file (UNVERIFIED)."
+  },
+  "day_length_difference_min": 0.1,
+  "sunrise_local": {
+   "lmst": "05:19",
+   "ltst": "05:58"
+  },
+  "sunset_local": {
+   "lmst": "17:22",
+   "ltst": "18:02"
+  },
+  "ls_computed_deg": 190.8,
+  "equation_of_time_min": 40,
+  "note": "Horizons elevation is the centre of the Sun over the flat reference surface, no air. The Sun is 0.19 deg in radius from Mars, about 0.8 min of motion at each end.",
+  "sunrise_offset_vs_rems_min": {
+   "lmst": 0.5,
+   "ltst": 40.5
+  },
+  "sunset_offset_vs_rems_min": {
+   "lmst": 0.7,
+   "ltst": 40.6
+  },
+  "checks": {
+   "rises_in_east": true,
+   "sets_in_west": true,
+   "highest_near_north_or_south_meridian": true,
+   "day_length_within_15_min": true,
+   "local_time_of_rise_within_30_min": true,
+   "ls_within_2_deg_of_rems": true
+  },
+  "passed": true
+ },
+ "assumptions": {
+  "view_height_m": 1.7,
+  "view_height_note": "ASSUMPTION: antenna of a standing walker.",
+  "single_site": "All orbiter angles are taken from the ridges stop. The farthest grid point is 1.4 km away and the closest orbiter in view is 275 km away, so angles at the grid edge can be off by up to about 0.29 deg.",
+  "geometric_only": "Line of sight only. Real relay sessions are scheduled, need the orbiter antenna pointed at the surface and need link margin; a 0 deg mask is optimistic, so a 10 deg mask is also given."
+ },
+ "grid_settings": {
+  "azStepDeg": 5,
+  "viewHeight": 1.7,
+  "nearStep": 4,
+  "farStep": 32,
+  "growth": 0.01,
+  "maxDist": 20000,
+  "horizon_compute_seconds": 12.068
+ },
+ "grid": {
+  "mask_0deg": {
+   "flat_horizon_minutes": 336,
+   "min": 145,
+   "max": 304,
+   "mean": 274.5,
+   "worst_point": {
+    "lat": -4.811717,
+    "lon": 137.3779,
+    "minutes": 145,
+    "minutes_removed_by_terrain": 191
+   }
+  },
+  "mask_10deg": {
+   "flat_horizon_minutes": 194,
+   "min": 122,
+   "max": 194,
+   "mean": 185.3,
+   "worst_point": {
+    "lat": -4.797141,
+    "lon": 137.375741,
+    "minutes": 122,
+    "minutes_removed_by_terrain": 72
+   }
+  }
+ },
+ "places": [
+  {
+   "id": "habitat",
+   "name": "Habitat",
+   "lat": -4.79711,
+   "lon": 137.38381,
+   "mask_0deg": {
+    "minutes_in_view": 275,
+    "passes": [
+     {
+      "orbiter": "Odyssey",
+      "start_minute": 37,
+      "end_minute": 40,
+      "minutes": 3,
+      "start_utc": "2025-12-18T00:37Z",
+      "start_lmst": "19:35",
+      "max_elevation_deg": 5.5
+     },
+     {
+      "orbiter": "TGO",
+      "start_minute": 250,
+      "end_minute": 265,
+      "minutes": 15,
+      "start_utc": "2025-12-18T04:10Z",
+      "start_lmst": "23:02",
+      "max_elevation_deg": 48.5
+     },
+     {
+      "orbiter": "Mars Express",
+      "start_minute": 469,
+      "end_minute": 510,
+      "minutes": 41,
+      "start_utc": "2025-12-18T07:49Z",
+      "start_lmst": "02:35",
+      "max_elevation_deg": 4.1
+     },
+     {
+      "orbiter": "MRO",
+      "start_minute": 498,
+      "end_minute": 508,
+      "minutes": 10,
+      "start_utc": "2025-12-18T08:18Z",
+      "start_lmst": "03:04",
+      "max_elevation_deg": 79.4
+     },
+     {
+      "orbiter": "Odyssey",
+      "start_minute": 683,
+      "end_minute": 698,
+      "minutes": 15,
+      "start_utc": "2025-12-18T11:23Z",
+      "start_lmst": "06:04",
+      "max_elevation_deg": 75.8
+     },
+     {
+      "orbiter": "TGO",
+      "start_minute": 899,
+      "end_minute": 909,
+      "minutes": 10,
+      "start_utc": "2025-12-18T14:59Z",
+      "start_lmst": "09:34",
+      "max_elevation_deg": 16.7
+     },
+     {
+      "orbiter": "Mars Express",
+      "start_minute": 984,
+      "end_minute": 1151,
+      "minutes": 167,
+      "start_utc": "2025-12-18T16:24Z",
+      "start_lmst": "10:57",
+      "max_elevation_deg": 68
+     },
+     {
+      "orbiter": "TGO",
+      "start_minute": 1017,
+      "end_minute": 1030,
+      "minutes": 13,
+      "start_utc": "2025-12-18T16:57Z",
+      "start_lmst": "11:29",
+      "max_elevation_deg": 16.3
+     },
+     {
+      "orbiter": "MRO",
+      "start_minute": 1226,
+      "end_minute": 1236,
+      "minutes": 10,
+      "start_utc": "2025-12-18T20:26Z",
+      "start_lmst": "14:52",
+      "max_elevation_deg": 47.1
+     },
+     {
+      "orbiter": "Odyssey",
+      "start_minute": 1455,
+      "end_minute": 1469,
+      "minutes": 14,
+      "start_utc": "2025-12-19T00:15Z",
+      "start_lmst": "18:35",
+      "max_elevation_deg": 34.5
+     }
+    ],
+    "longest_gap": {
+     "minutes": 219,
+     "start": 1236,
+     "end": 1455,
+     "touches_window_edge": false,
+     "start_lmst": "15:02",
+     "end_lmst": "18:35"
+    },
+    "longest_gap_without_maven_min": 219,
+    "minutes_in_view_without_maven": 275
+   },
+   "mask_10deg": {
+    "minutes_in_view": 194,
+    "passes": [
+     {
+      "orbiter": "TGO",
+      "start_minute": 253,
+      "end_minute": 265,
+      "minutes": 12,
+      "start_utc": "2025-12-18T04:13Z",
+      "start_lmst": "23:05",
+      "max_elevation_deg": 48.5
+     },
+     {
+      "orbiter": "MRO",
+      "start_minute": 499,
+      "end_minute": 508,
+      "minutes": 9,
+      "start_utc": "2025-12-18T08:19Z",
+      "start_lmst": "03:05",
+      "max_elevation_deg": 79.4
+     },
+     {
+      "orbiter": "Odyssey",
+      "start_minute": 683,
+      "end_minute": 695,
+      "minutes": 12,
+      "start_utc": "2025-12-18T11:23Z",
+      "start_lmst": "06:04",
+      "max_elevation_deg": 75.8
+     },
+     {
+      "orbiter": "TGO",
+      "start_minute": 899,
+      "end_minute": 907,
+      "minutes": 8,
+      "start_utc": "2025-12-18T14:59Z",
+      "start_lmst": "09:34",
+      "max_elevation_deg": 16.7
+     },
+     {
+      "orbiter": "Mars Express",
+      "start_minute": 984,
+      "end_minute": 1118,
+      "minutes": 134,
+      "start_utc": "2025-12-18T16:24Z",
+      "start_lmst": "10:57",
+      "max_elevation_deg": 68
+     },
+     {
+      "orbiter": "TGO",
+      "start_minute": 1019,
+      "end_minute": 1026,
+      "minutes": 7,
+      "start_utc": "2025-12-18T16:59Z",
+      "start_lmst": "11:31",
+      "max_elevation_deg": 16.3
+     },
+     {
+      "orbiter": "MRO",
+      "start_minute": 1226,
+      "end_minute": 1234,
+      "minutes": 8,
+      "start_utc": "2025-12-18T20:26Z",
+      "start_lmst": "14:52",
+      "max_elevation_deg": 47.1
+     },
+     {
+      "orbiter": "Odyssey",
+      "start_minute": 1458,
+      "end_minute": 1469,
+      "minutes": 11,
+      "start_utc": "2025-12-19T00:18Z",
+      "start_lmst": "18:38",
+      "max_elevation_deg": 34.5
+     }
+    ],
+    "longest_gap": {
+     "minutes": 253,
+     "start": 0,
+     "end": 253,
+     "touches_window_edge": true,
+     "start_lmst": "18:59",
+     "end_lmst": "23:05"
+    },
+    "longest_gap_without_maven_min": 253,
+    "minutes_in_view_without_maven": 194
+   },
+   "fine_horizon_check": {
+    "settings": {
+     "azStepDeg": 0.5,
+     "viewHeight": 1.7,
+     "nearStep": 2,
+     "farStep": 16,
+     "growth": 0,
+     "maxDist": 20000
+    },
+    "minutes_in_view_0deg_fine": 275,
+    "minutes_in_view_0deg_grid": 275,
+    "note": "Fine horizon at the exact point; grid value at the nearest 16 m point."
+   }
+  },
+  {
+   "id": "ridges",
+   "name": "Boxwork ridges work site",
+   "lat": -4.808032,
+   "lon": 137.380993,
+   "mask_0deg": {
+    "minutes_in_view": 274,
+    "passes": [
+     {
+      "orbiter": "Odyssey",
+      "start_minute": 34,
+      "end_minute": 35,
+      "minutes": 1,
+      "start_utc": "2025-12-18T00:34Z",
+      "start_lmst": "19:32",
+      "max_elevation_deg": 0
+     },
+     {
+      "orbiter": "Odyssey",
+      "start_minute": 36,
+      "end_minute": 37,
+      "minutes": 1,
+      "start_utc": "2025-12-18T00:36Z",
+      "start_lmst": "19:34",
+      "max_elevation_deg": 3.2
+     },
+     {
+      "orbiter": "TGO",
+      "start_minute": 250,
+      "end_minute": 264,
+      "minutes": 14,
+      "start_utc": "2025-12-18T04:10Z",
+      "start_lmst": "23:02",
+      "max_elevation_deg": 48.5
+     },
+     {
+      "orbiter": "Mars Express",
+      "start_minute": 469,
+      "end_minute": 509,
+      "minutes": 40,
+      "start_utc": "2025-12-18T07:49Z",
+      "start_lmst": "02:35",
+      "max_elevation_deg": 4.1
+     },
+     {
+      "orbiter": "MRO",
+      "start_minute": 497,
+      "end_minute": 508,
+      "minutes": 11,
+      "start_utc": "2025-12-18T08:17Z",
+      "start_lmst": "03:03",
+      "max_elevation_deg": 79.4
+     },
+     {
+      "orbiter": "Odyssey",
+      "start_minute": 683,
+      "end_minute": 698,
+      "minutes": 15,
+      "start_utc": "2025-12-18T11:23Z",
+      "start_lmst": "06:04",
+      "max_elevation_deg": 75.8
+     },
+     {
+      "orbiter": "TGO",
+      "start_minute": 899,
+      "end_minute": 910,
+      "minutes": 11,
+      "start_utc": "2025-12-18T14:59Z",
+      "start_lmst": "09:34",
+      "max_elevation_deg": 16.7
+     },
+     {
+      "orbiter": "Mars Express",
+      "start_minute": 984,
+      "end_minute": 1152,
+      "minutes": 168,
+      "start_utc": "2025-12-18T16:24Z",
+      "start_lmst": "10:57",
+      "max_elevation_deg": 68
+     },
+     {
+      "orbiter": "TGO",
+      "start_minute": 1021,
+      "end_minute": 1030,
+      "minutes": 9,
+      "start_utc": "2025-12-18T17:01Z",
+      "start_lmst": "11:33",
+      "max_elevation_deg": 16.3
+     },
+     {
+      "orbiter": "MRO",
+      "start_minute": 1225,
+      "end_minute": 1237,
+      "minutes": 12,
+      "start_utc": "2025-12-18T20:25Z",
+      "start_lmst": "14:51",
+      "max_elevation_deg": 47.1
+     },
+     {
+      "orbiter": "Odyssey",
+      "start_minute": 1455,
+      "end_minute": 1467,
+      "minutes": 12,
+      "start_utc": "2025-12-19T00:15Z",
+      "start_lmst": "18:35",
+      "max_elevation_deg": 34.5
+     }
+    ],
+    "longest_gap": {
+     "minutes": 218,
+     "start": 1237,
+     "end": 1455,
+     "touches_window_edge": false,
+     "start_lmst": "15:03",
+     "end_lmst": "18:35"
+    },
+    "longest_gap_without_maven_min": 218,
+    "minutes_in_view_without_maven": 274
+   },
+   "mask_10deg": {
+    "minutes_in_view": 191,
+    "passes": [
+     {
+      "orbiter": "TGO",
+      "start_minute": 253,
+      "end_minute": 264,
+      "minutes": 11,
+      "start_utc": "2025-12-18T04:13Z",
+      "start_lmst": "23:05",
+      "max_elevation_deg": 48.5
+     },
+     {
+      "orbiter": "MRO",
+      "start_minute": 499,
+      "end_minute": 508,
+      "minutes": 9,
+      "start_utc": "2025-12-18T08:19Z",
+      "start_lmst": "03:05",
+      "max_elevation_deg": 79.4
+     },
+     {
+      "orbiter": "Odyssey",
+      "start_minute": 683,
+      "end_minute": 695,
+      "minutes": 12,
+      "start_utc": "2025-12-18T11:23Z",
+      "start_lmst": "06:04",
+      "max_elevation_deg": 75.8
+     },
+     {
+      "orbiter": "TGO",
+      "start_minute": 899,
+      "end_minute": 907,
+      "minutes": 8,
+      "start_utc": "2025-12-18T14:59Z",
+      "start_lmst": "09:34",
+      "max_elevation_deg": 16.7
+     },
+     {
+      "orbiter": "Mars Express",
+      "start_minute": 984,
+      "end_minute": 1118,
+      "minutes": 134,
+      "start_utc": "2025-12-18T16:24Z",
+      "start_lmst": "10:57",
+      "max_elevation_deg": 68
+     },
+     {
+      "orbiter": "TGO",
+      "start_minute": 1021,
+      "end_minute": 1026,
+      "minutes": 5,
+      "start_utc": "2025-12-18T17:01Z",
+      "start_lmst": "11:33",
+      "max_elevation_deg": 16.3
+     },
+     {
+      "orbiter": "MRO",
+      "start_minute": 1226,
+      "end_minute": 1234,
+      "minutes": 8,
+      "start_utc": "2025-12-18T20:26Z",
+      "start_lmst": "14:52",
+      "max_elevation_deg": 47.1
+     },
+     {
+      "orbiter": "Odyssey",
+      "start_minute": 1458,
+      "end_minute": 1467,
+      "minutes": 9,
+      "start_utc": "2025-12-19T00:18Z",
+      "start_lmst": "18:38",
+      "max_elevation_deg": 34.5
+     }
+    ],
+    "longest_gap": {
+     "minutes": 253,
+     "start": 0,
+     "end": 253,
+     "touches_window_edge": true,
+     "start_lmst": "18:59",
+     "end_lmst": "23:05"
+    },
+    "longest_gap_without_maven_min": 253,
+    "minutes_in_view_without_maven": 191
+   },
+   "fine_horizon_check": {
+    "settings": {
+     "azStepDeg": 0.5,
+     "viewHeight": 1.7,
+     "nearStep": 2,
+     "farStep": 16,
+     "growth": 0,
+     "maxDist": 20000
+    },
+    "minutes_in_view_0deg_fine": 275,
+    "minutes_in_view_0deg_grid": 274,
+    "note": "Fine horizon at the exact point; grid value at the nearest 16 m point."
+   }
+  },
+  {
+   "id": "west",
+   "name": "Unvisited ground, west bench",
+   "lat": -4.80858,
+   "lon": 137.372,
+   "mask_0deg": {
+    "minutes_in_view": 290,
+    "passes": [
+     {
+      "orbiter": "Odyssey",
+      "start_minute": 34,
+      "end_minute": 43,
+      "minutes": 9,
+      "start_utc": "2025-12-18T00:34Z",
+      "start_lmst": "19:32",
+      "max_elevation_deg": 5.5
+     },
+     {
+      "orbiter": "TGO",
+      "start_minute": 250,
+      "end_minute": 265,
+      "minutes": 15,
+      "start_utc": "2025-12-18T04:10Z",
+      "start_lmst": "23:02",
+      "max_elevation_deg": 48.5
+     },
+     {
+      "orbiter": "Mars Express",
+      "start_minute": 469,
+      "end_minute": 518,
+      "minutes": 49,
+      "start_utc": "2025-12-18T07:49Z",
+      "start_lmst": "02:35",
+      "max_elevation_deg": 4.1
+     },
+     {
+      "orbiter": "MRO",
+      "start_minute": 497,
+      "end_minute": 508,
+      "minutes": 11,
+      "start_utc": "2025-12-18T08:17Z",
+      "start_lmst": "03:03",
+      "max_elevation_deg": 79.4
+     },
+     {
+      "orbiter": "Odyssey",
+      "start_minute": 683,
+      "end_minute": 698,
+      "minutes": 15,
+      "start_utc": "2025-12-18T11:23Z",
+      "start_lmst": "06:04",
+      "max_elevation_deg": 75.8
+     },
+     {
+      "orbiter": "TGO",
+      "start_minute": 899,
+      "end_minute": 908,
+      "minutes": 9,
+      "start_utc": "2025-12-18T14:59Z",
+      "start_lmst": "09:34",
+      "max_elevation_deg": 16.7
+     },
+     {
+      "orbiter": "Mars Express",
+      "start_minute": 985,
+      "end_minute": 1152,
+      "minutes": 167,
+      "start_utc": "2025-12-18T16:25Z",
+      "start_lmst": "10:57",
+      "max_elevation_deg": 68
+     },
+     {
+      "orbiter": "TGO",
+      "start_minute": 1017,
+      "end_minute": 1030,
+      "minutes": 13,
+      "start_utc": "2025-12-18T16:57Z",
+      "start_lmst": "11:29",
+      "max_elevation_deg": 16.3
+     },
+     {
+      "orbiter": "MRO",
+      "start_minute": 1226,
+      "end_minute": 1237,
+      "minutes": 11,
+      "start_utc": "2025-12-18T20:26Z",
+      "start_lmst": "14:52",
+      "max_elevation_deg": 47.1
+     },
+     {
+      "orbiter": "Odyssey",
+      "start_minute": 1455,
+      "end_minute": 1470,
+      "minutes": 15,
+      "start_utc": "2025-12-19T00:15Z",
+      "start_lmst": "18:35",
+      "max_elevation_deg": 34.5
+     }
+    ],
+    "longest_gap": {
+     "minutes": 218,
+     "start": 1237,
+     "end": 1455,
+     "touches_window_edge": false,
+     "start_lmst": "15:03",
+     "end_lmst": "18:35"
+    },
+    "longest_gap_without_maven_min": 218,
+    "minutes_in_view_without_maven": 290
+   },
+   "mask_10deg": {
+    "minutes_in_view": 193,
+    "passes": [
+     {
+      "orbiter": "TGO",
+      "start_minute": 253,
+      "end_minute": 265,
+      "minutes": 12,
+      "start_utc": "2025-12-18T04:13Z",
+      "start_lmst": "23:05",
+      "max_elevation_deg": 48.5
+     },
+     {
+      "orbiter": "MRO",
+      "start_minute": 499,
+      "end_minute": 508,
+      "minutes": 9,
+      "start_utc": "2025-12-18T08:19Z",
+      "start_lmst": "03:05",
+      "max_elevation_deg": 79.4
+     },
+     {
+      "orbiter": "Odyssey",
+      "start_minute": 683,
+      "end_minute": 695,
+      "minutes": 12,
+      "start_utc": "2025-12-18T11:23Z",
+      "start_lmst": "06:04",
+      "max_elevation_deg": 75.8
+     },
+     {
+      "orbiter": "TGO",
+      "start_minute": 899,
+      "end_minute": 907,
+      "minutes": 8,
+      "start_utc": "2025-12-18T14:59Z",
+      "start_lmst": "09:34",
+      "max_elevation_deg": 16.7
+     },
+     {
+      "orbiter": "Mars Express",
+      "start_minute": 985,
+      "end_minute": 1118,
+      "minutes": 133,
+      "start_utc": "2025-12-18T16:25Z",
+      "start_lmst": "10:57",
+      "max_elevation_deg": 68
+     },
+     {
+      "orbiter": "TGO",
+      "start_minute": 1019,
+      "end_minute": 1026,
+      "minutes": 7,
+      "start_utc": "2025-12-18T16:59Z",
+      "start_lmst": "11:31",
+      "max_elevation_deg": 16.3
+     },
+     {
+      "orbiter": "MRO",
+      "start_minute": 1226,
+      "end_minute": 1234,
+      "minutes": 8,
+      "start_utc": "2025-12-18T20:26Z",
+      "start_lmst": "14:52",
+      "max_elevation_deg": 47.1
+     },
+     {
+      "orbiter": "Odyssey",
+      "start_minute": 1458,
+      "end_minute": 1469,
+      "minutes": 11,
+      "start_utc": "2025-12-19T00:18Z",
+      "start_lmst": "18:38",
+      "max_elevation_deg": 34.5
+     }
+    ],
+    "longest_gap": {
+     "minutes": 253,
+     "start": 0,
+     "end": 253,
+     "touches_window_edge": true,
+     "start_lmst": "18:59",
+     "end_lmst": "23:05"
+    },
+    "longest_gap_without_maven_min": 253,
+    "minutes_in_view_without_maven": 193
+   },
+   "fine_horizon_check": {
+    "settings": {
+     "azStepDeg": 0.5,
+     "viewHeight": 1.7,
+     "nearStep": 2,
+     "farStep": 16,
+     "growth": 0,
+     "maxDist": 20000
+    },
+    "minutes_in_view_0deg_fine": 290,
+    "minutes_in_view_0deg_grid": 290,
+    "note": "Fine horizon at the exact point; grid value at the nearest 16 m point."
+   }
+  }
+ ],
+ "light_time": {
+  "one_way_minutes_at_start": 20.12314485,
+  "range_km_at_start": 361966023,
+  "one_way_minutes_range_over_window": [
+   20.12,
+   20.12
+  ],
+  "source": "NASA/JPL Horizons, Earth (399) seen from the site, quantity 21 (one-way down-leg light time) and 20 (range).",
+  "earth_in_sky": "Earth above the flat horizon for 12 of 25 hourly samples"
+ },
+ "sources": [
+  "Orbiter and Sun positions: NASA/JPL Horizons API (ssd.jpl.nasa.gov)",
+  "Elevation: NASA/JPL-Caltech/University of Arizona/USGS (MSL Gale Merged DEM 1 m v3)",
+  "Mars time: Allison & McEwen 2000 (Mars24 algorithm, NASA GISS)"
+ ]
+}

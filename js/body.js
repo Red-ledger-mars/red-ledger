@@ -90,6 +90,12 @@ export const SOURCES = {
     what: 'At eight places Curiosity measured 2% to 19% less dose where terrain blocked more sky: about 1% less dose for each extra percentage point of sky blocked (0.7 to 1.5 across the sites, no error bars given). The model applies 1% per point, counted from the 10% of sky blocked in the reference period of Guo et al. 2021. Applying it to dose equivalent is our assumption.',
     status: 'assumption',
   },
+  comms: {
+    label: 'NASA/JPL Horizons, orbiter positions for sol 4752',
+    url: 'https://ssd.jpl.nasa.gov/horizons/',
+    what: 'When the Mars Reconnaissance Orbiter, Mars Odyssey, the ExoMars Trace Gas Orbiter or Mars Express is above the terrain as seen by a walker 1.7 m tall, on 18 December 2025. Line of sight only: real relay sessions are scheduled and need more than a clear view. MAVEN is left out, because NASA lost contact with it on 6 December 2025.',
+    status: 'assumption',
+  },
   doseLimit: {
     label: 'NASA-STD-3001 Vol 1 Rev C, [V1 4030]',
     url: 'https://www.nasa.gov/directorates/esdmd/hhp/human-spaceflight-and-aviation-standards/',

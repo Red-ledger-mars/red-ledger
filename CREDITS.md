@@ -15,6 +15,7 @@ Every dataset, paper, library, image, sound and font used in Red Ledger, with it
 | Viking Orbiter global colour mosaic (MDIM 2.1, 232 m per pixel) | Viking Orbiters | Optical, global | NASA/JPL-Caltech/USGS | NASA Mars Trek, layer `Mars_Viking_MDIM21_ClrMosaic_global_232m`; zoom 2 copy in `tiles/global/` |
 | MOLA colour shaded relief (463 m per pixel) and the MOLA 4 pixel per degree gridded topography (`megt90n000cb`) | Mars Global Surveyor, Mars Orbiter Laser Altimeter | Topographic, global | NASA/GSFC | Picture: NASA Mars Trek, layer `Mars_MGS_MOLA_ClrShade_merge_global_463m`. Numbers: NASA Planetary Data System, Geosciences Node; stored as `data/global/mola_4ppd.bin` by `tools/fetch_global.py` |
 | THEMIS day infrared global mosaic (100 m per pixel) | Mars Odyssey, THEMIS | Thermal, global | NASA/JPL-Caltech/Arizona State University | NASA Mars Trek, layer `THEMIS_DayIR_ControlledMosaics_100m_v2_oct2018`; zoom 2 copy in `tiles/global/` |
+| Orbiter and Sun positions as seen from the walk site, and the Earth to Mars light time, for 18 December 2025 (sol 4752) | NASA/JPL Horizons system (trajectories of Mars Reconnaissance Orbiter, Mars Odyssey, ExoMars Trace Gas Orbiter, Mars Express) | Orbit geometry | NASA/JPL-Caltech, Solar System Dynamics group. Trace Gas Orbiter and Mars Express are ESA spacecraft | `ssd.jpl.nasa.gov/api/horizons.api`; results in `data/comms/`, made by `tools/comms_fetch.py` and `tools/comms.mjs` |
 | Curiosity end-of-drive waypoints (position and elevation per sol) | Mars Science Laboratory (Curiosity) | Rover localisation | NASA/JPL-Caltech | `mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_waypoints.json`; a trimmed copy is in `data/msl_waypoints.json`, made by `tools/fetch_waypoints.py` |
 
 ## Space agency partner data and other references
@@ -31,6 +32,8 @@ Every dataset, paper, library, image, sound and font used in Red Ledger, with it
 | Guo J, Tian C, Charpentier G, et al. (2026). Influence of Mars Topography on Radiation Dose Detected by the Mars Science Laboratory and Assessment of Mars Surface Albedo Radiation. JGR Planets 131(4), e2026JE009704. Open copy (CC BY): https://elib.dlr.de/224554/ | Definition of sky blocked by terrain; Table 1, the eight places where Curiosity's RAD measured a dose drop, used to check our computation and to set the dose cut per point of sky blocked | Read 14 Nov 2026 |
 | Guo J, et al. (2021). Directionality of the Martian Surface Radiation and Derivation of the Upward Albedo Radiation. Geophysical Research Letters 48(15), e2021GL093912 | Reference share of sky blocked (10%) | Abstract read 14 Nov 2026 |
 | NASA Jet Propulsion Laboratory news, "NASA's Curiosity Mars Rover Starts Unpacking Boxwork Formations", 23 June 2025. https://www.jpl.nasa.gov/news/nasas-curiosity-mars-rover-starts-unpacking-boxwork-formations/ | The Altadena drill stop | Read 14 Nov 2026 |
+
+Space agency partner data: the ExoMars Trace Gas Orbiter and Mars Express are European Space Agency (ESA) missions; their trajectories are used for the comms shadow layer.
 
 ## Related work
 
