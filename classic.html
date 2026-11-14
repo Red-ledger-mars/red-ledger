@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Red Ledger: what a Marswalk costs the body</title>
+  <meta name="description" content="A helmet display for one Marswalk at Gale crater. Every route is priced in energy, heat, radiation dose and the way back. Made with NASA open data.">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="css/view3d.css">
+  <link rel="stylesheet" href="css/hud.css">
+</head>
+<body class="booting">
+  <div id="map" aria-label="Map of the walk area at Gale crater, Mars"></div>
+  <div id="view3d" hidden></div>
+  <div class="visor" aria-hidden="true"></div>
+
+  <header class="top">
+    <div class="brand">
+      <span class="brand-mark">RED LEDGER</span>
+      <span class="brand-sub">Marswalk cost display · <a href="globe.html">whole Mars</a></span>
+    </div>
+    <div class="site">
+      <span class="site-name">Gale crater · Mount Sharp · boxwork ridges</span>
+      <span class="site-coord" id="cursor-coord"></span>
+    </div>
+    <details class="chip-pop" id="weather">
+      <summary>Site weather</summary>
+      <div class="pop" id="weather-body"></div>
+    </details>
+    <nav class="overlays" id="views" aria-label="View">
+      <button type="button" id="view-map" aria-pressed="true">Map</button>
+      <button type="button" id="view-3d" aria-pressed="false" title="The walk on real terrain (key V)">3D</button>
+      <button type="button" id="view-follow" aria-pressed="false" hidden>Follow</button>
+      <button type="button" id="view-height" aria-pressed="false" hidden>Height ×2</button>
+    </nav>
+    <nav class="overlays" id="overlays" aria-label="Map overlay"></nav>
+  </header>
+
+  <main class="hud">
+  <aside class="ledger" aria-label="Body cost along the route">
+    <header class="ledger-head">
+      <h2>Body ledger</h2>
+      <span class="ledger-mode" id="ledger-mode"></span>
+    </header>
+    <div class="loads">
+      <span><i class="assume"></i>Carrying</span>
+      <nav id="loads" aria-label="Carried load"></nav>
+    </div>
+    <div class="bars" id="bars"></div>
+    <div class="legend" id="legend" hidden>
+      <span class="legend-title" id="legend-title"></span>
+      <canvas id="legend-strip" width="200" height="8"></canvas>
+      <span class="legend-ticks" id="legend-ticks"></span>
+    </div>
+    <p class="ledger-note" id="ledger-note">Loading the terrain…</p>
+    <div class="ledger-foot">
+      <button type="button" id="brief-open" class="brief-open">Walk brief: before, during, after</button>
+      <button type="button" id="proof-open">How we tested it</button>
+      <details class="sources" id="sources">
+        <summary>Sources and assumptions</summary>
+        <ul id="sources-list"></ul>
+      </details>
+    </div>
+  </aside>
+
+  <aside class="target" id="target" aria-label="Selected stop" hidden>
+    <figure id="target-photo" hidden>
+      <img id="target-img" alt="">
+      <button id="target-swap" type="button"></button>
+      <figcaption id="target-caption"></figcaption>
+    </figure>
+    <div class="target-body">
+      <h3 id="target-name"></h3>
+      <p id="target-text"></p>
+      <p class="credit" id="target-credit"></p>
+    </div>
+    <button type="button" class="close" id="target-close" aria-label="Close">×</button>
+  </aside>
+
+  <section class="walk" aria-label="Route comparison and walk control">
+    <div class="routes" id="routes"></div>
+    <div class="scrub">
+      <button id="play" type="button" disabled>Walk</button>
+      <button id="free" type="button" class="quiet" disabled title="Steer the walker yourself with the arrow keys; the body model runs on the ground you choose">Free walk</button>
+      <label class="start" id="start-wrap">Start <select id="start-time" title="Local time on Mars when the walk starts. The share is how much of the body-cost route has a relay orbiter in view."></select></label>
+      <input id="progress" type="range" min="0" max="1000" value="0" disabled aria-label="Position along the route">
+      <span id="progress-text" class="mono"></span>
+    </div>
+    <canvas id="profile" aria-label="Elevation profile of the route"></canvas>
+  </section>
+  </main>
+
+  <dialog class="proof sheet" id="proof" aria-label="Tests of the model against measurements">
+    <header>
+      <h2>How we tested our own claims</h2>
+      <button type="button" class="close" id="proof-close" aria-label="Close">×</button>
+    </header>
+    <div id="proof-body"></div>
+  </dialog>
+
+  <dialog class="proof sheet" id="brief" aria-label="Walk brief">
+    <header>
+      <h2>Walk brief</h2>
+      <button type="button" class="close" id="brief-close" aria-label="Close">×</button>
+    </header>
+    <div id="brief-body"></div>
+  </dialog>
+
+  <footer class="foot">
+    <span>Made with NASA open data.</span>
+    <a href="CREDITS.md">Sources and credits</a>
+    <details class="chip-pop up" id="map-credits">
+      <summary>Map credits</summary>
+      <div class="pop" id="map-credits-body"></div>
+    </details>
+    <span class="assume-key"><i class="assume"></i>marks an assumption, not a measurement</span>
+  </footer>
+
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

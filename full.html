@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en" data-theme="mission" data-mode="full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Red Ledger: Mars is costly (full)</title>
+  <meta name="description" content="One walk at Gale crater, Mars, and what it costs the body, step by step. Made with NASA open data.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="css/view3d.css">
+  <link rel="stylesheet" href="css/themes/mission.css">
+  <link rel="stylesheet" href="css/story.css">
+  <script>{ const t = new URLSearchParams(location.search).get('theme'); if (/^[a-z]+$/.test(t || '')) document.documentElement.dataset.theme = t; }</script>
+</head>
+<body class="loading">
+  <div id="stage" aria-hidden="true"></div>
+  <div class="fade-left" aria-hidden="true"></div>
+  <div id="glow" aria-hidden="true"></div>
+
+  <div id="loader" role="status">
+    <div class="loader-line"><i></i></div>
+    <p class="loader-text mono"><span id="loader-step">TERRAIN</span> <span id="loader-pct">0</span>%</p>
+  </div>
+
+  <header class="top">
+    <a class="brand mono" href="./">RED LEDGER</a>
+    <p class="where mono">GALE CRATER · MOUNT SHARP · BOXWORK RIDGES</p>
+    <a class="mode-link mono" id="mode-link" href="./">SIMPLE VERSION →</a>
+  </header>
+
+  <main id="story"></main>
+
+  <aside id="hud" aria-live="polite" hidden></aside>
+
+  <footer class="foot mono">
+    <span>MADE WITH NASA OPEN DATA</span>
+    <a href="#sources">SOURCES</a>
+    <span class="key"><b class="assumed">00</b> HOLLOW NUMBERS REST ON AN ASSUMPTION</span>
+    <button id="auto" class="auto mono" type="button" aria-pressed="false">▶ AUTO</button>
+  </footer>
+
+  <script type="module" src="js/story.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+/* Mission theme. A theme only sets these properties; css/story.css never
+   names a colour or a font itself, so a new theme cannot break the layout.
+   The heat colours are the only colours on the page: white when the body
+   is cool, amber at three quarters of NASA's limit, red at the limit. The
+   thresholds themselves come from MODEL in js/body.js. */
+:root[data-theme="mission"] {
+  --bg: #000;
+  --fg: #fff;
+  --fg-2: rgba(255, 255, 255, 0.62);
+  --fg-3: rgba(255, 255, 255, 0.38);
+  --line: rgba(255, 255, 255, 0.16);
+  --fade: rgba(0, 0, 0, 0.82);
+
+  --heat-cool: #f4f4f4;
+  --heat-warm: #ffb000;
+  --heat-hot: #ff3b1f;
+
+  --font-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace;
+
+  --display-weight: 700;
+  --display-case: uppercase;
+  --display-tracking: -0.01em;
+  --label-tracking: 0.18em;
+  --radius: 0;
+}
