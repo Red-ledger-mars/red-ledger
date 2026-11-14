@@ -1,0 +1,39 @@
+{
+  "note": "The planned Marswalk. The habitat position is an assumption: no landing site has been chosen here. It is the flattest 40 m patch in the elevation crop (largest slope 4.1 degrees). The stops are places where Curiosity itself worked, taken from NASA's waypoint file.",
+  "habitat": {
+    "id": "habitat",
+    "name": "Habitat",
+    "lat": -4.79711,
+    "lon": 137.38381,
+    "assumption": true,
+    "text": "Assumed start and end of the walk. Chosen as the flattest 40 m patch near the boxwork."
+  },
+  "stops": [
+    {
+      "id": "altadena",
+      "name": "Altadena drill site",
+      "lat": -4.799847,
+      "lon": 137.383541,
+      "sol": 4560,
+      "text": "Curiosity drilled its first boxwork-region sample, a rock nicknamed Altadena, here on 8 June 2025.",
+      "source": "https://www.jpl.nasa.gov/news/nasas-curiosity-mars-rover-starts-unpacking-boxwork-formations/"
+    },
+    {
+      "id": "ridges",
+      "name": "Boxwork ridges work site",
+      "lat": -4.808032,
+      "lon": 137.380993,
+      "sol": 4752,
+      "text": "Curiosity stayed at this spot among the ridges for 37 sols (sols 4752 to 4789), its longest stop in the boxwork.",
+      "source": "https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_waypoints.json"
+    },
+    {
+      "id": "west",
+      "name": "Unvisited ground, west bench",
+      "lat": -4.80858,
+      "lon": 137.372,
+      "assumption": true,
+      "text": "Ground about 500 m west of the ridges that Curiosity did not drive to. Provisional target: steep slopes lie between it and the rover's path."
+    }
+  ]
+}

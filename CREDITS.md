@@ -14,7 +14,11 @@ Every dataset, paper, library, image, sound and font used in Red Ledger, with it
 
 ## Space agency partner data and other references
 
-_To be filled as each source is added._
+| Source | Used for | Status |
+|---|---|---|
+| Minetti AE, Moia C, Roi GS, Susta D, Ferretti G (2002). Energy cost of walking and running at extreme uphill and downhill slopes. J Appl Physiol 93:1039-1046. https://europepmc.org/article/MED/12183501 | Walking energy as a function of slope | In use; values are being re-checked against the paper and are marked as assumptions on screen until then |
+| Farley CT, McMahon TA (1992). Energetics of walking and running: insights from simulated reduced-gravity experiments. J Appl Physiol 73:2709-2712. https://europepmc.org/article/MED/1490989 | Scaling walking energy to Mars gravity | In use; same status |
+| NASA Jet Propulsion Laboratory news, "NASA's Curiosity Mars Rover Starts Unpacking Boxwork Formations", 23 June 2025. https://www.jpl.nasa.gov/news/nasas-curiosity-mars-rover-starts-unpacking-boxwork-formations/ | The Altadena drill stop | Read 14 Nov 2026 |
 
 ## Software
 
