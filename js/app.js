@@ -801,6 +801,21 @@ function drawProfileCursor() {
 // The 3D view is made the first time it is opened, because it has to load
 // and stitch the imagery for the terrain.
 // `instant` skips the fade, for the V key.
+// Builds the 3D view once, without showing it. The recorded sequence calls
+// this first, so its first walk does not wait for the terrain to load.
+let view3dLoading = null;
+function loadView3D() {
+  view3dLoading ??= (async () => {
+    const { createView3D } = await import('./view3d.js');
+    state.view3d = await createView3D($('view3d'), {
+      terrain: state.terrain,
+      routes: state.routes,
+      colors: Object.fromEntries(ROUTES.map((def) => [def.id, def.color])),
+    });
+  })();
+  return view3dLoading;
+}
+
 async function setView3D(on, instant = false) {
   $('view3d').classList.toggle('v3d-instant', instant);
   $('view-map').setAttribute('aria-pressed', String(!on));
@@ -810,12 +825,7 @@ async function setView3D(on, instant = false) {
   if (!on) { state.view3d?.hide(); return; }
   if (!state.view3d) {
     $('view-3d').textContent = 'Loading…';
-    const { createView3D } = await import('./view3d.js');
-    state.view3d = await createView3D($('view3d'), {
-      terrain: state.terrain,
-      routes: state.routes,
-      colors: Object.fromEntries(ROUTES.map((def) => [def.id, def.color])),
-    });
+    await loadView3D();
     $('view-3d').textContent = '3D';
   }
   // Without WebGL the walk simply stays on the map.
@@ -856,6 +866,8 @@ function buildViewSwitch() {
 // A full walk plays in about 40 seconds whatever its length. The recorded
 // sequence shortens this.
 let playSeconds = 40;
+// How long the walker stands still on screen at a planned rest.
+let restPauseMs = 1600;
 
 // Each press of Walk starts a new loop with its own number, so a frame left
 // over from an earlier loop stops instead of running alongside the new one.
@@ -890,7 +902,7 @@ function tick(last, id) {
       state.dist = Math.min(total, rest.dist + 1);
       renderWalk(true);
       requestAnimationFrame(() => tick(performance.now(), id));
-    }, 1600);
+    }, restPauseMs);
     return;
   }
   state.dist = Math.min(total, state.dist + ((now - last) / 1000) * (total / playSeconds));
@@ -946,7 +958,7 @@ function buildWalkControls() {
     if (e.key === ' ') { e.preventDefault(); if (state.playing) setPlaying(false); else startWalk(); }
     if (e.key === 'r' || e.key === 'R') document.body.classList.toggle('rec');
     if (e.key === 'v' || e.key === 'V') setView3D($('view3d').hidden, true);
-    if (e.key === 'p' || e.key === 'P') runSequence();
+    if (e.key === 'p' || e.key === 'P') runSequence(e.shiftKey);
     if (e.key === 'Escape') stopSequence();
     if (e.key === 'd' || e.key === 'D') selectRoute('direct', true);
     if (e.key === 'b' || e.key === 'B') selectRoute('body', true);
@@ -1142,51 +1154,81 @@ function stopSequence() {
   state.onWalkEnd?.();
 }
 
-// The fixed sequence for a screen recording: the direct route with the
-// slope layer, then the body-cost route, then the check against Curiosity.
-// It plays the same way every time. Escape stops it.
-async function runSequence() {
+// The fixed sequences for a screen recording. Each plays the same way every
+// time; Escape stops it. The short one (key P) fits the 16 seconds that a
+// 30-second video leaves for the product. The long one (Shift+P) also shows
+// the walk with no load, the sky layer and more of the test sheet.
+async function runSequence(long = false) {
   if (state.sequence) return;
   state.sequence = true;
   const hold = async (ms) => {
     await wait(ms);
     if (!state.sequence) throw new Error('stopped');
   };
+  const heaviest = Math.max(...Object.keys(state.plans).map(Number));
   try {
+    await loadView3D();
     $('target').hidden = true;
-    setOverlay('none');
-    setLoad(0);
-    selectRoute('direct', true);
-    await hold(1800);
-    // Give the walker the heaviest load: the direct route now passes the limit.
-    setLoad(Math.max(...Object.keys(state.plans).map(Number)));
-    await hold(2200);
-    setOverlay('slope');
-    await hold(1500);
-    await walkOnce(12);
-    await hold(1800);
-    $('target').hidden = true;
-    selectRoute('body', true);
-    await hold(2200);
-    await walkOnce(10);
-    await hold(1800);
-    $('target').hidden = true;
-    setOverlay('sky');
-    await hold(2500);
-    $('proof').showModal();
-    await hold(4500);
-    $('proof').close();
-    setOverlay('none');
-    selectRoute('direct', true);
-    await hold(1500);
-    selectRoute('body', true);
+    if (long) await longSequence(hold, heaviest);
+    else await shortSequence(hold, heaviest);
   } catch {
     // stopped with Escape
   } finally {
     state.sequence = false;
     state.onWalkEnd = null;
     playSeconds = 40;
+    restPauseMs = 1600;
   }
+}
+
+// About 16 seconds: the heavy load on the direct route with its three
+// rests, the body-cost route with two, then the test on people.
+async function shortSequence(hold, heaviest) {
+  restPauseMs = 600;
+  setOverlay('slope');
+  setLoad(heaviest);
+  selectRoute('direct', true);
+  await hold(1000);
+  await walkOnce(4.2);
+  await hold(600);
+  $('target').hidden = true;
+  selectRoute('body', true);
+  await hold(800);
+  await walkOnce(3);
+  await hold(500);
+  $('target').hidden = true;
+  $('proof').showModal();
+  await hold(2000);
+  $('proof').close();
+}
+
+async function longSequence(hold, heaviest) {
+  setOverlay('none');
+  setLoad(0);
+  selectRoute('direct', true);
+  await hold(1800);
+  // Give the walker the heaviest load: the direct route now needs three rests.
+  setLoad(heaviest);
+  await hold(2200);
+  setOverlay('slope');
+  await hold(1500);
+  await walkOnce(12);
+  await hold(1800);
+  $('target').hidden = true;
+  selectRoute('body', true);
+  await hold(2200);
+  await walkOnce(10);
+  await hold(1800);
+  $('target').hidden = true;
+  setOverlay('sky');
+  await hold(2500);
+  $('proof').showModal();
+  await hold(4500);
+  $('proof').close();
+  setOverlay('none');
+  selectRoute('direct', true);
+  await hold(1500);
+  selectRoute('body', true);
 }
 
 /* Start */
