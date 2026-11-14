@@ -4,6 +4,7 @@ import { loadSky, skyImage, SKY_RAMP } from './sky.js';
 import { loadComms, commsImage, COMMS_RAMP } from './comms.js';
 import { buildBrief, doctorChecks, forecastFile, forecastCsv, NOT_MODELLED } from './brief.js';
 import { planWalk, pointAt, returnCost } from './route.js';
+import { createPlanner } from './planner.js';
 import { SOURCES, MODEL, MAX_MEASURED_GRADIENT, tempRiseC, step, Ledger, heatNeutralPace, levelWorkW } from './body.js';
 
 const L = window.L;
@@ -50,6 +51,7 @@ const state = {
   lightMinutes: null, // one-way light time to Earth on the comms sol
   checks: null,     // the crew doctor's own checks, from data/brief_checks.json
   free: null,       // the free walk in progress, or null
+  own: null,        // the walk the viewer is placing, or null
   sequence: false,  // true while the recorded sequence is playing
   onWalkEnd: null,  // called when a played walk reaches its end
 };
@@ -470,7 +472,7 @@ function showPlace(place, kind = 'wide') {
   $('target-text').textContent = place.text;
   $('target-credit').innerHTML = place.source
     ? `<a href="${place.source}" target="_blank" rel="noopener">Source</a>${place.sol ? ` · sol ${place.sol}` : ''}`
-    : 'Assumption, not a measured or published position';
+    : place.own ? 'A point you placed on the map' : 'Assumption, not a measured or published position';
 
   const photos = state.photos.filter((ph) => ph.stop === place.id);
   const photo = photos.find((ph) => ph.kind === kind) ?? photos[0];
@@ -568,7 +570,9 @@ function buildRouteCards() {
   t.beyondMeasured > 0
     ? `<span class="route-flag" title="${t.beyondMeasured.toFixed(0)} m of this route is steeper than any walking study has measured (over ${steepLimit}°). The energy there is an extrapolation.">${t.beyondMeasured.toFixed(0)} m beyond tested slope</span>`
     : ''}</div>
-      <div class="route-small need">To walk it with no rest the suit must remove <b>${t.coolingNeededW} W</b> (this model's suit: ${MODEL.coolingW} W)</div>${contactLine(def.id)}`;
+      <div class="route-small need">${over
+    ? `To walk it with no rest the suit must remove <b>${t.coolingNeededW} W</b> (this model's suit: ${MODEL.coolingW} W)`
+    : `A suit that removes <b>${t.coolingNeededW} W</b> is enough to walk it with no rest (this model's suit: ${MODEL.coolingW} W)`}</div>${contactLine(def.id)}`;
     btn.addEventListener('click', () => selectRoute(def.id, true));
     return btn;
   };
@@ -601,13 +605,10 @@ function drawRestMarks() {
   }).bindTooltip(`Rest ${(rest.seconds / 60).toFixed(0)} min here to shed body heat`, { direction: 'top' }).addTo(map));
 }
 
-// Switches the carried load: the routes, the cards and the ledger all change.
-function setLoad(loadKg, ease = true) {
-  endFree();
-  setPlaying(false);
-  state.loadKg = loadKg;
-  state.routes = state.plans[loadKg];
-  for (const btn of $('loads').children) btn.setAttribute('aria-pressed', String(Number(btn.dataset.kg) === loadKg));
+// Shows a pair of routes: the planned walk for a load, or a walk the viewer
+// placed. The lines, the cards, the orbiter contact and the 3D view follow.
+function showRoutes(routes, ease = true) {
+  state.routes = routes;
   for (const def of ROUTES) {
     const lines = state.lines[def.id];
     if (!lines) continue;
@@ -617,9 +618,20 @@ function setLoad(loadKg, ease = true) {
   }
   computeContact();
   buildRouteCards();
-  $('ledger-note').innerHTML = `An ${MODEL.bodyMassKg} kg walker in a ${MODEL.suitMassKg} kg suit${loadKg ? `, carrying ${loadKg} kg` : ''}. On flat ground at ${MODEL.paceMs.toFixed(1)} m/s the walker makes <b>${Math.round(levelWorkW(loadKg))} W</b> of heat; the suit removes <b>${MODEL.coolingW} W</b>. Heat stops building only below ${heatNeutralPace(loadKg).toFixed(2)} m/s.`;
   state.view3d?.setRoutes(state.routes);
   if (state.lines[state.active]) selectRoute(state.active, ease);
+}
+
+// Switches the carried load: the routes, the cards and the ledger all change.
+function setLoad(loadKg, ease = true) {
+  endFree();
+  setPlaying(false);
+  state.loadKg = loadKg;
+  for (const btn of $('loads').children) btn.setAttribute('aria-pressed', String(Number(btn.dataset.kg) === loadKg));
+  $('ledger-note').innerHTML = `An ${MODEL.bodyMassKg} kg walker in a ${MODEL.suitMassKg} kg suit${loadKg ? `, carrying ${loadKg} kg` : ''}. On flat ground at ${MODEL.paceMs.toFixed(1)} m/s the walker makes <b>${Math.round(levelWorkW(loadKg))} W</b> of heat; the suit removes <b>${MODEL.coolingW} W</b>. Heat stops building only below ${heatNeutralPace(loadKg).toFixed(2)} m/s.`;
+  // A walk the viewer placed is planned again for the new load.
+  if (state.own?.stops.length) { planOwn(); return; }
+  showRoutes(state.plans[loadKg], ease);
 }
 
 function buildLoads() {
@@ -658,7 +670,9 @@ function selectRoute(id, ease = false) {
 function drawIn(def, ms) {
   const latlngs = state.routes[def.id].points.map((p) => [p.lat, p.lon]);
   const casing = L.polyline([], { color: '#0c0908', weight: 6.5, opacity: 0.65, lineJoin: 'round', interactive: false }).addTo(map);
-  const line = L.polyline([], { color: def.color, weight: 3.5, opacity: 0.7, lineJoin: 'round' }).addTo(map);
+  // A click on a route chooses it; it must not also reach the map, where it
+  // would place a stop in a walk of the viewer's own.
+  const line = L.polyline([], { color: def.color, weight: 3.5, opacity: 0.7, lineJoin: 'round', bubblingMouseEvents: false }).addTo(map);
   line.on('click', () => selectRoute(def.id, true));
   state.lines[def.id] = { line, casing };
   return new Promise((done) => {
@@ -960,6 +974,7 @@ function buildWalkControls() {
     if (e.key === 'r' || e.key === 'R') document.body.classList.toggle('rec');
     if (e.key === 'v' || e.key === 'V') setView3D($('view3d').hidden, true);
     if (e.key === 'p' || e.key === 'P') runSequence(e.shiftKey);
+    if (e.key === 'o' || e.key === 'O') { if (state.own) endOwn(); else startOwn(); }
     if (e.key === 'Escape') stopSequence();
     if (e.key === 'd' || e.key === 'D') selectRoute('direct', true);
     if (e.key === 'b' || e.key === 'B') selectRoute('body', true);
@@ -1135,6 +1150,139 @@ function renderFree() {
   $('progress-text').textContent = f.message || live;
 }
 
+/* Your own walk: the viewer places the stops, the planner does the rest */
+
+// The search for a walk the viewer placed runs in a worker (js/planner.js),
+// with the same route code and body model as the planned walk.
+const OWN_MAX_STOPS = 4;
+const OWN_HINT = `Click the ground inside the dashed frame to place a stop (up to ${OWN_MAX_STOPS}). Click a stop to remove it.`;
+let planner = null;
+
+function ownSay(text) {
+  $('own-hint').hidden = !text;
+  $('own-hint').textContent = text;
+}
+
+// Redraws the viewer's stops with their numbers. The habitat mark stays
+// first, so a stop's place in the list matches its place on the walk.
+function drawOwnStops() {
+  const own = state.own;
+  own.markers.forEach((marker) => marker.remove());
+  own.markers = own.stops.map((stop, i) => L.marker([stop.lat, stop.lon], {
+    icon: L.divIcon({ className: 'stop stop-own', html: String(i + 1), iconSize: [28, 28] }),
+    title: `${stop.name}. Click to remove it.`,
+    zIndexOffset: 500,
+  }).on('click', () => {
+    own.stops.splice(own.stops.indexOf(stop), 1);
+    own.stops.forEach((s, k) => { s.name = `Your stop ${k + 1}`; });
+    drawOwnStops();
+    planOwn();
+  }).addTo(map));
+  state.stopMarkers = [own.surveyed[0], ...own.markers];
+}
+
+// Plans the walk through the viewer's stops for the load now shown.
+async function planOwn() {
+  const own = state.own;
+  const turn = ++own.turn;
+  setPlaying(false);
+  if (!own.stops.length) {
+    showRoutes(state.plans[state.loadKg]);
+    ownSay(OWN_HINT);
+    return;
+  }
+  ownSay('Planning your walk…');
+  $('routes').setAttribute('aria-busy', 'true');
+  // Takes the newest stop back when no walk can be planned through it.
+  const refuse = (why) => {
+    own.stops.pop();
+    drawOwnStops();
+    ownSay(`${why} Choose another point.`);
+  };
+  try {
+    const result = await planner.plan({ stops: own.stops, loadKg: state.loadKg });
+    // A newer request, or leaving this mode, makes this answer out of date.
+    if (!result || state.own !== own || turn !== own.turn) return;
+    if (!result.direct || !result.body) {
+      refuse(`No route reaches that point on ground of ${Math.round(Math.atan(MAX_MEASURED_GRADIENT) * 180 / Math.PI)}° or less, the steepest slope walking cost has been measured on.`);
+      return;
+    }
+    showRoutes({ direct: result.direct, body: result.body });
+    ownSay(own.stops.length < OWN_MAX_STOPS
+      ? `Your walk has ${own.stops.length === 1 ? '1 stop' : `${own.stops.length} stops`}. Click the ground to add one, or a stop to remove it.`
+      : `Your walk has ${OWN_MAX_STOPS} stops, the most a walk here can have. Click a stop to remove it.`);
+  } catch (error) {
+    if (state.own === own && turn === own.turn) refuse(error.message);
+  } finally {
+    if (state.own !== own || turn === own.turn) $('routes').removeAttribute('aria-busy');
+  }
+}
+
+function startOwn() {
+  if (state.own) return;
+  endFree();
+  stopSequence();
+  setPlaying(false);
+  setView3D(false);
+  $('target').hidden = true;
+  planner ??= createPlanner();
+  // The surveyed stops leave the map. The habitat stays: every walk starts
+  // and ends there.
+  state.stopMarkers.slice(1).forEach((marker) => marker.remove());
+  state.own = {
+    stops: [],
+    markers: [],
+    surveyed: state.stopMarkers,
+    turn: 0,
+    // The edge of the elevation crop: the ground the planner knows.
+    frame: L.rectangle(state.terrain.bounds, { color: '#f3ebe0', weight: 1.5, dashArray: '4 7', fill: false, interactive: false }).addTo(map),
+  };
+  map.flyToBounds(state.terrain.bounds, { ...boundsPadding(), duration: 0.8, animate: !calm });
+  document.body.classList.add('own');
+  $('own').setAttribute('aria-pressed', 'true');
+  $('own').textContent = 'Planned walk';
+  ownSay(OWN_HINT);
+}
+
+function endOwn() {
+  const own = state.own;
+  if (!own) return;
+  state.own = null;
+  own.markers.forEach((marker) => marker.remove());
+  own.frame.remove();
+  state.stopMarkers = own.surveyed;
+  state.stopMarkers.slice(1).forEach((marker) => marker.addTo(map));
+  document.body.classList.remove('own');
+  $('own').setAttribute('aria-pressed', 'false');
+  $('own').textContent = 'Plan your own';
+  $('routes').removeAttribute('aria-busy');
+  $('target').hidden = true;
+  ownSay('');
+  setPlaying(false);
+  showRoutes(state.plans[state.loadKg]);
+}
+
+function buildOwnControls() {
+  $('own').disabled = false;
+  $('own').addEventListener('click', () => (state.own ? endOwn() : startOwn()));
+  map.on('click', (e) => {
+    const own = state.own;
+    if (!own || state.free || state.sequence) return;
+    if (own.stops.length >= OWN_MAX_STOPS) {
+      ownSay(`A walk here has at most ${OWN_MAX_STOPS} stops. Click a stop to remove it.`);
+      return;
+    }
+    own.stops.push({
+      lat: e.latlng.lat,
+      lon: e.latlng.lng,
+      name: `Your stop ${own.stops.length + 1}`,
+      text: 'A stop you placed. The planner found the way there and back from the terrain; nothing here was chosen for its science.',
+    });
+    drawOwnStops();
+    planOwn();
+  });
+}
+
 /* Recording mode */
 
 // One walk from start to end in a given number of seconds.
@@ -1168,6 +1316,7 @@ async function runSequence(long = false) {
   };
   const heaviest = Math.max(...Object.keys(state.plans).map(Number));
   try {
+    endOwn();
     await loadView3D();
     $('target').hidden = true;
     if (long) await longSequence(hold, heaviest);
@@ -1279,6 +1428,7 @@ async function start() {
   buildStartTimes();
   setLoad(0, false);
   buildWalkControls();
+  buildOwnControls();
 
   // Fly to the walk, then let the two routes draw themselves.
   const all = L.latLngBounds(ROUTES.flatMap((def) => state.routes[def.id].points.map((p) => [p.lat, p.lon])));
