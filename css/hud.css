@@ -16,7 +16,15 @@
   --top: 64px;
   --foot: 30px;
   --gap: 16px;
+  /* Motion curves. Strong ease-out for things that enter or leave, ease-in-out
+     for things that move on screen. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
+
+/* Going from the globe to the walk page, the browser blends the two pages
+   instead of cutting (where it can). */
+@view-transition { navigation: auto; }
 
 * { box-sizing: border-box; }
 
@@ -69,13 +77,29 @@ button { font: inherit; color: inherit; }
 }
 .hud > * { pointer-events: auto; min-width: 0; }
 
-/* Panels arrive one after the other when the page starts. */
-.top, .ledger, .walk { transition: opacity 500ms ease, transform 500ms ease; }
+/* Panels arrive one after the other when the page starts. Until then a
+   cover in the page colour hides the bare map, so the page opens the way the
+   globe page left off: dark. */
+.top, .ledger, .walk { transition: opacity 500ms var(--ease-out), transform 500ms var(--ease-out); }
 .booting .top { opacity: 0; transform: translateY(-8px); }
 .booting .ledger { opacity: 0; transform: translateX(-12px); }
 .booting .walk { opacity: 0; transform: translateY(12px); }
-.ledger { transition-delay: 150ms; }
+.top { transition-delay: 100ms; }
+.ledger { transition-delay: 200ms; }
 .walk { transition-delay: 300ms; }
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: var(--bg);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 450ms var(--ease-out);
+}
+body.booting::before { opacity: 1; animation: cover-lift 450ms var(--ease-out) 6s forwards; }
+/* If the page never finishes starting, the map still shows after 6 s. */
+@keyframes cover-lift { to { opacity: 0; } }
 
 /* Top bar */
 
@@ -471,6 +495,7 @@ button { font: inherit; color: inherit; }
   .walker::before, .bar[data-state="warn"] .bar-limit, .stop.arrived::after, .target { animation: none; }
   .stop.arrived::after { display: none; }
   .top, .ledger, .walk { transition: none; }
+  body::before { transition-duration: 200ms; }
 }
 
 /* Recording mode (key R, or index.html?rec): the screen keeps only what a
