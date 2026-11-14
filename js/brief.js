@@ -180,6 +180,57 @@ export function buildBrief({ route, routeName, loadKg, comms = null, contact = n
   };
 }
 
+// The crew doctor's checks (data/brief_checks.json). Each is a check NASA
+// publishes, with NASA's value. Where the plan has a forecast for the same
+// thing, it is set beside the check; where it has none, the line says so.
+const MARS_RADIUS_M = 3396190;
+const DEG = Math.PI / 180;
+
+// Straight-line distance from the habitat (the first point) to the farthest
+// point of the route, in metres.
+function farthestFromHabitat(points) {
+  const home = points[0];
+  let far = 0;
+  for (const p of points) {
+    const east = (p.lon - home.lon) * DEG * MARS_RADIUS_M * Math.cos(home.lat * DEG);
+    const north = (p.lat - home.lat) * DEG * MARS_RADIUS_M;
+    far = Math.max(far, Math.hypot(east, north));
+  }
+  return far;
+}
+
+const NO_FORECAST = 'The map has no forecast for this.';
+const COMPARE = {
+  workload: ({ t, peakW }) => `This walk: ${minutes(t.seconds)} min, ${t.kcal.toFixed(0)} kcal, work rate up to ${peakW} W.`,
+  peakWork: ({ peakW }) => `Peak work rate on this route: ${peakW} W.`,
+  water: ({ t }) => `This walk takes ${minutes(t.seconds)} min: at least ${Math.ceil((t.seconds / 3600) * 240)} mL.`,
+  heat: ({ t }) => `Forecast peak on this route: ${t.peakHeat.toFixed(1)} kJ/kg with the planned rests, ${t.peakHeatNoRest.toFixed(1)} with none.`,
+  work: ({ peakW }) => `The forecast file gives the expected work rate at every point, up to ${peakW} W, to compare with the reading.`,
+  walkback: ({ route }) => `Farthest point of this route: ${km(farthestFromHabitat(route.points))} km from the habitat in a straight line. The way home costs at most ${Math.max(...route.points.map((p) => p.backKcal)).toFixed(0)} kcal.`,
+  contact: ({ contact }) => (contact
+    ? `With this start time a relay orbiter is in view for ${Math.round((100 * contact.inContact.filter(Boolean).length) / contact.inContact.length)}% of the walk. Longest gap: ${Math.round(contact.longestGapMin)} min.`
+    : 'Radio contact is not computed for this walk.'),
+  dose: ({ t }) => `Forecast for this walk: ${t.dose.toFixed(1)} µSv.`,
+  context: ({ t }) => `The map gives the walk time (${minutes(t.seconds)} min) and the work rate. It does not forecast sweat or water lost.`,
+};
+
+// The checks of one part ('before', 'during' or 'after') as lines of HTML.
+export function doctorChecks(checks, part, { route, contact = null }) {
+  const values = {
+    route,
+    contact,
+    t: route.totals,
+    peakW: Math.round(Math.max(...route.points.map((p) => p.metabolicW ?? 0))),
+  };
+  return (checks?.[part] ?? []).map((item) => {
+    const sources = item.sources
+      .map((source) => `<a href="${source.url}" target="_blank" rel="noopener">${source.label}</a>`)
+      .join('; ');
+    const map = COMPARE[item.compare]?.(values) ?? NO_FORECAST;
+    return `<b>${item.check}</b><br>NASA: ${item.nasa} ${sources}<br>Map: ${map}`;
+  });
+}
+
 // The forecast table: the expected state of the walker at every point of
 // the route. An onboard system could compare a suit's readings with these
 // to tell hard ground from a body in trouble.

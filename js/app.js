@@ -2,7 +2,7 @@ import { SITE, LAYERS } from './layers.js';
 import { loadTerrain, slopeImage, SLOPE_RAMP } from './terrain.js';
 import { loadSky, skyImage, SKY_RAMP } from './sky.js';
 import { loadComms, commsImage, COMMS_RAMP } from './comms.js';
-import { buildBrief, forecastFile, forecastCsv, NOT_MODELLED } from './brief.js';
+import { buildBrief, doctorChecks, forecastFile, forecastCsv, NOT_MODELLED } from './brief.js';
 import { planWalk, pointAt, returnCost } from './route.js';
 import { SOURCES, MODEL, MAX_MEASURED_GRADIENT, tempRiseC, step, Ledger, heatNeutralPace, levelWorkW } from './body.js';
 
@@ -418,7 +418,7 @@ function openBrief() {
   const list = (lines) => `<ul>${lines.map((line) => `<li>${line}</li>`).join('')}</ul>`;
   // The team's own medical checks sit beside the forecast, when written.
   const checks = (part) => (state.checks?.[part]?.length
-    ? `<p class="brief-checks-title">Crew doctor's checks</p>${list(state.checks[part])}` : '');
+    ? `<p class="brief-checks-title">Crew doctor's checks, from NASA's medical standards</p>${list(doctorChecks(state.checks, part, args))}` : '');
   $('brief-body').innerHTML = `
     <p class="brief-title">${brief.title}</p>
     <ul class="verdict">${brief.verdict.map((v) => `<li class="${v.level}">${v.text}</li>`).join('')}</ul>

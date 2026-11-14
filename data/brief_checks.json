@@ -1,6 +1,164 @@
 {
-  "note": "The crew doctor's own checks for the walk brief, written by the team. Each list holds short plain sentences. They are shown in the brief under the matching heading; an empty list shows nothing.",
-  "before": [],
-  "during": [],
-  "after": []
+ "note": "The crew doctor's checks for the walk brief. The team chose the order (before, during, after) and the checks; each one is a check NASA publishes, with NASA's value and its source. 'compare' names the forecast value the map sets beside the check (see doctorChecks in js/brief.js); null means the map has no forecast for it. Sources read 14 Nov 2026.",
+ "before": [
+  {
+   "check": "The crew doctor clears the walker for this walk.",
+   "nasa": "Required before every spacewalk [V1 6006].",
+   "compare": "workload",
+   "sources": [
+    {
+     "label": "NASA-STD-3001 Vol 1 Rev C",
+     "url": "https://www.nasa.gov/directorates/esdmd/hhp/human-spaceflight-and-aviation-standards/"
+    }
+   ]
+  },
+  {
+   "check": "Aerobic fitness is high enough for walking on a planet's surface.",
+   "nasa": "Maximal oxygen uptake at or above 36.5 ml/min/kg [V1 4002].",
+   "compare": "peakWork",
+   "sources": [
+    {
+     "label": "NASA-STD-3001 Vol 1 Rev C",
+     "url": "https://www.nasa.gov/directorates/esdmd/hhp/human-spaceflight-and-aviation-standards/"
+    }
+   ]
+  },
+  {
+   "check": "The oxygen prebreathe is complete, and any break in it is logged.",
+   "nasa": "The protocol must keep the chance of decompression sickness under 4% [V2 6008]. On the space station it is 4 hours on pure oxygen in the suit.",
+   "compare": null,
+   "sources": [
+    {
+     "label": "NASA technical brief OCHMO-TB-037 Rev D, Decompression Sickness",
+     "url": "https://www.nasa.gov/sites/default/files/atoms/files/dcs_technical_brief_ochmo.pdf"
+    }
+   ]
+  },
+  {
+   "check": "The drink bag is filled.",
+   "nasa": "At least 240 mL of water for each hour in the suit [V2 11030].",
+   "compare": "water",
+   "sources": [
+    {
+     "label": "NASA-STD-3001 Vol 2 Rev F",
+     "url": "https://www.nasa.gov/directorates/esdmd/hhp/human-spaceflight-and-aviation-standards/"
+    }
+   ]
+  }
+ ],
+ "during": [
+  {
+   "check": "Stored body heat stays inside NASA's range.",
+   "nasa": "Between -1.9 and 3.0 kJ/kg [V2 11011].",
+   "compare": "heat",
+   "sources": [
+    {
+     "label": "NASA-STD-3001 Vol 2 Rev F",
+     "url": "https://www.nasa.gov/directorates/esdmd/hhp/human-spaceflight-and-aviation-standards/"
+    }
+   ]
+  },
+  {
+   "check": "The work rate is measured, from heart rate, and shown to the walker.",
+   "nasa": "The suit system must measure or calculate metabolic rate and display it [V2 11037], [V2 11038].",
+   "compare": "work",
+   "sources": [
+    {
+     "label": "NASA-STD-3001 Vol 2 Rev F",
+     "url": "https://www.nasa.gov/directorates/esdmd/hhp/human-spaceflight-and-aviation-standards/"
+    },
+    {
+     "label": "NASA NTRS 20210024317, metabolic rate estimated from heart rate",
+     "url": "https://ntrs.nasa.gov/citations/20210024317"
+    }
+   ]
+  },
+  {
+   "check": "Carbon dioxide in the helmet stays low.",
+   "nasa": "Up to 4.0 mmHg with no time limit; never above 15.0 mmHg [V2 11039].",
+   "compare": null,
+   "sources": [
+    {
+     "label": "NASA-STD-3001 Vol 2 Rev F",
+     "url": "https://www.nasa.gov/directorates/esdmd/hhp/human-spaceflight-and-aviation-standards/"
+    }
+   ]
+  },
+  {
+   "check": "The walker stays within reach of shelter.",
+   "nasa": "NASA's plan for Moon walks: within a one-hour walk back, and up to 2 km from the lander (sections 9.6 and 4.2.1.3.1).",
+   "compare": "walkback",
+   "sources": [
+    {
+     "label": "NASA Exploration EVA System Concept of Operations, EVA-EXP-0042 Rev B",
+     "url": "https://www.nasa.gov/wp-content/uploads/2017/02/eva-exp-0042_xeva_system_con_ops_rev_b_final_dtd_10192020_ref_doc.pdf"
+    }
+   ]
+  },
+  {
+   "check": "If the radio link is lost: change position, try the other radio, then end the walk and return.",
+   "nasa": "NASA's plan for Moon walks (section 9.5).",
+   "compare": "contact",
+   "sources": [
+    {
+     "label": "NASA Exploration EVA System Concept of Operations, EVA-EXP-0042 Rev B",
+     "url": "https://www.nasa.gov/wp-content/uploads/2017/02/eva-exp-0042_xeva_system_con_ops_rev_b_final_dtd_10192020_ref_doc.pdf"
+    }
+   ]
+  }
+ ],
+ "after": [
+  {
+   "check": "Hands, fingernails and shoulders are examined.",
+   "nasa": "Hand and finger injuries are the most common spacewalk injuries; shoulder injuries are among the most serious.",
+   "compare": null,
+   "sources": [
+    {
+     "label": "NASA evidence report, Risk of Injury and Compromised Performance due to EVA Operations (2021), NTRS 20220004017",
+     "url": "https://ntrs.nasa.gov/citations/20220004017"
+    }
+   ]
+  },
+  {
+   "check": "Body mass is compared with the value before the walk, to find the water lost.",
+   "nasa": "Losing 2.5% of body weight as water lowers performance.",
+   "compare": "context",
+   "sources": [
+    {
+     "label": "NASA technical brief OCHMO-TB-027 Rev B, Water",
+     "url": "https://www.nasa.gov/wp-content/uploads/2023/03/water-technical-brief-ochmo.pdf"
+    }
+   ]
+  },
+  {
+   "check": "The radiation dosimeter is read and the dose is logged.",
+   "nasa": "Each crew member's dosimeter logs exposure through the mission. Career limit: 600 mSv [V1 4030].",
+   "compare": "dose",
+   "sources": [
+    {
+     "label": "NASA Space Radiation Analysis Group",
+     "url": "https://srag.jsc.nasa.gov/spaceradiation/how/how.cfm"
+    },
+    {
+     "label": "NASA-STD-3001 Vol 1 Rev C",
+     "url": "https://www.nasa.gov/directorates/esdmd/hhp/human-spaceflight-and-aviation-standards/"
+    }
+   ]
+  },
+  {
+   "check": "Eyes, nose and hands are checked for dust, and dust in the habitat air is measured.",
+   "nasa": "Martian dust finer than 10 µm in habitat air: under 0.1 mg/m³ as a time-weighted average [V2 6253]. Lunar dust caused eye irritation that needed rinsing.",
+   "compare": null,
+   "sources": [
+    {
+     "label": "NASA-STD-3001 Vol 2 Rev F",
+     "url": "https://www.nasa.gov/directorates/esdmd/hhp/human-spaceflight-and-aviation-standards/"
+    },
+    {
+     "label": "NASA technical brief OCHMO-TB-011 Rev B, Lunar Dust",
+     "url": "https://www.nasa.gov/wp-content/uploads/2023/03/lunar-dust-technical-brief-ochmo.pdf"
+    }
+   ]
+  }
+ ]
 }
