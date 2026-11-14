@@ -3,10 +3,10 @@ import { loadTerrain, slopeImage, SLOPE_RAMP } from './terrain.js';
 import { loadSky, skyImage, SKY_RAMP } from './sky.js';
 import { loadComms, commsImage, COMMS_RAMP } from './comms.js';
 import { buildBrief, doctorChecks, forecastFile, forecastCsv, NOT_MODELLED } from './brief.js';
-import { planWalk, pointAt, returnCost } from './route.js';
+import { planWalk, pointAt, returnCost, reprice } from './route.js';
 import { createPlanner } from './planner.js';
 import { loadReach, REACH_LEGEND } from './reach.js';
-import { SOURCES, MODEL, MAX_MEASURED_GRADIENT, SUIT_FACTOR_RANGE, tempRiseC, step, Ledger, heatNeutralPace, levelWorkW } from './body.js';
+import { SOURCES, MODEL, MAX_MEASURED_GRADIENT, SUIT_FACTOR_RANGE, tempRiseC, step, Ledger, heatNeutralPace, levelWorkW, energyLeftPct } from './body.js';
 
 const L = window.L;
 const $ = (id) => document.getElementById(id);
@@ -36,6 +36,8 @@ const state = {
   photos: [],
   plans: {},        // carried load in kg -> { direct, body }
   loadKg: 0,        // the carried load now shown
+  coolingW: MODEL.coolingW, // heat the suit removes, set by the slider
+  planned: null,    // the routes now shown, as planned for the model's own suit
   restMarks: [],    // map marks where the plan makes the walker rest
   routes: {},       // id -> described route for the load now shown
   lines: {},        // id -> { line, casing } on the map
@@ -148,7 +150,7 @@ function boundsPadding() {
 /* Imagery and overlays */
 
 // What the reach layer shows, said under its legend.
-const REACH_NOTE = 'To walk from the habitat to a point and back, body-cost route, load shown. Point at the map for one place.';
+const REACH_NOTE = `To walk from the habitat to a point and back, body-cost route, load shown, ${MODEL.coolingW} W suit. Point at the map for one place.`;
 
 // Imagery is always on. One overlay at a time goes on top of it, so the
 // picture of the ground is never buried under several layers.
@@ -493,6 +495,7 @@ function openBrief() {
     contact: state.contact[def.id] ?? null,
     startMinute: state.startMinute,
     lightMinutes: state.lightMinutes,
+    coolingW: state.coolingW,
   };
   const brief = buildBrief(args);
   const list = (lines) => `<ul>${lines.map((line) => `<li>${line}</li>`).join('')}</ul>`;
@@ -645,8 +648,8 @@ function buildRouteCards() {
     ? `<span class="route-flag" title="${t.beyondMeasured.toFixed(0)} m of this route is steeper than any walking study has measured (over ${steepLimit}°). The energy there is an extrapolation.">${t.beyondMeasured.toFixed(0)} m beyond tested slope</span>`
     : ''}</div>
       <div class="route-small need">${over
-    ? `To walk it with no rest the suit must remove <b>${t.coolingNeededW} W</b> (this model's suit: ${MODEL.coolingW} W)`
-    : `A suit that removes <b>${t.coolingNeededW} W</b> is enough to walk it with no rest (this model's suit: ${MODEL.coolingW} W)`}</div>${contactLine(def.id)}`;
+    ? `To walk it with no rest the suit must remove <b>${t.coolingNeededW} W</b> (this suit: ${state.coolingW} W)`
+    : `A suit that removes <b>${t.coolingNeededW} W</b> is enough to walk it with no rest (this suit: ${state.coolingW} W)`}</div>${contactLine(def.id)}`;
     btn.addEventListener('click', () => selectRoute(def.id, true));
     return btn;
   };
@@ -689,7 +692,13 @@ function drawRestMarks() {
 // Shows a pair of routes: the planned walk for a load, or a walk the viewer
 // placed. The lines, the cards, the orbiter contact and the 3D view follow.
 function showRoutes(routes, ease = true) {
-  state.routes = routes;
+  state.planned = routes;
+  // With another suit chosen, the same paths are priced again for it.
+  state.routes = state.coolingW === MODEL.coolingW ? routes : Object.fromEntries(ROUTES.map((def) => {
+    const route = reprice(routes[def.id], { loadKg: state.loadKg, coolingW: state.coolingW });
+    route.totals.lowestLeft = Math.min(...route.points.map((p) => energyLeftPct(p.kcal, p.backKcal)));
+    return [def.id, route];
+  }));
   for (const def of ROUTES) {
     const lines = state.lines[def.id];
     if (!lines) continue;
@@ -703,13 +712,33 @@ function showRoutes(routes, ease = true) {
   if (state.lines[state.active]) selectRoute(state.active, ease);
 }
 
+// The sentence under the bars: what the walker makes against what the suit
+// removes, for the load and the suit now chosen.
+function showLedgerNote() {
+  const { loadKg, coolingW } = state;
+  const work = Math.round(levelWorkW(loadKg));
+  $('ledger-note').innerHTML = `An ${MODEL.bodyMassKg} kg walker in a ${MODEL.suitMassKg} kg suit${loadKg ? `, carrying ${loadKg} kg` : ''}. On flat ground at ${MODEL.paceMs.toFixed(1)} m/s the walker makes <b>${work} W</b> of heat; the suit removes <b>${coolingW} W</b>. ${
+    work > coolingW ? `Heat stops building only below ${heatNeutralPace(loadKg, coolingW).toFixed(2)} m/s.` : 'On flat ground no heat builds up; it builds on the climbs.'}`;
+}
+
+// Switches the suit's cooling: the same routes are priced again.
+function setCooling(coolingW) {
+  state.coolingW = coolingW;
+  $('cooling').value = String(coolingW);
+  $('cooling-value').textContent = `${coolingW} W`;
+  showLedgerNote();
+  if (state.free) return;
+  setPlaying(false);
+  if (state.planned) showRoutes(state.planned, false);
+}
+
 // Switches the carried load: the routes, the cards and the ledger all change.
 function setLoad(loadKg, ease = true) {
   endFree();
   setPlaying(false);
   state.loadKg = loadKg;
   for (const btn of $('loads').children) btn.setAttribute('aria-pressed', String(Number(btn.dataset.kg) === loadKg));
-  $('ledger-note').innerHTML = `An ${MODEL.bodyMassKg} kg walker in a ${MODEL.suitMassKg} kg suit${loadKg ? `, carrying ${loadKg} kg` : ''}. On flat ground at ${MODEL.paceMs.toFixed(1)} m/s the walker makes <b>${Math.round(levelWorkW(loadKg))} W</b> of heat; the suit removes <b>${MODEL.coolingW} W</b>. Heat stops building only below ${heatNeutralPace(loadKg).toFixed(2)} m/s.`;
+  showLedgerNote();
   // The reach layer is drawn for the load shown.
   const reachLayer = state.overlays.find((overlay) => overlay.id === 'reach')?.leaf;
   if (reachLayer && state.reach) reachLayer.setUrl(state.reach.image(loadKg));
@@ -1111,7 +1140,7 @@ async function startFree() {
     lat: home.lat,
     lon: home.lon,
     heading,
-    ledger: new Ledger(),
+    ledger: new Ledger(state.coolingW),
     dist: 0,
     rests: 0,
     peakHeat: 0,
@@ -1564,6 +1593,7 @@ async function start() {
   setLoad(firstLoad, false);
   buildWalkControls();
   buildOwnControls();
+  $('cooling').addEventListener('input', (e) => setCooling(Number(e.target.value)));
   state.walks = await fetch('data/walks.json').then((r) => (r.ok ? r.json() : null)).catch(() => null);
   buildWalkPick();
 

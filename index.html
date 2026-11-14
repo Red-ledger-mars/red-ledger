@@ -46,6 +46,11 @@
       <span><i class="assume"></i>Carrying</span>
       <nav id="loads" aria-label="Carried load"></nav>
     </div>
+    <div class="loads suit">
+      <label for="cooling"><i class="assume"></i>Suit cooling</label>
+      <input id="cooling" type="range" min="300" max="600" step="10" value="370" title="The heat the suit can remove. 370 W is the rating of a NASA prototype in a Mars environment. Drag to see the walk in another suit.">
+      <output id="cooling-value" for="cooling">370 W</output>
+    </div>
     <div class="bars" id="bars"></div>
     <div class="legend" id="legend" hidden>
       <span class="legend-title" id="legend-title"></span>

@@ -264,7 +264,7 @@ export const doseFactor = (skyPct) => 1 - MODEL.dosePerSkyPoint * (skyPct - MODE
 
 // The pace on level ground at which the walker makes exactly the heat the
 // suit removes. Faster than this, heat builds up even with no slope.
-export const heatNeutralPace = (loadKg = 0) => MODEL.coolingW / (walkCostMars(0) * totalMassKg(loadKg));
+export const heatNeutralPace = (loadKg = 0, coolingW = MODEL.coolingW) => coolingW / (walkCostMars(0) * totalMassKg(loadKg));
 
 // Work rate on level ground at the planned pace, watts.
 export const levelWorkW = (loadKg = 0) => walkCostMars(0) * totalMassKg(loadKg) * MODEL.paceMs;

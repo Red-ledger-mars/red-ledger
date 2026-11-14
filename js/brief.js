@@ -79,7 +79,7 @@ function contactBlocks(points, inContact) {
 
 // Builds the brief for one planned route. `contact` is the result of
 // comms.routeContact for the same route and start time, or null.
-export function buildBrief({ route, routeName, loadKg, comms = null, contact = null, startMinute = 0, lightMinutes = null }) {
+export function buildBrief({ route, routeName, loadKg, comms = null, contact = null, startMinute = 0, lightMinutes = null, coolingW = MODEL.coolingW }) {
   const t = route.totals;
   const points = route.points;
   const limit = MODEL.heatLimitKJkg;
@@ -164,7 +164,7 @@ export function buildBrief({ route, routeName, loadKg, comms = null, contact = n
     before: [
       `Distance ${km(t.dist)} km, climb ${t.climb.toFixed(0)} m, steepest ground ${t.steepestDeg.toFixed(0)}°.`,
       `Expected time ${minutes(t.seconds)} min${t.restCount ? `, of which ${minutes(t.restSeconds)} min is forced rest` : ''}.`,
-      `To walk it with no rest the suit would have to remove ${t.coolingNeededW} W of heat; the suit in this model removes ${MODEL.coolingW} W.`,
+      `To walk it with no rest the suit would have to remove ${t.coolingNeededW} W of heat; the suit in this plan removes ${coolingW} W.`,
       `Expected energy ${t.kcal.toFixed(0)} kcal, ${((t.kcal / MODEL.energyBudgetKcal) * 100).toFixed(0)}% of the ${MODEL.energyBudgetKcal} kcal backpack budget.`,
       `Lowest energy margin on the route, after the cheapest way home: ${t.lowestLeft.toFixed(0)}%.`,
       lightMinutes === null ? null : `Earth is ${lightMinutes.toFixed(1)} light-minutes away: a question and its answer take at least ${Math.ceil(lightMinutes * 2)} min. The crew decides alone.`,
@@ -173,7 +173,7 @@ export function buildBrief({ route, routeName, loadKg, comms = null, contact = n
     after: [
       `Peak stored body heat ${t.peakHeat.toFixed(1)} kJ/kg with the planned rests, a mean body temperature rise of about ${tempRiseC(t.peakHeat).toFixed(1)} °C.`,
       endHeat > 0.05
-        ? `Heat still stored on return: ${endHeat.toFixed(1)} kJ/kg. At rest the suit sheds it in about ${Math.ceil((endHeat * 1000 * MODEL.bodyMassKg) / (MODEL.coolingW - MODEL.restW) / 60)} min.`
+        ? `Heat still stored on return: ${endHeat.toFixed(1)} kJ/kg. At rest the suit sheds it in about ${Math.ceil((endHeat * 1000 * MODEL.bodyMassKg) / (coolingW - MODEL.restW) / 60)} min.`
         : 'No heat is still stored on return.',
       `Radiation dose added: ${t.dose.toFixed(1)} µSv, about ${((t.dose / MODEL.careerLimitUSv) * 100).toFixed(3)}% of NASA's career limit of ${MODEL.careerLimitUSv / 1000} mSv. One walk adds little; over a mission every hour outside counts.`,
     ],

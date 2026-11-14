@@ -541,6 +541,11 @@ body.booting::before { opacity: 1; animation: cover-lift 450ms var(--ease-out) 6
 .loads button { padding: 6px 10px; font-size: 13px; color: var(--dim); background: none; border: 0; border-left: 1px solid var(--line); cursor: pointer; }
 .loads button:first-child { border-left: 0; }
 .loads button[aria-pressed="true"] { color: var(--bg); background: var(--text); font-weight: 600; }
+/* The suit's cooling: a slider in the same row style as the load. */
+.suit label { flex: none; }
+.suit input { flex: 1; min-width: 0; accent-color: var(--red); }
+.suit output { flex: none; min-width: 50px; font: 13px/1 var(--mono); color: var(--text); text-align: right; }
+.rec .suit input { display: none; }
 .rec .loads button:not([aria-pressed="true"]) { display: none; }
 
 .route-big .over { color: var(--red); }
