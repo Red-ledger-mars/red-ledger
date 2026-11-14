@@ -622,8 +622,14 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
   let tinted = null; // made when the slope tint is first asked for
   let slopeCanvas = null;
   let slopeFailed = false;
+  let slopeOn = false;
+  // A picture a page drapes on the ground (setOverlay), such as the body-reach
+  // map. It gets its own shown canvas, made the first time it is asked for.
+  let overlaid = null;
+  let overlay = null; // { img, x, y, w, h } in pixels of the shown canvas
+  let overlayToken = 0;
 
-  function compose(t, withSlope) {
+  function compose(t, withSlope, over = null) {
     const c = t.ctx;
     c.globalCompositeOperation = 'source-over';
     c.drawImage(imageCanvas, 0, 0);
@@ -633,12 +639,24 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
     c.globalCompositeOperation = 'screen';
     c.drawImage(shade.light, 0, 0);
     c.globalCompositeOperation = 'source-over';
+    // The overlay goes on last, after the shading, so its colours stay
+    // exactly as given; its cells are drawn without smoothing to stay sharp.
+    if (over) {
+      c.imageSmoothingEnabled = false;
+      c.drawImage(over.img, over.x, over.y, over.w, over.h);
+      c.imageSmoothingEnabled = true;
+    }
     t.tex.needsUpdate = true; // the canvas changed, so upload it again
+  }
+  function showMap() {
+    terrainMat.map = overlay && overlaid ? overlaid.tex : slopeOn && tinted ? tinted.tex : plain.tex;
+    terrainMat.needsUpdate = true;
   }
   function recompose() {
     try {
       compose(plain, false);
       if (tinted) compose(tinted, true);
+      if (overlaid && overlay) compose(overlaid, slopeOn, overlay);
     } catch (e) {
       console.warn('3D view: could not draw the terrain picture', e);
     }
@@ -1254,6 +1272,7 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
   function onRestored() {
     plain.tex.needsUpdate = true;
     if (tinted) tinted.tex.needsUpdate = true;
+    if (overlaid) overlaid.tex.needsUpdate = true;
     terrainMat.needsUpdate = true;
     for (const t of labelTextures) t.needsUpdate = true;
     tubeStep = null;
@@ -1480,9 +1499,43 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
           tinted = null;
         }
       }
-      terrainMat.map = on && tinted ? tinted.tex : plain.tex;
-      terrainMat.needsUpdate = true;
+      slopeOn = !!on && !!tinted;
+      if (overlaid && overlay) compose(overlaid, slopeOn, overlay);
+      showMap();
       invalidate();
+    },
+    // Drapes a picture on the ground, such as the body-reach map. src is an
+    // image URL (a data URL works), an image or a canvas; bounds is
+    // [[south, west], [north, east]] in degrees. It is drawn over the shaded
+    // imagery with its own alpha and no blending, so its colours stay as
+    // given. A new src replaces the old one once it has loaded, so there is
+    // no flash between them. setOverlay(null) shows the plain ground again.
+    setOverlay(src, bounds) {
+      const token = ++overlayToken;
+      if (!src) { overlay = null; showMap(); invalidate(); return; }
+      const place = (img) => {
+        if (token !== overlayToken || disposed) return; // a newer call took over
+        const [[south, west], [north, east]] = bounds;
+        const a = texCoord(north, west, block), b = texCoord(south, east, block);
+        overlay = { img, x: a.px * texScale, y: a.py * texScale, w: (b.px - a.px) * texScale, h: (b.py - a.py) * texScale };
+        overlaid ??= makeShown();
+        try {
+          compose(overlaid, slopeOn, overlay);
+        } catch (e) {
+          console.warn('3D view: overlay unavailable', e);
+          overlay = null;
+        }
+        showMap();
+        invalidate();
+      };
+      if (typeof src === 'string') {
+        const img = new Image();
+        img.onload = () => place(img);
+        img.onerror = () => console.warn('3D view: overlay image did not load');
+        img.src = src;
+      } else {
+        place(src);
+      }
     },
     resize,
     dispose() {
@@ -1505,7 +1558,7 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
       for (const p of pins) p.sprite.material.dispose();
       for (const t of labelTextures) t.dispose();
       terrainGeo.dispose(); skirtGeo.dispose(); terrainMat.dispose(); skirtMat.dispose();
-      plain.tex.dispose(); tinted?.tex.dispose();
+      plain.tex.dispose(); tinted?.tex.dispose(); overlaid?.tex.dispose();
       if (composeTimer) clearTimeout(composeTimer);
       el.removeEventListener('webglcontextlost', onLost);
       el.removeEventListener('webglcontextrestored', onRestored);
