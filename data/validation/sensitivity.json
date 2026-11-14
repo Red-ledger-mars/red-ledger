@@ -1,0 +1,348 @@
+{
+ "what": "Rests the plan adds, and minutes for the whole walk, for each ready-made walk on its body-cost route, carrying 30 kg, as the suit cooling and the suit factor change. One route per walk: only the suit differs between cells.",
+ "made_by": "tools/sensitivity.mjs",
+ "load_kg": 30,
+ "cooling_w": [
+  300,
+  370,
+  450,
+  550
+ ],
+ "model_cooling_w": 370,
+ "factors": [
+  {
+   "id": "low",
+   "factor": 1.155
+  },
+  {
+   "id": "middle",
+   "factor": 1.364
+  },
+  {
+   "id": "high",
+   "factor": 1.637
+  }
+ ],
+ "walks": [
+  {
+   "id": "survey",
+   "name": "Ridge and hollow survey",
+   "km": 2.35,
+   "route_choice": {
+    "body": {
+     "rests": 2,
+     "minutes": 57
+    },
+    "direct": {
+     "rests": 3,
+     "minutes": 65
+    }
+   },
+   "rows": [
+    {
+     "factor": "low",
+     "cells": [
+      {
+       "rests": 3,
+       "minutes": 72
+      },
+      {
+       "rests": 1,
+       "minutes": 48
+      },
+      {
+       "rests": 0,
+       "minutes": 41
+      },
+      {
+       "rests": 0,
+       "minutes": 41
+      }
+     ]
+    },
+    {
+     "factor": "middle",
+     "cells": [
+      {
+       "rests": 4,
+       "minutes": 85
+      },
+      {
+       "rests": 2,
+       "minutes": 57
+      },
+      {
+       "rests": 0,
+       "minutes": 42
+      },
+      {
+       "rests": 0,
+       "minutes": 42
+      }
+     ]
+    },
+    {
+     "factor": "high",
+     "cells": [
+      {
+       "rests": 6,
+       "minutes": 108
+      },
+      {
+       "rests": 4,
+       "minutes": 74
+      },
+      {
+       "rests": 2,
+       "minutes": 56
+      },
+      {
+       "rests": 0,
+       "minutes": 45
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "first",
+   "name": "First sample run",
+   "km": 0.34,
+   "route_choice": {
+    "body": {
+     "rests": 0,
+     "minutes": 6
+    },
+    "direct": {
+     "rests": 0,
+     "minutes": 6
+    }
+   },
+   "rows": [
+    {
+     "factor": "low",
+     "cells": [
+      {
+       "rests": 0,
+       "minutes": 6
+      },
+      {
+       "rests": 0,
+       "minutes": 6
+      },
+      {
+       "rests": 0,
+       "minutes": 6
+      },
+      {
+       "rests": 0,
+       "minutes": 6
+      }
+     ]
+    },
+    {
+     "factor": "middle",
+     "cells": [
+      {
+       "rests": 0,
+       "minutes": 6
+      },
+      {
+       "rests": 0,
+       "minutes": 6
+      },
+      {
+       "rests": 0,
+       "minutes": 6
+      },
+      {
+       "rests": 0,
+       "minutes": 6
+      }
+     ]
+    },
+    {
+     "factor": "high",
+     "cells": [
+      {
+       "rests": 0,
+       "minutes": 6
+      },
+      {
+       "rests": 0,
+       "minutes": 6
+      },
+      {
+       "rests": 0,
+       "minutes": 6
+      },
+      {
+       "rests": 0,
+       "minutes": 6
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "sulfate",
+   "name": "Sulfate above the boxwork",
+   "km": 2.14,
+   "route_choice": {
+    "body": {
+     "rests": 2,
+     "minutes": 52
+    },
+    "direct": {
+     "rests": 2,
+     "minutes": 52
+    }
+   },
+   "rows": [
+    {
+     "factor": "low",
+     "cells": [
+      {
+       "rests": 2,
+       "minutes": 58
+      },
+      {
+       "rests": 0,
+       "minutes": 37
+      },
+      {
+       "rests": 0,
+       "minutes": 37
+      },
+      {
+       "rests": 0,
+       "minutes": 37
+      }
+     ]
+    },
+    {
+     "factor": "middle",
+     "cells": [
+      {
+       "rests": 3,
+       "minutes": 70
+      },
+      {
+       "rests": 2,
+       "minutes": 52
+      },
+      {
+       "rests": 0,
+       "minutes": 38
+      },
+      {
+       "rests": 0,
+       "minutes": 38
+      }
+     ]
+    },
+    {
+     "factor": "high",
+     "cells": [
+      {
+       "rests": 5,
+       "minutes": 93
+      },
+      {
+       "rests": 3,
+       "minutes": 62
+      },
+      {
+       "rests": 1,
+       "minutes": 46
+      },
+      {
+       "rests": 0,
+       "minutes": 41
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "contact",
+   "name": "Climb to the layer contact",
+   "km": 3.06,
+   "route_choice": {
+    "body": {
+     "rests": 3,
+     "minutes": 76
+    },
+    "direct": {
+     "rests": 3,
+     "minutes": 76
+    }
+   },
+   "rows": [
+    {
+     "factor": "low",
+     "cells": [
+      {
+       "rests": 4,
+       "minutes": 95
+      },
+      {
+       "rests": 1,
+       "minutes": 60
+      },
+      {
+       "rests": 0,
+       "minutes": 53
+      },
+      {
+       "rests": 0,
+       "minutes": 53
+      }
+     ]
+    },
+    {
+     "factor": "middle",
+     "cells": [
+      {
+       "rests": 6,
+       "minutes": 118
+      },
+      {
+       "rests": 3,
+       "minutes": 76
+      },
+      {
+       "rests": 1,
+       "minutes": 60
+      },
+      {
+       "rests": 0,
+       "minutes": 55
+      }
+     ]
+    },
+    {
+     "factor": "high",
+     "cells": [
+      {
+       "rests": 8,
+       "minutes": 143
+      },
+      {
+       "rests": 6,
+       "minutes": 102
+      },
+      {
+       "rests": 3,
+       "minutes": 74
+      },
+      {
+       "rests": 0,
+       "minutes": 59
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

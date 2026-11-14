@@ -411,9 +411,18 @@ function buildSources() {
 
 async function buildProof() {
   const get = (file) => fetch(`data/${file}`).then((r) => r.json());
-  const [check, people, slopes] = await Promise.all([
+  const [check, people, slopes, suits] = await Promise.all([
     get('shielding/validation.json'), get('validation/model_vs_measured.json'), get('validation/model_revised_vs_measured.json'),
+    get('validation/sensitivity.json'),
   ]);
+  // The suit table: one row for each walk at the middle of the measured
+  // spread, and the hardest walk at both ends of it.
+  const middle = (walk) => walk.rows.find((row) => row.factor === 'middle').cells;
+  const cellText = (cell, join = '<br>') => `${cell.rests === 0 ? 'no rest' : cell.rests === 1 ? '1 rest' : `${cell.rests} rests`}${join}${cell.minutes} min`;
+  const hardest = suits.walks.reduce((x, y) => (y.km > x.km ? y : x));
+  const atModel = suits.cooling_w.indexOf(suits.model_cooling_w);
+  const end = (factor) => hardest.rows.find((row) => row.factor === factor).cells[atModel];
+  const mostSaved = Math.max(...suits.walks.map((walk) => walk.route_choice.direct.rests - walk.route_choice.body.rests));
   const within = check.rows.filter((row) => Math.abs(row.difference_pct_points) <= 1).length;
   const level = people.rows.filter((row) => row.suited);
   const pct = (ratio) => `${ratio >= 1 ? '+' : '−'}${Math.abs(Math.round((ratio - 1) * 100))}%`;
@@ -437,7 +446,14 @@ async function buildProof() {
     </table>
     <p><b>All ${slopes.revised_model.points} lie within ${Math.round((Math.max(slopes.revised_model.highest - 1, 1 - slopes.revised_model.lowest)) * 100)}% of the revised model</b> (median ${pct(slopes.revised_model.median_ratio)}). The change was made after seeing these measurements, so this shows the model is consistent with them; it is not a blind prediction. All but one value were read from the reports' plotted lines, the sloped walking speed is known only as a range, and none of the sloped tests was at Mars gravity.</p>
     <p>Sources: <a href="https://ntrs.nasa.gov/citations/20070016007" target="_blank" rel="noopener">NASA Walkback Test</a>, <a href="https://ntrs.nasa.gov/citations/20110003409" target="_blank" rel="noopener">NASA Integrated Suit Test 2, NASA/TP-2010-216125</a>.</p>
-    <h3>2. The radiation layer, tested against Curiosity</h3>
+    <h3>2. What decides the walk: the suit, more than the route</h3>
+    <p>The same walks on their body-cost routes, carrying ${suits.load_kg} kg, priced again for suits that remove less or more heat than the ${suits.model_cooling_w} W of this model.</p>
+    <table>
+      <thead><tr><th>Walk</th>${suits.cooling_w.map((w) => `<th>${w} W${w === suits.model_cooling_w ? ' (model)' : ''}</th>`).join('')}</tr></thead>
+      <tbody>${suits.walks.map((walk) => `<tr><td>${walk.name}, ${walk.km} km</td>${middle(walk).map((cell) => `<td>${cellText(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+    <p><b>With ${suits.cooling_w.at(-1)} W of cooling none of these walks needs a rest.</b> The choice of route changes the count by ${mostSaved === 1 ? 'one rest' : `${mostSaved} rests`} at most. The spread measured on people matters as much as the suit: at ${suits.model_cooling_w} W, the ${hardest.name.toLowerCase()} needs ${cellText(end('low'), ' and ')} at the low end of the spread and ${cellText(end('high'), ' and ')} at the high end. So the question this map puts to a suit designer is how many watts a Mars suit must remove. Made by <code>tools/sensitivity.mjs</code>.</p>
+    <h3>3. The radiation layer, tested against Curiosity</h3>
     <p>In eight measurement periods at five places the Curiosity rover measured less radiation where terrain blocked part of the sky. We computed the share of sky blocked at the same rover positions from NASA's elevation model and compared it with the published values.</p>
     <table>
       <thead><tr><th>Place</th><th>Sky blocked, published</th><th>Sky blocked, ours</th><th>Dose drop measured</th></tr></thead>
@@ -446,7 +462,7 @@ async function buildProof() {
     </table>
     <p><b>${within} of ${check.rows.length} agree within 1 percentage point.</b> Mean difference ${check.summary.mean_absolute_difference_pct_points.toFixed(1)} points. Maria Gordon Notch is a narrow valley and reads 9 points low: our elevation grid is 4 m and the paper used 1 m. This checks the terrain computation. It does not check the dose model.</p>
     <p>Source: <a href="https://elib.dlr.de/224554/" target="_blank" rel="noopener">Guo et al. 2026, JGR Planets 131(4), Table 1</a>. Rover positions: NASA/JPL-Caltech.</p>
-    <h3>3. The orbiter passes, computed twice</h3>
+    <h3>4. The orbiter passes, computed twice</h3>
     <p>A second computation of the relay orbiter passes, made from spacecraft position vectors with code that shares nothing with the first, found the same 13 passes. Rise and set times agree within 1 minute. The check first placed the observer on a simple sphere, and the height of an orbiter above the horizon then differed by up to 0.8 degree. With the observer placed as in the first computation (on the planet's ellipsoid, about 4 km below the reference level) the two agree within 0.05 degree. The record is in <a href="data/comms/check_passes.json" target="_blank" rel="noopener">data/comms/check_passes.json</a>.</p>
     <p>The Sun's rise and day length from the same method match Curiosity's weather record within 1 minute.</p>`;
   const dialog = $('proof');

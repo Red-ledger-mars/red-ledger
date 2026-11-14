@@ -47,6 +47,54 @@
       "credit": "NASA/JPL-Caltech/MSSS",
       "source_url": "https://mars.nasa.gov/msl-raw-images/msss/04789/mhli/4789MH0001530001703710R00_DXXX.jpg",
       "page_url": "https://mars.nasa.gov/msl/multimedia/raw-images/"
+    },
+    {
+      "stop": "campo",
+      "kind": "wide",
+      "file": "img/stops/campo-wide.jpg",
+      "sol": 4893,
+      "instrument": "Navcam Left B",
+      "taken_utc": "2026-05-12T17:21:43.000Z",
+      "caption": "Navcam view over flat, broken slabs of pale rock on dark sand, with more rock slabs stretching to the horizon.",
+      "credit": "NASA/JPL-Caltech",
+      "source_url": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/04893/opgs/edr/ncam/NLB_831874273EDR_F1220462NCAM00256M_.JPG",
+      "page_url": "https://mars.nasa.gov/msl/multimedia/raw-images/"
+    },
+    {
+      "stop": "campo",
+      "kind": "close",
+      "file": "img/stops/campo-close.jpg",
+      "sol": 4893,
+      "instrument": "MAHLI",
+      "taken_utc": "2026-05-12T16:57:47.000Z",
+      "caption": "MAHLI close-up of smooth tan rock with a small round feature, a bright white speck beside it and a dark grain below.",
+      "credit": "NASA/JPL-Caltech/MSSS",
+      "source_url": "https://mars.nasa.gov/msl-raw-images/msss/04893/mhli/4893MH0001930001801078R00_DXXX.jpg",
+      "page_url": "https://mars.nasa.gov/msl/multimedia/raw-images/"
+    },
+    {
+      "stop": "contact",
+      "kind": "wide",
+      "file": "img/stops/contact-wide.jpg",
+      "sol": 4983,
+      "instrument": "Navcam Left B",
+      "taken_utc": "2026-08-13T05:15:20.000Z",
+      "caption": "Navcam view over a field of broken, light-toned rock slabs toward dark hills under a pale sky.",
+      "credit": "NASA/JPL-Caltech",
+      "source_url": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/04983/opgs/edr/ncam/NLB_839865814EDR_F1240744NCAM00281M_.JPG",
+      "page_url": "https://mars.nasa.gov/msl/multimedia/raw-images/"
+    },
+    {
+      "stop": "contact",
+      "kind": "close",
+      "file": "img/stops/contact-close.jpg",
+      "sol": 4979,
+      "instrument": "MAHLI",
+      "taken_utc": "2026-08-09T05:18:41.000Z",
+      "caption": "MAHLI close-up of a smooth tan rock face crossed by thin ridges and cracks, with loose grains at the lower right.",
+      "credit": "NASA/JPL-Caltech/MSSS",
+      "source_url": "https://mars.nasa.gov/msl-raw-images/msss/04979/mhli/4979MH0003360021803051C00_DXXX.jpg",
+      "page_url": "https://mars.nasa.gov/msl/multimedia/raw-images/"
     }
   ]
 }
