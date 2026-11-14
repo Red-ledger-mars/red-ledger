@@ -18,7 +18,7 @@ Work in progress. This section is updated as parts are finished.
 - [x] A walk with a habitat and three stops, and two routes for it: the shortest, and the one with the least walking energy
 - [x] Elevation profile and a walk control that moves along the route
 - [ ] Body-cost model: walking energy is in (source check pending); heat, radiation dose and the way back are not built yet
-- [ ] Rover photos at the stops
+- [x] Curiosity's own photos at the two stops it visited
 - [ ] Demo walk stored in the repo
 
 ## Run it

@@ -24,6 +24,7 @@ const ROUTES = [
 const state = {
   terrain: null,
   walk: null,
+  photos: [],      // Curiosity photos for the stops
   routes: {},      // id -> described route from planWalk
   lines: {},       // id -> map polyline
   active: 'direct',
@@ -164,14 +165,31 @@ function stopMarker(place, number) {
     .addTo(map);
 }
 
-function showPlace(place) {
+// Shows a place in the side card. Stops Curiosity visited carry its own
+// photos: a wide view of the ground ahead and a close view of the rock.
+// Clicking the photo switches between the two.
+function showPlace(place, kind = 'wide') {
   $('target').hidden = false;
-  $('target-img').hidden = true; // photos are attached when photos.json exists
   $('target-name').innerHTML = `${place.assumption ? '<i class="assume"></i>' : ''}${place.name}`;
   $('target-text').textContent = place.text;
   $('target-credit').innerHTML = place.source
     ? `<a href="${place.source}" target="_blank" rel="noopener">Source</a>${place.sol ? ` · sol ${place.sol}` : ''}`
     : 'Assumption, not a measured or published position';
+
+  const photos = state.photos.filter((ph) => ph.stop === place.id);
+  const photo = photos.find((ph) => ph.kind === kind) ?? photos[0];
+  const figure = $('target-photo');
+  figure.hidden = !photo;
+  if (!photo) return;
+  const other = photos.find((ph) => ph !== photo);
+  $('target-img').src = photo.file;
+  $('target-img').alt = photo.caption;
+  $('target-caption').innerHTML = `${photo.caption} <a href="${photo.source_url}" target="_blank" rel="noopener">Curiosity ${photo.instrument}, sol ${photo.sol}</a>. ${photo.credit}`;
+  $('target-swap').hidden = !other;
+  if (other) {
+    $('target-swap').textContent = other.kind === 'close' ? 'Show close view' : 'Show wide view';
+    $('target-swap').onclick = () => showPlace(place, other.kind);
+  }
 }
 
 function buildRouteCards() {
@@ -327,6 +345,7 @@ function buildWalkControls() {
 
 async function buildWalk(terrain) {
   state.walk = await (await fetch('data/walk.json')).json();
+  state.photos = (await (await fetch('data/photos.json')).json()).photos;
   $('ledger-note').textContent = 'Finding routes…';
   await new Promise((done) => setTimeout(done, 30)); // let the map paint first
 

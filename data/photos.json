@@ -1,0 +1,52 @@
+{
+  "photos": [
+    {
+      "stop": "altadena",
+      "kind": "wide",
+      "file": "img/stops/altadena-wide.jpg",
+      "sol": 4558,
+      "instrument": "Navcam Left B",
+      "taken_utc": "2025-06-02T11:27:48.000Z",
+      "caption": "Navcam view across pale, broken ground toward layered cliffs of Mount Sharp, with a shallow dark hollow in the middle distance.",
+      "credit": "NASA/JPL-Caltech",
+      "source_url": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/04558/opgs/edr/ncam/NLB_802131722EDR_F1161890NCAM00262M_.JPG",
+      "page_url": "https://mars.nasa.gov/msl/multimedia/raw-images/"
+    },
+    {
+      "stop": "altadena",
+      "kind": "close",
+      "file": "img/stops/altadena-close.jpg",
+      "sol": 4570,
+      "instrument": "MAHLI",
+      "taken_utc": "2025-06-14T20:59:35.000Z",
+      "caption": "MAHLI close-up of a drill hole in light-brown rock, ringed by loose rock chips and powder.",
+      "credit": "NASA/JPL-Caltech/MSSS",
+      "source_url": "https://mars.nasa.gov/msl-raw-images/msss/04570/mhli/4570MH0001220011604084C00_DXXX.jpg",
+      "page_url": "https://mars.nasa.gov/msl/multimedia/raw-images/"
+    },
+    {
+      "stop": "ridges",
+      "kind": "wide",
+      "file": "img/stops/ridges-wide.jpg",
+      "sol": 4789,
+      "instrument": "Navcam Left B",
+      "taken_utc": "2026-01-25T18:34:34.000Z",
+      "caption": "Navcam view across flat ground to a gap between two dark, layered hills under a pale sky.",
+      "credit": "NASA/JPL-Caltech",
+      "source_url": "https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/04789/opgs/edr/ncam/NLB_822633932EDR_S1200574NCAM00279M_.JPG",
+      "page_url": "https://mars.nasa.gov/msl/multimedia/raw-images/"
+    },
+    {
+      "stop": "ridges",
+      "kind": "close",
+      "file": "img/stops/ridges-close.jpg",
+      "sol": 4789,
+      "instrument": "MAHLI",
+      "taken_utc": "2026-01-25T18:15:19.000Z",
+      "caption": "MAHLI close-up of angular, cracked slabs of tan rock with dark gaps between them.",
+      "credit": "NASA/JPL-Caltech/MSSS",
+      "source_url": "https://mars.nasa.gov/msl-raw-images/msss/04789/mhli/4789MH0001530001703710R00_DXXX.jpg",
+      "page_url": "https://mars.nasa.gov/msl/multimedia/raw-images/"
+    }
+  ]
+}
