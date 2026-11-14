@@ -560,7 +560,10 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
   } catch {
     return inertView(root, '3D view could not start the graphics driver. The map view still works.');
   }
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+  // High-density screens (2x and up) are drawn at 2x so the ground is sharp;
+  // other screens keep the 1.5x cap that keeps weak laptops smooth.
+  const dpr = window.devicePixelRatio || 1;
+  renderer.setPixelRatio(dpr >= 2 ? 2 : Math.min(dpr, 1.5));
   renderer.domElement.className = 'v3d-canvas';
   root.appendChild(renderer.domElement);
 
@@ -869,7 +872,17 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
   let disposed = false;
   let raf = 0;
   let lastT = 0;
-  let transition = 0; // seconds left of the slower glide after a mode change
+  let walkerTarget = 0; // where setWalker last put the walker
+  let walkerEase = false; // glide to walkerTarget instead of jumping there
+  const WALKER_K = 7; // 1/s; the gliding walker closes 63% of the gap in 0.14 s
+  // A change between the overview and the view behind the walker is a timed
+  // move that starts and ends gently, like a crane shot. The end point keeps
+  // updating, so the move lands on a walker that is still walking.
+  const MOVE_S = 1.6;
+  let move = null; // { from: { pos, look }, t, lift }
+  const easeInOut = (t) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
+  const marks = { pins: true, ring: true };
+  let viewShift = 0; // share of the width the picture centre is moved right
   const CHASE_BACK = 55; // metres behind the walker on a wide screen
   let chaseZoom = 1; // the user's wheel / pinch factor on top of that
   const MIN_CLEARANCE = 6; // the camera never goes nearer than this to the ground under it
@@ -898,7 +911,7 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
   const orbit = { az: 0, pol: 58 * DEG, dist: 1400 };
   function fitDistance() {
     const vf = camera.fov * DEG;
-    const hf = 2 * Math.atan(Math.tan(vf / 2) * camera.aspect);
+    const hf = 2 * Math.atan(Math.tan(vf / 2) * camera.aspect * (1 - 2 * viewShift));
     return clamp((centreOfRoutes.radius * 1.15) / Math.tan(Math.min(vf, hf) / 2), 300, 3500);
   }
   function resetOrbit() {
@@ -949,6 +962,11 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
   // it is still moving, so the loop keeps going.
   function stepCamera(dt, instant = false) {
     let moving = false;
+    if (walkerDist !== walkerTarget) {
+      const gap = walkerTarget - walkerDist;
+      walkerDist = instant || !walkerEase || Math.abs(gap) < 0.05 ? walkerTarget : walkerDist + gap * (1 - Math.exp(-WALKER_K * dt));
+      moving = true;
+    }
     if (mode === 'chase') {
       const target = targetHeading();
       if (target !== null) {
@@ -960,11 +978,20 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
       }
     }
     computeDesired();
-    const k = transition > 0 ? 3.2 : mode === 'chase' ? 4.5 : 14;
+    if (move && !instant) {
+      move.t = Math.min(1, move.t + dt / MOVE_S);
+      const e = easeInOut(move.t);
+      cur.pos.lerpVectors(move.from.pos, des.pos, e);
+      cur.look.lerpVectors(move.from.look, des.look, e);
+      cur.pos.y += Math.sin(Math.PI * e) * move.lift; // swoops over the ground
+      if (move.t >= 1) move = null;
+      return true;
+    }
+    move = null;
+    const k = mode === 'chase' ? 4.5 : 14;
     const f = instant ? 1 : 1 - Math.exp(-k * dt);
     cur.pos.lerp(des.pos, f);
     cur.look.lerp(des.look, f);
-    if (transition > 0) { transition = Math.max(0, transition - dt); moving = true; }
     if (cur.pos.distanceTo(des.pos) > 0.05 || cur.look.distanceTo(des.look) > 0.05) moving = true;
     return moving;
   }
@@ -1171,6 +1198,8 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
     if (w < 2 || h < 2) return;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
+    if (viewShift) camera.setViewOffset(w, h, -viewShift * w, 0, w, h);
+    else camera.clearViewOffset();
     camera.updateProjectionMatrix();
     invalidate();
   }
@@ -1219,6 +1248,7 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
       if (!prepared[id] || id === activeId) return;
       activeId = id;
       walkerDist = Math.min(walkerDist, prepared[id].total);
+      walkerTarget = Math.min(walkerTarget, prepared[id].total);
       styleRoutes();
       rebuildPins();
       invalidate();
@@ -1229,13 +1259,35 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
       installRoutes(next);
       if (!prepared[activeId]) activeId = ids[0];
       walkerDist = Math.min(walkerDist, prepared[activeId].total);
+      walkerTarget = Math.min(walkerTarget, prepared[activeId].total);
       styleRoutes();
       rebuildPins();
       invalidate();
     },
-    setWalker(dist) {
+    // With { ease: true } the walker glides to the new distance instead of
+    // jumping, so scroll steps read as walking. Less motion asked for: jumps.
+    setWalker(dist, { ease = false } = {}) {
       free.on = false;
-      walkerDist = clamp(Number(dist) || 0, 0, prepared[activeId].total);
+      walkerTarget = clamp(Number(dist) || 0, 0, prepared[activeId].total);
+      walkerEase = ease && !REDUCED;
+      if (!walkerEase) walkerDist = walkerTarget;
+      invalidate();
+    },
+    // Shows or hides the numbered stop pins and the walker's ring and beam.
+    // The walker's dot always stays.
+    setMarks({ pins = true, ring: showRing = true } = {}) {
+      marks.pins = !!pins;
+      marks.ring = !!showRing;
+      pinGroup.visible = routesVisible && marks.pins;
+      ring.visible = beam.visible = marks.ring;
+      invalidate();
+    },
+    // Moves the picture centre right by this share of the width (0 to 0.4), for
+    // a page with text on the left. Kept through resizes.
+    setViewShift(share) {
+      viewShift = clamp(Number(share) || 0, 0, 0.4);
+      resize();
+      if (mode === 'orbit') orbit.dist = fitDistance();
       invalidate();
     },
     // Free walk. Puts the walker at a latitude and longitude, facing a compass
@@ -1285,7 +1337,7 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
     setRoutesVisible(on) {
       const v = !!on;
       for (const id of ids) tubes[id].mesh.visible = v;
-      pinGroup.visible = v;
+      pinGroup.visible = v && marks.pins;
       routesVisible = v;
       invalidate();
     },
@@ -1297,8 +1349,9 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
         const t = targetHeading();
         if (t !== null) heading = t;
       }
-      transition = REDUCED ? 0 : 1.1;
-      if (REDUCED) stepCamera(0, true);
+      computeDesired();
+      if (REDUCED) { move = null; stepCamera(0, true); }
+      else move = { from: { pos: cur.pos.clone(), look: cur.look.clone() }, t: 0, lift: 0.08 * cur.pos.distanceTo(des.pos) };
       updateHint();
       invalidate();
     },
