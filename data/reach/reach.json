@@ -1,0 +1,77 @@
+{
+ "what": "What a walk from the habitat to each cell and straight back costs the body, by the body-cost route (least walking energy, refusing ground steeper than the walking measurements), for each carried load: the rests the planner adds, the peak stored heat if the walker never rests, and the time with the rests. Made with the model in js/body.js; no radiation, no comms.",
+ "method": "One search from the habitat gives the cheapest path to every cell and one search toward the habitat gives the cheapest way home from every cell, both with the pricing planWalk uses. The body state is carried along the outward tree and then along the way home from each cell, with the same rest rule as planWalk (rest before a step when stored heat reaches 90% of the limit).",
+ "made_by": "tools/reach.mjs",
+ "date": "2026-11-14",
+ "habitat": {
+  "lat": -4.79711,
+  "lon": 137.38381
+ },
+ "cols": 387,
+ "rows": 475,
+ "pixel_m": 4,
+ "bounds": [
+  [
+   -4.822041902240267,
+   137.3699374779336
+  ],
+  [
+   -4.789987753009848,
+   137.39605317425395
+  ]
+ ],
+ "x_left_m": 8142561.4928,
+ "y_top_m": -283925.07519999996,
+ "radius_m": 3396190,
+ "grid": "Same cells as data/dem_boxwork_4m.json: row-major from the north-west corner.",
+ "loads_kg": [
+  0,
+  15,
+  30
+ ],
+ "file": "reach.bin.gz",
+ "file_encoding": "gzip of 9 uint8 layers of cols x rows bytes each, in this order: for each load in loads_kg, rests, heat, minutes.",
+ "layers": {
+  "rests": "Number of rests the planner adds, as is. 255 = no route.",
+  "heat": "Peak stored body heat with no rest, kJ/kg x 20, rounded, capped at 254. 255 = no route.",
+  "minutes": "Total time with the planned rests, minutes, rounded, capped at 254. 255 = no route."
+ },
+ "counts": {
+  "0": {
+   "0": 118157,
+   "1": 47308,
+   "2": 16703,
+   "3": 1652,
+   "4+": 0,
+   "noRoute": 5,
+   "maxRests": 3,
+   "maxMinutes": 85.9,
+   "maxPeakHeatNoRestKJkg": 5.85,
+   "cappedCells": 0
+  },
+  "15": {
+   "0": 84540,
+   "1": 48968,
+   "2": 34125,
+   "3": 14124,
+   "4+": 2063,
+   "noRoute": 5,
+   "maxRests": 4,
+   "maxMinutes": 95.2,
+   "maxPeakHeatNoRestKJkg": 7.31,
+   "cappedCells": 0
+  },
+  "30": {
+   "0": 64601,
+   "1": 40567,
+   "2": 39220,
+   "3": 25315,
+   "4+": 14117,
+   "noRoute": 5,
+   "maxRests": 5,
+   "maxMinutes": 104.8,
+   "maxPeakHeatNoRestKJkg": 8.69,
+   "cappedCells": 0
+  }
+ }
+}

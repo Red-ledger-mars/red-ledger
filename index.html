@@ -51,6 +51,7 @@
       <span class="legend-title" id="legend-title"></span>
       <canvas id="legend-strip" width="200" height="8"></canvas>
       <span class="legend-ticks" id="legend-ticks"></span>
+      <span class="legend-note" id="legend-note"></span>
     </div>
     <p class="ledger-note" id="ledger-note">Loading the terrain…</p>
     <div class="ledger-foot">
@@ -83,7 +84,7 @@
     <div class="scrub">
       <button id="play" type="button" disabled>Walk</button>
       <button id="free" type="button" class="quiet" disabled title="Steer the walker yourself with the arrow keys; the body model runs on the ground you choose">Free walk</button>
-      <button id="own" type="button" class="quiet" disabled aria-pressed="false" title="Place your own stops on the map; the planner finds both routes there and back and what they cost the body (key O)">Plan your own</button>
+      <button id="own" type="button" class="quiet" disabled aria-pressed="false" title="Place your own stops on the map; the planner finds both routes there and back and what they cost the body (key O)">Own walk</button>
       <label class="start" id="start-wrap">Start <select id="start-time" title="Local time on Mars when the walk starts. The share is how much of the body-cost route has a relay orbiter in view."></select></label>
       <input id="progress" type="range" min="0" max="1000" value="0" disabled aria-label="Position along the route">
       <span id="progress-text" class="mono"></span>

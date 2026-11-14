@@ -5,6 +5,7 @@ import { loadComms, commsImage, COMMS_RAMP } from './comms.js';
 import { buildBrief, doctorChecks, forecastFile, forecastCsv, NOT_MODELLED } from './brief.js';
 import { planWalk, pointAt, returnCost } from './route.js';
 import { createPlanner } from './planner.js';
+import { loadReach, REACH_LEGEND } from './reach.js';
 import { SOURCES, MODEL, MAX_MEASURED_GRADIENT, tempRiseC, step, Ledger, heatNeutralPace, levelWorkW } from './body.js';
 
 const L = window.L;
@@ -52,6 +53,8 @@ const state = {
   checks: null,     // the crew doctor's own checks, from data/brief_checks.json
   free: null,       // the free walk in progress, or null
   own: null,        // the walk the viewer is placing, or null
+  reach: null,      // the body-reach grid, loaded when its layer is first shown
+  overlay: 'none',  // the overlay now shown
   sequence: false,  // true while the recorded sequence is playing
   onWalkEnd: null,  // called when a played walk reaches its end
 };
@@ -86,9 +89,20 @@ map.on('mousemove', (e) => {
   if (sky != null) text += `  ·  sky blocked ${sky.toFixed(0)}%`;
   const inView = state.comms?.at(lat, lng);
   if (inView != null) text += `  ·  orbiter in view ${inView} min/sol`;
+  // With the reach layer on, the legend says what a walk to the point under
+  // the pointer and back would cost.
+  if (state.overlay === 'reach' && state.reach) {
+    const reach = state.reach.at(lat, lng, state.loadKg);
+    $('legend-note').textContent = reach?.reachable
+      ? `Here and back: ${reach.minutes} min, ${reach.rests === 0 ? 'no rest' : reach.rests === 1 ? '1 rest' : `${reach.rests} rests`}, about ${reach.peakHeatKJkg.toFixed(1)} kJ/kg if not rested`
+      : REACH_NOTE;
+  }
   $('cursor-coord').textContent = text;
 });
-map.on('mouseout', () => { $('cursor-coord').textContent = ''; });
+map.on('mouseout', () => {
+  $('cursor-coord').textContent = '';
+  if (state.overlay === 'reach') $('legend-note').textContent = REACH_NOTE;
+});
 
 // The bars at the top and bottom grow when their contents wrap on a narrow
 // screen. The panel grid is told their real height.
@@ -132,6 +146,9 @@ function boundsPadding() {
 
 /* Imagery and overlays */
 
+// What the reach layer shows, said under its legend.
+const REACH_NOTE = 'To walk from the habitat to a point and back, body-cost route, load shown. Point at the map for one place.';
+
 // Imagery is always on. One overlay at a time goes on top of it, so the
 // picture of the ground is never buried under several layers.
 function buildImagery() {
@@ -147,6 +164,19 @@ function buildOverlays(terrain, sky, comms) {
   const thermal = Object.fromEntries(LAYERS.filter((l) => l.kind === 'image').map((l) => [l.id, l]));
   state.overlays = [
     { id: 'none', label: 'Imagery' },
+    {
+      id: 'reach',
+      label: 'Reach',
+      // The legend has room for short labels only; the fifth class, no route,
+      // covers five cells and is left out of it.
+      legend: { title: 'Rests needed', note: REACH_NOTE, steps: REACH_LEGEND.slice(0, 4).map((entry, i) => ({ ...entry, label: ['none', '1', '2', '3+'][i] })) },
+      // The grid is 200 kB and is only fetched when the layer is first shown.
+      make: async (overlay) => {
+        state.reach = await loadReach();
+        overlay.leaf = L.imageOverlay(state.reach.image(state.loadKg), state.reach.bounds, { className: 'reach-layer' });
+      },
+      credit: 'Body reach: the rests the plan adds to walk from the habitat to each point and back by the body-cost route, for the load shown. Computed for every 4 m cell with the body model on this page. A rest starts at 90% of NASA\'s heat limit',
+    },
     {
       id: 'slope',
       label: 'Slope',
@@ -187,15 +217,23 @@ function buildOverlays(terrain, sky, comms) {
 }
 
 function setOverlay(id) {
+  state.overlay = id;
   for (const overlay of state.overlays) {
     const on = overlay.id === id;
     $(`overlay-${overlay.id}`).setAttribute('aria-pressed', String(on));
+    // A layer that is made on first use is shown as soon as it is ready,
+    // unless another layer was chosen in the meantime.
+    if (on && !overlay.leaf && overlay.make) {
+      overlay.make(overlay).then(() => { if (state.overlay === id) setOverlay(id); }).catch(() => {});
+      continue;
+    }
     if (!overlay.leaf) continue;
     if (on) overlay.leaf.addTo(map); else overlay.leaf.remove();
-    if (on) showLegend(overlay.ramp);
+    if (on) showLegend(overlay.ramp ?? overlay.legend);
   }
   state.view3d?.setSlopeTint(id === 'slope');
-  if (!state.overlays.find((o) => o.id === id)?.ramp) $('legend').hidden = true;
+  const shown = state.overlays.find((o) => o.id === id);
+  if (!shown?.ramp && !(shown?.legend && shown.leaf)) $('legend').hidden = true;
 }
 
 // A strip that shows what the overlay's colours mean.
@@ -204,6 +242,20 @@ function showLegend(ramp) {
   const strip = $('legend-strip');
   const ctx = strip.getContext('2d');
   ctx.clearRect(0, 0, strip.width, strip.height);
+  // A layer with a few named classes gets one block for each.
+  if (ramp.steps) {
+    const width = strip.width / ramp.steps.length;
+    ramp.steps.forEach((entry, i) => {
+      ctx.fillStyle = entry.color;
+      ctx.fillRect(Math.round(i * width) + 1, 0, Math.round(width) - 2, strip.height);
+    });
+    $('legend-title').textContent = ramp.title;
+    $('legend-ticks').innerHTML = ramp.steps.map((entry) => `<span>${entry.label}</span>`).join('');
+    $('legend-note').textContent = ramp.note ?? '';
+    $('legend').hidden = false;
+    return;
+  }
+  $('legend-note').textContent = '';
   for (let x = 0; x < strip.width; x++) {
     const [r, g, b, a] = ramp.color(ramp.min + ((ramp.max - ramp.min) * x) / (strip.width - 1));
     ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
@@ -629,6 +681,9 @@ function setLoad(loadKg, ease = true) {
   state.loadKg = loadKg;
   for (const btn of $('loads').children) btn.setAttribute('aria-pressed', String(Number(btn.dataset.kg) === loadKg));
   $('ledger-note').innerHTML = `An ${MODEL.bodyMassKg} kg walker in a ${MODEL.suitMassKg} kg suit${loadKg ? `, carrying ${loadKg} kg` : ''}. On flat ground at ${MODEL.paceMs.toFixed(1)} m/s the walker makes <b>${Math.round(levelWorkW(loadKg))} W</b> of heat; the suit removes <b>${MODEL.coolingW} W</b>. Heat stops building only below ${heatNeutralPace(loadKg).toFixed(2)} m/s.`;
+  // The reach layer is drawn for the load shown.
+  const reachLayer = state.overlays.find((overlay) => overlay.id === 'reach')?.leaf;
+  if (reachLayer && state.reach) reachLayer.setUrl(state.reach.image(loadKg));
   // A walk the viewer placed is planned again for the new load.
   if (state.own?.stops.length) { planOwn(); return; }
   showRoutes(state.plans[loadKg], ease);
@@ -1254,7 +1309,7 @@ function endOwn() {
   state.stopMarkers.slice(1).forEach((marker) => marker.addTo(map));
   document.body.classList.remove('own');
   $('own').setAttribute('aria-pressed', 'false');
-  $('own').textContent = 'Plan your own';
+  $('own').textContent = 'Own walk';
   $('routes').removeAttribute('aria-busy');
   $('target').hidden = true;
   ownSay('');
