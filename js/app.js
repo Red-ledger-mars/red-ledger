@@ -387,7 +387,8 @@ async function buildProof() {
     <p><b>${within} of ${check.rows.length} agree within 1 percentage point.</b> Mean difference ${check.summary.mean_absolute_difference_pct_points.toFixed(1)} points. Maria Gordon Notch is a narrow valley and reads 9 points low: our elevation grid is 4 m and the paper used 1 m. This checks the terrain computation. It does not check the dose model.</p>
     <p>Source: <a href="https://elib.dlr.de/224554/" target="_blank" rel="noopener">Guo et al. 2026, JGR Planets 131(4), Table 1</a>. Rover positions: NASA/JPL-Caltech.</p>
     <h3>3. The orbiter passes, computed twice</h3>
-    <p>A second, separate computation of the relay orbiter passes over the habitat matched the first within 1 minute and 0.1 degree. The Sun's rise and day length from the same method match Curiosity's weather record within 1 minute.</p>`;
+    <p>A second computation of the relay orbiter passes, made from spacecraft position vectors with code that shares nothing with the first, found the same 13 passes. Rise and set times agree within 1 minute. The check first placed the observer on a simple sphere, and the height of an orbiter above the horizon then differed by up to 0.8 degree. With the observer placed as in the first computation (on the planet's ellipsoid, about 4 km below the reference level) the two agree within 0.05 degree. The record is in <a href="data/comms/check_passes.json" target="_blank" rel="noopener">data/comms/check_passes.json</a>.</p>
+    <p>The Sun's rise and day length from the same method match Curiosity's weather record within 1 minute.</p>`;
   const dialog = $('proof');
   $('proof-open').addEventListener('click', () => dialog.showModal());
   $('proof-close').addEventListener('click', () => dialog.close());
