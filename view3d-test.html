@@ -35,11 +35,12 @@
   <label>Camera <select id="mode"><option value="orbit">Orbit</option><option value="chase">Chase</option></select></label>
   <label>Height <select id="exag"><option value="1">x1</option><option value="2">x2</option></select></label>
   <label><input id="tint" type="checkbox"> Slope tint</label>
+  <label><input id="free" type="checkbox"> Free walk (arrows)</label>
   <label>Load kg <select id="load"></select></label>
 </div>
 <script type="module">
 import { loadTerrain } from './js/terrain.js';
-import { createView3D } from './js/view3d.js';
+import { createView3D, walkForward } from './js/view3d.js';
 
 // Query string sets the start state, so a screenshot can be taken without clicking:
 // ?route=body&mode=chase&d=700&x=2&tint=1&load=15&az=40&pol=50&dist=900
@@ -110,6 +111,59 @@ $('play').onclick = () => {
     setDist(d);
   }, 33);
 };
+// Free walk: left and right turn at 90 degrees a second, up moves 40 m a second.
+// A timer drives the movement (animation frames may not run in a test browser);
+// the view draws on demand, and ?settle also forces a draw on every step.
+const keys = new Set();
+const fw = { on: false, lat: 0, lon: 0, deg: 0, trail: [], timer: 0 };
+window.freeWalk = fw;
+function freeDraw() {
+  view.setWalkerAt(fw.lat, fw.lon, fw.deg);
+  view.setTrail(fw.trail);
+  $('readout').textContent = `lat ${fw.lat.toFixed(5)}  lon ${fw.lon.toFixed(5)}  heading ${Math.round(((fw.deg % 360) + 360) % 360)} deg`;
+  if (q.has('settle')) view.debug.settle();
+}
+function freeStart() {
+  const p = current()[route].points[0];
+  Object.assign(fw, { on: true, lat: p.lat, lon: p.lon, deg: 0, trail: [{ lat: p.lat, lon: p.lon }] });
+  view.setRoutesVisible(false);
+  freeDraw();
+  let last = performance.now();
+  fw.timer = setInterval(() => {
+    const now = performance.now();
+    const dt = Math.min(0.1, (now - last) / 1000);
+    last = now;
+    if (keys.has('ArrowLeft')) fw.deg -= 90 * dt;
+    if (keys.has('ArrowRight')) fw.deg += 90 * dt;
+    if (keys.has('ArrowUp')) {
+      const n = walkForward(terrain, fw.lat, fw.lon, fw.deg, 40 * dt);
+      // setWalkerAt refuses points outside the crop, so the walker stops at the edge
+      if (view.setWalkerAt(n.lat, n.lon, fw.deg)) {
+        fw.lat = n.lat; fw.lon = n.lon;
+        fw.trail.push({ lat: n.lat, lon: n.lon });
+      }
+    }
+    if (keys.size) freeDraw();
+  }, 33);
+}
+function freeStop() {
+  clearInterval(fw.timer);
+  fw.on = false;
+  keys.clear();
+  view.clearTrail();
+  view.setRoutesVisible(true);
+  setDist(Number($('dist').value));
+}
+$('free').onchange = (e) => (e.target.checked ? freeStart() : freeStop());
+window.addEventListener('keydown', (e) => {
+  if (!fw.on || !e.key.startsWith('Arrow')) return;
+  if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') e.target.blur();
+  keys.add(e.key);
+  e.preventDefault();
+});
+window.addEventListener('keyup', (e) => keys.delete(e.key));
+if (q.get('free') === '1') { $('free').checked = true; freeStart(); }
+
 window.addEventListener('resize', () => view.resize());
 </script>
 </body>

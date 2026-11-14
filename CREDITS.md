@@ -31,6 +31,8 @@ Every dataset, paper, library, image, sound and font used in Red Ledger, with it
 | Guo J et al. (2015). Modeling the variations of dose rate measured by RAD during the first MSL Martian year: 2012-2014. arXiv:1507.03473. https://arxiv.org/abs/1507.03473 | Surface dose equivalent rate at Gale crater, about 0.7 mSv per day | Read 14 Nov 2026 |
 | Guo J, Tian C, Charpentier G, et al. (2026). Influence of Mars Topography on Radiation Dose Detected by the Mars Science Laboratory and Assessment of Mars Surface Albedo Radiation. JGR Planets 131(4), e2026JE009704. Open copy (CC BY): https://elib.dlr.de/224554/ | Definition of sky blocked by terrain; Table 1, the eight places where Curiosity's RAD measured a dose drop, used to check our computation and to set the dose cut per point of sky blocked | Read 14 Nov 2026 |
 | Guo J, et al. (2021). Directionality of the Martian Surface Radiation and Derivation of the Upward Albedo Radiation. Geophysical Research Letters 48(15), e2021GL093912 | Reference share of sky blocked (10%) | Abstract read 14 Nov 2026 |
+| Allison M, McEwen M (2000). A post-Pathfinder evaluation of areocentric solar coordinates with improved timing recipes for Mars seasonal/diurnal climate studies. Planetary and Space Science 48:215-235 (the Mars24 algorithm) | Local solar time on Mars for the comms shadow | Formulas used as published |
+| Xu X, Rioux TP, Castellani MP (2022). The specific heat of the human body is lower than previously believed. https://pubmed.ncbi.nlm.nih.gov/35389752/ | Note that the conventional body specific heat (3.47 kJ/kg/°C) was never directly measured; the page marks the temperature figure as an assumption | Abstract read 14 Nov 2026 |
 | NASA Jet Propulsion Laboratory news, "NASA's Curiosity Mars Rover Starts Unpacking Boxwork Formations", 23 June 2025. https://www.jpl.nasa.gov/news/nasas-curiosity-mars-rover-starts-unpacking-boxwork-formations/ | The Altadena drill stop | Read 14 Nov 2026 |
 
 Space agency partner data: the ExoMars Trace Gas Orbiter and Mars Express are European Space Agency (ESA) missions; their trajectories are used for the comms shadow layer.
@@ -48,7 +50,7 @@ Red Ledger is not the first tool to plan a walking route by what it costs the wa
 | Item | Use | Licence | Link |
 |---|---|---|---|
 | Leaflet 1.9.4 | Map display | BSD 2-Clause (copy in `vendor/leaflet/LICENSE`) | https://leafletjs.com |
-| three.js r160 | The Mars globe | MIT (copy in `vendor/three/LICENSE`) | https://threejs.org |
+| three.js r160 | The Mars globe and the 3D view of the walk | MIT (copy in `vendor/three/LICENSE`) | https://threejs.org |
 
 ## Fonts
 

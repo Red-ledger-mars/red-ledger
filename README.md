@@ -24,6 +24,7 @@ Work in progress. This section is updated as parts are finished.
 
 - [x] Heat decides the walk: with a 30 kg load the direct route passes NASA's stored-heat limit (3.7 against 3.0 kJ/kg), so the plan adds a 7 minute rest and the route takes 56 minutes; the body-cost route needs no rest and takes 45
 - [x] Comms shadow: when a relay orbiter (MRO, Mars Odyssey, Trace Gas Orbiter, Mars Express) is above the terrain as seen by the walker, from NASA/JPL Horizons orbit data for sol 4752, with a start-time choice and the share of each route in contact. An independent recomputation matched within 1 minute
+- [x] Free walk: steer the walker over the terrain with the arrow keys; the same body model runs on the ground you choose, refuses slopes no walking study covers, and forces a rest when stored heat nears the limit
 - [x] 3D view of the walk on the real terrain (HiRISE imagery over the 4 m elevation model); pressing Walk switches to it and follows the walker
 - [x] Radiation layer: how much sky the terrain blocks, computed with the method of the Curiosity RAD team and checked against the eight places where the rover measured a dose drop (6 of 8 within 1 percentage point; shown in the page under "Check vs RAD")
 - [x] A whole-Mars globe (`globe.html`): the surveyed patch is ringed and opens the walk; any other point shows its coordinates and MOLA elevation and is labelled as not yet surveyed at walk scale
@@ -32,10 +33,10 @@ Keys on the walk page: Space plays or pauses the walk, D and B choose the direct
 
 ## Run it
 
-It is a static page with no build step. Serve the folder with any web server:
+It is a static page with no build step. Any web server works; this one also stops the browser from keeping old copies while files change:
 
 ```bash
-python3 -m http.server 8765
+python3 tools/serve.py
 ```
 
 Then open http://localhost:8765 for the walk, or http://localhost:8765/globe.html for the globe.

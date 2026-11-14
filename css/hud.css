@@ -421,3 +421,9 @@ button { font: inherit; color: inherit; }
 /* The 3D view's own marks sit clear of the page's panels. */
 .v3d-compass { left: calc(var(--left) + 44px) !important; }
 .overlays button[hidden] { display: none; }
+
+/* Free walk: the viewer steers. The planned-route controls step back. */
+.scrub button.quiet { color: var(--text); background: rgba(255, 255, 255, 0.08); border: 1px solid var(--line); white-space: nowrap; }
+.free #progress, .free #play, .free .start { display: none; }
+.free #progress-text { flex: 1; text-align: left; color: var(--text); font-size: 14px; }
+.free .routes { opacity: 0.45; pointer-events: none; }

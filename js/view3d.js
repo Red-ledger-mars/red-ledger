@@ -121,6 +121,35 @@ export function localXZ(terrain, lat, lon) {
   };
 }
 
+// Inverse of localXZ: latitude and longitude of local metres (x east, z south).
+export function localToLatLon(terrain, x, z) {
+  const col = x / terrain.px + terrain.cols / 2;
+  const row = z / terrain.px + terrain.rows / 2;
+  // toLatLon takes the index of a cell, whose centre is half a cell in.
+  return terrain.toLatLon(col - 0.5, row - 0.5);
+}
+
+// True when the point lies inside the elevation crop, so the mesh exists there.
+export function inCrop(terrain, lat, lon) {
+  const { col, row } = terrain.toCell(lat, lon);
+  return col >= 0 && col <= terrain.cols && row >= 0 && row <= terrain.rows;
+}
+
+// Unit vector on the ground for a compass heading (0 = north, 90 = east,
+// clockwise). North is -z and east is +x in local metres.
+export function headingToDir(deg) {
+  const a = deg * DEG;
+  return { x: Math.sin(a), z: -Math.cos(a) };
+}
+
+// Where a walker ends up after `metres` along a compass heading. Used by pages
+// that steer the free walk, so the maths lives next to the view that draws it.
+export function walkForward(terrain, lat, lon, headingDeg, metres) {
+  const l = localXZ(terrain, lat, lon);
+  const d = headingToDir(headingDeg);
+  return localToLatLon(terrain, l.x + d.x * metres, l.z + d.z * metres);
+}
+
 // Height of the drawn mesh at local (x, z), relative to grid.zMin. The quad
 // split matches the index order used when the mesh is built.
 export function surfaceHeight(grid, x, z) {
@@ -382,6 +411,7 @@ function inertView(root, message) {
     show() { shown = true; root.style.display = ''; },
     hide() { shown = false; root.style.display = 'none'; },
     isShown: () => shown,
+    setWalkerAt: () => false, setTrail: noop, clearTrail: noop, setRoutesVisible: noop,
     setRoute: noop, setWalker: noop, setMode: noop, setExaggeration: noop,
     setSlopeTint: noop, resize: noop,
     dispose() { root.remove(); },
@@ -507,6 +537,7 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
     for (const id of ids) {
       prepared[id] = prepareRoute(terrain, grid, next[id]);
       tubes[id] = new RouteTube(prepared[id], grid, LIFT, colorOf(id));
+      tubes[id].mesh.visible = routesVisible;
       terrainGroup.add(tubes[id].mesh);
     }
   }
@@ -561,6 +592,84 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
   walker.add(walkerBody, ring, beam);
   scene.add(walker);
 
+  // Wedge on the ground in front of a free walker. Drawn over the terrain (no
+  // depth test) so a slope in front of it cannot hide which way it points.
+  const markerGeo = new THREE.BufferGeometry();
+  markerGeo.setAttribute('position', new THREE.Float32BufferAttribute([-1, 0, 0, 1, 0, 0, 0, 0, 3.2], 3));
+  markerGeo.setIndex([0, 1, 2]);
+  const markerMat = new THREE.MeshBasicMaterial({ color: 0xfff4d6, side: THREE.DoubleSide, depthTest: false, transparent: true, opacity: 0.95 });
+  const marker = new THREE.Mesh(markerGeo, markerMat);
+  marker.renderOrder = 6;
+  marker.visible = false;
+  scene.add(marker);
+
+  // Trail of a free walk: a flat ribbon in a buffer sized once, so a growing
+  // path never allocates new geometry. Long paths are thinned to fit.
+  const TRAIL_MAX = 4000;
+  const TRAIL_EVERY_MS = 200;
+  const TRAIL_LIFT = 0.5;
+  const trail = {
+    xs: [], zs: [], first: null, half: 1.2, step: null,
+    mesh: null, geo: null, mat: null, lastBuild: 0, timer: 0,
+  };
+  function ensureTrailMesh() {
+    if (trail.mesh) return;
+    const idx = new Uint32Array((TRAIL_MAX - 1) * 6);
+    for (let i = 0; i < TRAIL_MAX - 1; i++) {
+      const a = i * 2, b = a + 1, c = a + 2, d = a + 3;
+      idx.set([a, c, b, b, c, d], i * 6);
+    }
+    trail.geo = new THREE.BufferGeometry();
+    trail.geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(TRAIL_MAX * 6), 3));
+    trail.geo.setIndex(new THREE.BufferAttribute(idx, 1));
+    trail.geo.setDrawRange(0, 0);
+    trail.mat = new THREE.MeshBasicMaterial({ color: '#f3ebe0', side: THREE.DoubleSide });
+    trail.mesh = new THREE.Mesh(trail.geo, trail.mat);
+    trail.mesh.frustumCulled = false;
+    trail.mesh.renderOrder = 3;
+    terrainGroup.add(trail.mesh);
+  }
+  function rebuildTrail() {
+    trail.timer = 0;
+    trail.lastBuild = performance.now();
+    if (disposed || !trail.mesh) return;
+    const n = trail.xs.length;
+    if (n < 2) { trail.geo.setDrawRange(0, 0); invalidate(); return; }
+    const stride = Math.ceil(n / TRAIL_MAX);
+    const keep = [];
+    for (let i = 0; i < n; i += stride) keep.push(i);
+    if (keep[keep.length - 1] !== n - 1) keep.push(n - 1);
+    const m = Math.min(keep.length, TRAIL_MAX);
+    const pos = trail.geo.attributes.position.array;
+    let sx = 1, sz = 0;
+    for (let k = 0; k < m; k++) {
+      const a = keep[Math.max(0, k - 1)], b = keep[Math.min(m - 1, k + 1)];
+      const tx = trail.xs[b] - trail.xs[a], tz = trail.zs[b] - trail.zs[a];
+      const len = Math.hypot(tx, tz);
+      if (len > 1e-6) { sx = -tz / len; sz = tx / len; }
+      const cx = trail.xs[keep[k]], cz = trail.zs[keep[k]];
+      for (let side = 0; side < 2; side++) {
+        const sgn = side ? -1 : 1;
+        const vx = cx + sgn * sx * trail.half, vz = cz + sgn * sz * trail.half;
+        const o = (k * 2 + side) * 3;
+        pos[o] = vx;
+        pos[o + 1] = surfaceHeight(grid, vx, vz) + TRAIL_LIFT;
+        pos[o + 2] = vz;
+      }
+    }
+    trail.geo.attributes.position.needsUpdate = true;
+    trail.geo.setDrawRange(0, (m - 1) * 6);
+    invalidate();
+  }
+  function clearTrailNow() {
+    if (trail.timer) clearTimeout(trail.timer);
+    trail.timer = 0;
+    trail.xs.length = 0;
+    trail.zs.length = 0;
+    trail.first = null;
+    if (trail.geo) trail.geo.setDrawRange(0, 0);
+  }
+
   // ---- state
   let mode = 'orbit';
   let exag = 1;
@@ -573,6 +682,10 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
   let chaseBack = 55;
   let heading = 0; // eased heading of the walker, radians; forward = (sin, cos) in (x, z)
   let tubeStep = null;
+  let routesVisible = true;
+  // Free walk: when set, the walker stands at a chosen point and heading
+  // instead of at a distance along the active route.
+  const free = { on: false, x: 0, z: 0, y: 0, deg: 0 };
 
   installRoutes(routes);
   let activeId = ids.includes('direct') ? 'direct' : ids[0];
@@ -606,11 +719,16 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
   const yOf = (h) => h * exag;
 
   function walkerWorld(out = new THREE.Vector3()) {
+    if (free.on) return out.set(free.x, yOf(free.y + LIFT + 0.6), free.z);
     const s = sampleRoute(prepared[activeId], walkerDist);
     return out.set(s.x, yOf(s.y + LIFT + 0.6), s.z);
   }
 
   function targetHeading() {
+    if (free.on) {
+      const d = headingToDir(free.deg);
+      return Math.atan2(d.x, d.z); // camera heading uses forward = (sin, cos) in (x, z)
+    }
     const h = routeHeading(prepared[activeId], walkerDist);
     return h ? Math.atan2(h.x, h.z) : null;
   }
@@ -693,12 +811,27 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
       for (const id of ids) tubes[id].setRadius(id === activeId ? r : r * 0.6);
     }
 
+    // The trail ribbon widens with the tube radius, in the same coarse steps.
+    if (trail.mesh && trail.step !== step) {
+      trail.step = step;
+      trail.half = 0.9 * 2 ** (step / 3);
+      rebuildTrail();
+    }
+
     // Walker and pins keep a readable size on screen.
     walkerWorld(walker.position);
     const ws = clamp(camera.position.distanceTo(walker.position) * 0.004, 1.1, 8);
     walker.scale.setScalar(ws);
     beam.scale.set(0.14, Math.min(dist * 0.04, 60) / ws, 0.14);
     beam.position.y = Math.min(dist * 0.04, 60) / ws / 2;
+    marker.visible = free.on;
+    if (free.on) {
+      const d = headingToDir(free.deg);
+      const mx = free.x + d.x * ws * 4.2, mz = free.z + d.z * ws * 4.2;
+      marker.position.set(mx, yOf(surfaceHeight(grid, mx, mz) + LIFT + 0.3), mz);
+      marker.rotation.y = Math.atan2(d.x, d.z);
+      marker.scale.setScalar(ws * 1.4);
+    }
     for (const p of pins) {
       p.group.position.set(p.a.x, yOf(p.a.y + LIFT), p.a.z);
       const u = clamp(camera.position.distanceTo(p.group.position) * 0.02, 1.5, 30);
@@ -852,7 +985,59 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
       invalidate();
     },
     setWalker(dist) {
+      free.on = false;
       walkerDist = clamp(Number(dist) || 0, 0, prepared[activeId].total);
+      invalidate();
+    },
+    // Free walk. Puts the walker at a latitude and longitude, facing a compass
+    // heading (degrees clockwise from north). Does nothing and returns false
+    // outside the elevation crop. In chase mode the camera follows through the
+    // same easing as the route chase, so a turn does not snap.
+    setWalkerAt(lat, lon, headingDeg) {
+      lat = Number(lat); lon = Number(lon); headingDeg = Number(headingDeg);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon) || !inCrop(terrain, lat, lon)) return false;
+      const l = localXZ(terrain, lat, lon);
+      free.on = true;
+      free.x = l.x;
+      free.z = l.z;
+      free.y = surfaceHeight(grid, l.x, l.z);
+      free.deg = Number.isFinite(headingDeg) ? headingDeg : 0;
+      invalidate();
+      return true;
+    },
+    // Path walked so far, as [{ lat, lon }]. Cheap to call on every step: new
+    // points are converted once and the ribbon is rebuilt at most five times a second.
+    setTrail(points) {
+      if (disposed || !Array.isArray(points)) return;
+      ensureTrailMesh();
+      const n = points.length;
+      const f = points[0];
+      const same = trail.first && f && f.lat === trail.first.lat && f.lon === trail.first.lon;
+      if (!same || n < trail.xs.length) {
+        trail.xs.length = 0;
+        trail.zs.length = 0;
+        trail.first = f ? { lat: f.lat, lon: f.lon } : null;
+      }
+      for (let i = trail.xs.length; i < n; i++) {
+        const l = localXZ(terrain, points[i].lat, points[i].lon);
+        trail.xs.push(l.x);
+        trail.zs.push(l.z);
+      }
+      const wait = TRAIL_EVERY_MS - (performance.now() - trail.lastBuild);
+      if (wait <= 0) rebuildTrail();
+      else if (!trail.timer) trail.timer = setTimeout(rebuildTrail, wait);
+    },
+    clearTrail() {
+      clearTrailNow();
+      invalidate();
+    },
+    // Hides or shows the planned route tubes and their stop pins, so a free
+    // trail can be seen alone.
+    setRoutesVisible(on) {
+      const v = !!on;
+      for (const id of ids) tubes[id].mesh.visible = v;
+      pinGroup.visible = v;
+      routesVisible = v;
       invalidate();
     },
     setMode(m) {
@@ -896,6 +1081,9 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
       el.removeEventListener('pointercancel', onUp);
       el.removeEventListener('wheel', onWheel);
       el.removeEventListener('dblclick', onDouble);
+      clearTrailNow();
+      if (trail.mesh) { trail.geo.dispose(); trail.mat.dispose(); }
+      markerGeo.dispose(); markerMat.dispose();
       for (const id of ids) tubes[id].dispose();
       for (const p of pins) p.sprite.material.dispose();
       for (const t of labelTextures) t.dispose();

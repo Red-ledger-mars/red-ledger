@@ -3,7 +3,7 @@ import { loadTerrain, slopeImage, SLOPE_RAMP } from './terrain.js';
 import { loadSky, skyImage, SKY_RAMP } from './sky.js';
 import { loadComms, commsImage, COMMS_RAMP } from './comms.js';
 import { planWalk, pointAt, returnCost } from './route.js';
-import { SOURCES, MODEL, MAX_MEASURED_GRADIENT, tempRiseC } from './body.js';
+import { SOURCES, MODEL, MAX_MEASURED_GRADIENT, tempRiseC, step, Ledger } from './body.js';
 
 const L = window.L;
 const $ = (id) => document.getElementById(id);
@@ -46,6 +46,7 @@ const state = {
   contact: {},      // route id -> which points have an orbiter in view
   view3d: null,     // the 3D view, made the first time it is opened
   nextStop: 1,      // index of the next stop the walker will reach
+  free: null,       // the free walk in progress, or null
   sequence: false,  // true while the recorded sequence is playing
   onWalkEnd: null,  // called when a played walk reaches its end
 };
@@ -486,6 +487,7 @@ function drawRestMarks() {
 
 // Switches the carried load: the routes, the cards and the ledger all change.
 function setLoad(loadKg, ease = true) {
+  endFree();
   setPlaying(false);
   state.loadKg = loadKg;
   state.routes = state.plans[loadKg];
@@ -797,7 +799,7 @@ function setPlaying(on) {
 function buildWalkControls() {
   $('play').disabled = false;
   $('progress').disabled = false;
-  $('play').addEventListener('click', () => (state.playing ? setPlaying(false) : startWalk()));
+  $('play').addEventListener('click', () => { endFree(); if (state.playing) setPlaying(false); else startWalk(); });
   $('progress').addEventListener('input', (e) => {
     setPlaying(false);
     const route = state.routes[state.active];
@@ -809,10 +811,20 @@ function buildWalkControls() {
   $('target-close').addEventListener('click', () => { $('target').hidden = true; });
   window.addEventListener('resize', drawProfile);
 
+  $('free').disabled = false;
+  $('free').addEventListener('click', () => (state.free ? endFree() : startFree()));
+  window.addEventListener('keyup', (e) => keysDown.delete(e.key));
+
   // Keys, so a walk-through can be run without the mouse: Space plays or
-  // pauses, D and B choose the route, 1 to 5 choose the overlay.
+  // pauses, D and B choose the route, 1 to 6 choose the overlay.
   window.addEventListener('keydown', (e) => {
-    if (e.target.closest('input, button, summary, dialog') && e.key !== ' ') return;
+    if (state.free) {
+      // In a free walk the arrow keys steer; nothing else is bound.
+      if (e.key.startsWith('Arrow')) { e.preventDefault(); keysDown.add(e.key); }
+      if (e.key === 'Escape') endFree();
+      return;
+    }
+    if (e.target.closest?.('input, button, summary, dialog, select') && e.key !== ' ') return;
     if (e.key === ' ') { e.preventDefault(); if (state.playing) setPlaying(false); else startWalk(); }
     if (e.key === 'r' || e.key === 'R') document.body.classList.toggle('rec');
     if (e.key === 'v' || e.key === 'V') setView3D($('view3d').hidden);
@@ -827,6 +839,169 @@ function buildWalkControls() {
     const overlay = state.overlays[Number(e.key) - 1];
     if (overlay) setOverlay(overlay.id);
   });
+}
+
+/* Free walk: the viewer steers, the body answers */
+
+const DEG = Math.PI / 180;
+const MARS_RADIUS = 3396190;
+const FREE = {
+  timeScale: 30,   // one second on screen is this many seconds of walking
+  lookAhead: 4,    // metres ahead used to read the slope under the walker
+  turnDegPerS: 100,
+  tickMs: 50,
+  arriveM: 14,     // how close counts as reaching a stop
+};
+const keysDown = new Set();
+
+// A point `metres` away from (lat, lon) in the direction `headingDeg`
+// (clockwise from north).
+function ahead(lat, lon, headingDeg, metres) {
+  return {
+    lat: lat + (metres * Math.cos(headingDeg * DEG)) / MARS_RADIUS / DEG,
+    lon: lon + (metres * Math.sin(headingDeg * DEG)) / (MARS_RADIUS * Math.cos(lat * DEG)) / DEG,
+  };
+}
+
+function metresBetween(a, b) {
+  return Math.hypot((a.lat - b.lat) * DEG * MARS_RADIUS, (a.lon - b.lon) * DEG * MARS_RADIUS * Math.cos(a.lat * DEG));
+}
+
+async function startFree() {
+  setPlaying(false);
+  stopSequence();
+  // Like a planned walk, a free walk is shown on the 3D ground, from behind.
+  await setView3D(true);
+  if (state.view3d?.isShown()) setFollow(true);
+  const home = state.walk.habitat;
+  // Facing the first stop, so "forward" starts in a useful direction.
+  const first = state.walk.stops[0];
+  const heading = Math.atan2((first.lon - home.lon) * Math.cos(home.lat * DEG), first.lat - home.lat) / DEG;
+  state.free = {
+    lat: home.lat,
+    lon: home.lon,
+    heading,
+    ledger: new Ledger(),
+    dist: 0,
+    rests: 0,
+    peakHeat: 0,
+    trail: [[home.lat, home.lon]],
+    reached: new Set(),
+    pausedUntil: 0,
+    message: 'Arrow keys: turn and walk. Reach stop 3 without overheating.',
+    back: returnCost(state.terrain, home, state.loadKg),
+    line: L.polyline([[home.lat, home.lon]], { color: '#f3ebe0', weight: 4, opacity: 0.95 }).addTo(map),
+    timer: setInterval(freeTick, FREE.tickMs),
+    last: performance.now(),
+  };
+  document.body.classList.add('free');
+  $('free').textContent = 'End free walk';
+  state.view3d?.setRoutesVisible?.(false);
+  renderFree();
+}
+
+function endFree() {
+  if (!state.free) return;
+  clearInterval(state.free.timer);
+  state.free.line.remove();
+  state.free = null;
+  keysDown.clear();
+  document.body.classList.remove('free');
+  $('free').textContent = 'Free walk';
+  state.view3d?.clearTrail?.();
+  state.view3d?.setRoutesVisible?.(true);
+  selectRoute(state.active);
+}
+
+// One step of the free walk. The same body model as the planned routes runs
+// on whatever ground the viewer chooses.
+function freeTick() {
+  const f = state.free;
+  const now = performance.now();
+  const dt = Math.min(0.2, (now - f.last) / 1000);
+  f.last = now;
+  if (now < f.pausedUntil) return;
+  if (keysDown.has('ArrowLeft')) f.heading -= FREE.turnDegPerS * dt;
+  if (keysDown.has('ArrowRight')) f.heading += FREE.turnDegPerS * dt;
+  if (keysDown.has('ArrowUp')) {
+    const here = state.terrain.elevSmooth(f.lat, f.lon);
+    const probe = ahead(f.lat, f.lon, f.heading, FREE.lookAhead);
+    const there = state.terrain.elevSmooth(probe.lat, probe.lon);
+    if (here == null || there == null) {
+      f.message = 'Edge of the surveyed patch.';
+    } else {
+      const gradient = (there - here) / FREE.lookAhead;
+      if (Math.abs(gradient) > MAX_MEASURED_GRADIENT) {
+        f.message = `Too steep to walk: ${Math.round(Math.atan(Math.abs(gradient)) / DEG)}°. No walking study covers ground this steep.`;
+      } else {
+        // The model sets the pace for this slope; the walker covers what
+        // that pace allows in this slice of time.
+        const pace = step(FREE.lookAhead, gradient * FREE.lookAhead, state.loadKg).speed;
+        const run = pace * dt * FREE.timeScale;
+        const next = ahead(f.lat, f.lon, f.heading, run);
+        const sky = state.sky?.at(next.lat, next.lon) ?? MODEL.skyReferencePct;
+        const taken = step(run, gradient * run, state.loadKg);
+        f.ledger.add(taken, sky);
+        f.now = { ...taken, gradient, sky };
+        f.lat = next.lat;
+        f.lon = next.lon;
+        f.dist += taken.length;
+        f.peakHeat = Math.max(f.peakHeat, f.ledger.heatKJkg);
+        f.message = '';
+        const lastPoint = f.trail[f.trail.length - 1];
+        if (metresBetween({ lat: lastPoint[0], lon: lastPoint[1] }, f) > 3) {
+          f.trail.push([f.lat, f.lon]);
+          f.line.setLatLngs(f.trail);
+          state.view3d?.setTrail?.(f.trail.map(([lat, lon]) => ({ lat, lon })));
+        }
+        if (f.ledger.needsRest) {
+          const seconds = f.ledger.rest(sky);
+          f.rests++;
+          f.pausedUntil = now + 1800;
+          f.message = `Body heat near NASA's limit. Resting ${(seconds / 60).toFixed(0)} min to shed it.`;
+        }
+        state.walk.stops.forEach((stop, i) => {
+          if (f.reached.has(stop.id) || metresBetween(stop, f) > FREE.arriveM) return;
+          f.reached.add(stop.id);
+          showPlace(stop);
+          f.message = `Reached stop ${i + 1} in ${(f.ledger.seconds / 60).toFixed(0)} min. Peak body heat ${f.peakHeat.toFixed(1)} kJ/kg, ${f.rests} forced rest${f.rests === 1 ? '' : 's'}.`;
+          f.pausedUntil = now + 1500;
+        });
+      }
+    }
+  }
+  renderFree();
+}
+
+function renderFree() {
+  const f = state.free;
+  walker.setLatLng([f.lat, f.lon]);
+  state.view3d?.setWalkerAt?.(f.lat, f.lon, f.heading);
+  const ledger = f.ledger;
+  const cell = state.terrain.toCell(f.lat, f.lon);
+  const back = f.back[Math.floor(cell.row) * state.terrain.cols + Math.floor(cell.col)] ?? 0;
+  $('ledger-mode').textContent = `free walk · ${fmt(Math.round(f.dist))} m`;
+  setBar('energy', { value: ledger.kcal, max: MODEL.energyBudgetKcal, note: `${ASSUMED}of a ${fmt(MODEL.energyBudgetKcal)} kcal backpack budget` });
+  setBar('heat', {
+    value: ledger.heatKJkg,
+    max: MODEL.heatContingencyKJkg,
+    limit: MODEL.heatLimitKJkg,
+    note: `${ASSUMED}stored now · body about +${tempRiseC(ledger.heatKJkg).toFixed(1)} °C · ${f.rests} forced rest${f.rests === 1 ? '' : 's'} · mark: NASA limit ${MODEL.heatLimitKJkg.toFixed(1)}`,
+  });
+  setBar('dose', {
+    value: ledger.doseUSv,
+    max: Math.max(...ROUTES.map((d) => state.routes[d.id].totals.dose)) * 1.15,
+    note: `${ASSUMED}${((ledger.doseUSv / MODEL.careerLimitUSv) * 100).toFixed(3)}% of NASA's career limit`,
+  });
+  setBar('home', {
+    value: ((MODEL.energyBudgetKcal - ledger.kcal - back) / MODEL.energyBudgetKcal) * 100,
+    max: 100,
+    note: `after the ${Math.round(back)} kcal cheapest way back from here`,
+  });
+  const live = f.now
+    ? `${(ledger.seconds / 60).toFixed(0)} min · ${Math.round(Math.atan(Math.abs(f.now.gradient)) / DEG)}° ${f.now.gradient >= 0 ? 'up' : 'down'} · ${f.now.speed.toFixed(1)} m/s · ${Math.round(f.now.metabolicW)} W`
+    : '';
+  $('progress-text').textContent = f.message || live;
 }
 
 /* Recording mode */

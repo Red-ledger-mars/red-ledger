@@ -54,6 +54,21 @@ export class Terrain {
     return this.z[r * this.cols + c];
   }
 
+  // Elevation blended between the four nearest cell centres, so a walker
+  // moving less than a cell at a time sees a smooth slope and not steps.
+  elevSmooth(lat, lon) {
+    const { col, row } = this.toCell(lat, lon);
+    const c = col - 0.5;
+    const r = row - 0.5;
+    const c0 = Math.floor(c);
+    const r0 = Math.floor(r);
+    if (c0 < 0 || r0 < 0 || c0 + 1 >= this.cols || r0 + 1 >= this.rows) return null;
+    const fc = c - c0;
+    const fr = r - r0;
+    const at = (cc, rr) => this.z[rr * this.cols + cc];
+    return (at(c0, r0) * (1 - fc) + at(c0 + 1, r0) * fc) * (1 - fr) + (at(c0, r0 + 1) * (1 - fc) + at(c0 + 1, r0 + 1) * fc) * fr;
+  }
+
   slopeAt(lat, lon) {
     const { col, row } = this.toCell(lat, lon);
     const c = Math.floor(col);
