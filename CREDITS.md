@@ -64,6 +64,18 @@ Red Ledger is not the first tool to plan a walking route by what it costs the wa
 
 System fonts only. No font files are shipped.
 
+## Instruction files given to the AI assistant
+
+These are written instructions ("skills") that the AI coding assistant was given while the project was built. None of their text, code or images is part of the product; they are listed so that everything used is named.
+
+| Item | Use | Author and source | Licence |
+|---|---|---|---|
+| better-ui | Checks of spacing, surfaces, icons and motion in the interface | Jakub Krehel, https://github.com/jakubkrehel/skills, through https://github.com/23jmo/jmo-skills | MIT |
+| animate | Decisions on motion: what moves, how long, which easing | Emil Kowalski, https://github.com/emilkowalski/skills, through https://github.com/23jmo/jmo-skills | MIT |
+| ste | Plain technical English in the text | Johnathan Mo, https://github.com/23jmo/jmo-skills | MIT |
+| interview | Questions to the builder before the redesign | Johnathan Mo, https://github.com/23jmo/jmo-skills | MIT |
+| unslop | Review of the interface for an AI-generated look | Damir Sokolovsky (@heydamir), https://github.com/heydamir/unslop | CC BY 4.0 |
+
 ## AI use
 
 See the "Use of AI" section in [README.md](README.md).
