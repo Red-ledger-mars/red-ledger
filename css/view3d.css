@@ -107,3 +107,18 @@
   .v3d-badge { right: 8px; }
   .v3d-compass { left: 8px; }
 }
+
+/* One line of render facts, only added when the page address has "v3debug". */
+.v3d-debug {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 64px; /* above the credit line and the hint */
+  padding: 3px 8px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #bfe;
+  font: 10px/1.3 var(--mono, ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace);
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  z-index: 5;
+}

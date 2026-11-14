@@ -17,6 +17,7 @@ export const CREDIT_TEXT =
 const TILE = 256;
 const MAX_TEXTURE_PX = 2048;
 const MESH_STEP = 2; // every second elevation cell
+const BASE_GROUND = '#9a6445'; // flat warm colour shown until imagery arrives
 
 // ---------------------------------------------------------------- pure maths
 
@@ -221,76 +222,181 @@ export function routeHeading(r, dist, half = 25) {
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
-// ---------------------------------------------------------------- scene
-
-function stitchTiles(block) {
-  const canvas = document.createElement('canvas');
-  canvas.width = block.width;
-  canvas.height = block.height;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#1a1210';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  const jobs = [];
-  for (let ty = block.y0; ty <= block.y1; ty++) {
-    for (let tx = block.x0; tx <= block.x1; tx++) {
-      jobs.push(new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          ctx.drawImage(img, (tx - block.x0) * TILE, (ty - block.y0) * TILE);
-          resolve(true);
-        };
-        img.onerror = () => resolve(false); // a missing tile stays dark
-        img.src = tileUrl(block.z, tx, ty);
-      }));
+// Relief shading worked out once on the CPU, so the terrain can be drawn with
+// an unlit material. A lit material depends on the GPU's precision, on normals
+// and on lights, and a mobile GPU got that wrong (black ground). Returns one
+// factor per elevation cell: exactly 1 on flat ground, below 1 on slopes that
+// face away from the light, above 1 on slopes that face it. The light sits in
+// the north-west (azimuth 315, clockwise from north) as on printed maps.
+export function hillshade(terrain, { azimuthDeg = 315, altitudeDeg = 40, strength = 0.55 } = {}) {
+  const { cols, rows, px, z } = terrain;
+  const out = new Float32Array(cols * rows);
+  const az = azimuthDeg * DEG, alt = altitudeDeg * DEG;
+  const sx = Math.sin(az) * Math.cos(alt); // east part of the direction to the light
+  const sn = Math.cos(az) * Math.cos(alt); // north part
+  const su = Math.sin(alt); // up part, also the brightness of flat ground
+  const at = (c, r, fallback) => {
+    const v = z[Math.min(rows - 1, Math.max(0, r)) * cols + Math.min(cols - 1, Math.max(0, c))];
+    return Number.isNaN(v) ? fallback : v;
+  };
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const here = z[r * cols + c];
+      if (Number.isNaN(here)) { out[r * cols + c] = 1; continue; }
+      // Row numbers grow to the south, so north is r - 1.
+      const dzdx = (at(c + 1, r, here) - at(c - 1, r, here)) / (2 * px);
+      const dzdn = (at(c, r - 1, here) - at(c, r + 1, here)) / (2 * px);
+      const dot = (-dzdx * sx - dzdn * sn + su) / Math.sqrt(dzdx * dzdx + dzdn * dzdn + 1);
+      const rel = dot / su; // 1 on flat ground
+      out[r * cols + c] = clamp(1 + strength * (rel - 1), 0.45, 1.6);
     }
   }
-  return Promise.all(jobs).then((ok) => ({ canvas, missing: ok.filter((v) => !v).length }));
+  return out;
 }
 
-// The imagery with slope colour blended over it, same ramp as the 2D map.
-function bakeSlope(terrain, block, base) {
-  const canvas = document.createElement('canvas');
-  canvas.width = block.width;
-  canvas.height = block.height;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(base, 0, 0);
-  const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+// For each column and row of a w x h picture covering the tile block (scaled by
+// `scale`), the matching fractional elevation cell. Used to sample the shading
+// and the slope under every picture pixel.
+export function cellMaps(terrain, block, w, h, scale = 1) {
   const m = terrain.meta;
-  const cols = new Float32Array(canvas.width);
-  const rows = new Float32Array(canvas.height);
-  for (let px = 0; px < canvas.width; px++) {
-    const { lon } = mercatorLatLon(block.originX + px + 0.5, block.originY, block.z);
-    cols[px] = (terrain.radius * lon * DEG - m.x_left_m) / terrain.px - 0.5;
+  const cols = new Float32Array(w);
+  const rows = new Float32Array(h);
+  for (let i = 0; i < w; i++) {
+    const { lon } = mercatorLatLon(block.originX + (i + 0.5) / scale, block.originY, block.z);
+    cols[i] = (terrain.radius * lon * DEG - m.x_left_m) / terrain.px - 0.5;
   }
-  for (let py = 0; py < canvas.height; py++) {
-    const { lat } = mercatorLatLon(block.originX, block.originY + py + 0.5, block.z);
-    rows[py] = (m.y_top_m - terrain.radius * lat * DEG) / terrain.px - 0.5;
+  for (let j = 0; j < h; j++) {
+    const { lat } = mercatorLatLon(block.originX, block.originY + (j + 0.5) / scale, block.z);
+    rows[j] = (m.y_top_m - terrain.radius * lat * DEG) / terrain.px - 0.5;
   }
-  const s = terrain.slope;
-  const data = img.data;
-  for (let py = 0; py < canvas.height; py++) {
-    const r = rows[py];
-    if (r < 0 || r > terrain.rows - 1) continue;
-    const r0 = Math.min(terrain.rows - 2, Math.floor(r));
+  return { cols, rows };
+}
+
+// Bilinear sample of a per-cell grid under every picture pixel. Pixels outside
+// the elevation crop get `outside`.
+export function samplePixels(values, terrain, maps, outside = 1) {
+  const w = maps.cols.length, h = maps.rows.length;
+  const out = new Float32Array(w * h).fill(outside);
+  const nc = terrain.cols, nr = terrain.rows;
+  for (let j = 0; j < h; j++) {
+    const r = maps.rows[j];
+    if (r < 0 || r > nr - 1) continue;
+    const r0 = Math.min(nr - 2, Math.floor(r));
     const fr = r - r0;
-    for (let px = 0; px < canvas.width; px++) {
-      const c = cols[px];
-      if (c < 0 || c > terrain.cols - 1) continue;
-      const c0 = Math.min(terrain.cols - 2, Math.floor(c));
+    for (let i = 0; i < w; i++) {
+      const c = maps.cols[i];
+      if (c < 0 || c > nc - 1) continue;
+      const c0 = Math.min(nc - 2, Math.floor(c));
       const fc = c - c0;
-      const i = r0 * terrain.cols + c0;
-      const deg = (1 - fr) * ((1 - fc) * s[i] + fc * s[i + 1]) + fr * ((1 - fc) * s[i + terrain.cols] + fc * s[i + terrain.cols + 1]);
-      const [cr, cg, cb, ca] = SLOPE_RAMP.color(deg);
-      if (ca <= 0) continue;
-      const a = ca / 255;
-      const o = (py * canvas.width + px) * 4;
-      data[o] += (cr - data[o]) * a;
-      data[o + 1] += (cg - data[o + 1]) * a;
-      data[o + 2] += (cb - data[o + 2]) * a;
+      const k = r0 * nc + c0;
+      out[j * w + i] = (1 - fr) * ((1 - fc) * values[k] + fc * values[k + 1]) + fr * ((1 - fc) * values[k + nc] + fc * values[k + nc + 1]);
     }
+  }
+  return out;
+}
+
+// Chase camera distance factor for the screen shape. The distances were tuned
+// on a wide screen (16:9); on a taller, narrower one the same distance makes the
+// walker fill far more of the width, so move back in proportion (up to 3 times).
+export function chaseAspectScale(aspect) {
+  return clamp(16 / 9 / (aspect > 0 ? aspect : 16 / 9), 1, 3);
+}
+
+// ---------------------------------------------------------------- scene
+
+// Loads the tiles one by one into `ctx` (scaled by `scale`) and never waits for
+// them: the caller gets a handle with counts, and `done` resolves when every tile
+// has either loaded or failed. A tile that fails is tried once more after a
+// pause (a slow Wi-Fi link drops requests); if it still fails the rest are
+// unaffected and that square stays at the base colour.
+function loadTiles(block, ctx, scale, onProgress) {
+  const state = { total: 0, loaded: 0, failed: 0, done: null };
+  const jobs = [];
+  const draw = (img, tx, ty) => {
+    const x0 = Math.round((tx - block.x0) * TILE * scale);
+    const y0 = Math.round((ty - block.y0) * TILE * scale);
+    const x1 = Math.round((tx - block.x0 + 1) * TILE * scale);
+    const y1 = Math.round((ty - block.y0 + 1) * TILE * scale);
+    ctx.drawImage(img, x0, y0, x1 - x0, y1 - y0);
+  };
+  const fetchOne = (tx, ty, attempt) => new Promise((resolve) => {
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => {
+      try { draw(img, tx, ty); state.loaded++; } catch { state.failed++; }
+      onProgress();
+      resolve();
+    };
+    img.onerror = () => {
+      if (attempt === 0) {
+        setTimeout(() => fetchOne(tx, ty, 1).then(resolve), 1500);
+        return;
+      }
+      state.failed++;
+      onProgress();
+      resolve();
+    };
+    img.src = tileUrl(block.z, tx, ty);
+  });
+  for (let ty = block.y0; ty <= block.y1; ty++) {
+    for (let tx = block.x0; tx <= block.x1; tx++) {
+      state.total++;
+      jobs.push(fetchOne(tx, ty, 0));
+    }
+  }
+  state.done = Promise.all(jobs);
+  return state;
+}
+
+// The slope colours as a picture with its own alpha, made only from the
+// elevation data. It is laid over the imagery with drawImage, so nothing is read
+// back from a canvas (privacy modes can alter or block reads).
+function slopeLayer(terrain, maps) {
+  const w = maps.cols.length, h = maps.rows.length;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(w, h);
+  const deg = samplePixels(terrain.slope, terrain, maps, NaN);
+  const data = img.data;
+  for (let k = 0; k < deg.length; k++) {
+    if (Number.isNaN(deg[k])) continue;
+    const [cr, cg, cb, ca] = SLOPE_RAMP.color(deg[k]);
+    if (ca <= 0) continue;
+    data[k * 4] = cr;
+    data[k * 4 + 1] = cg;
+    data[k * 4 + 2] = cb;
+    data[k * 4 + 3] = ca;
   }
   ctx.putImageData(img, 0, 0);
   return canvas;
+}
+
+// Two grey pictures that carry the hillshade: `dark` is multiplied over the
+// imagery (below 1 on slopes facing away) and `light` is added with "screen"
+// (above 1 on slopes facing the light). Flat ground is 255 and 0, so it keeps the
+// image's own brightness. Both are written with putImageData, never read.
+function shadeCanvases(factors, w, h) {
+  const make = (fn) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const img = ctx.createImageData(w, h);
+    const d = img.data;
+    for (let k = 0; k < factors.length; k++) {
+      const g = fn(factors[k]);
+      d[k * 4] = d[k * 4 + 1] = d[k * 4 + 2] = g;
+      d[k * 4 + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    return canvas;
+  };
+  return {
+    dark: make((f) => Math.round(255 * Math.min(1, f))),
+    light: make((f) => Math.round(255 * Math.min(1, Math.max(0, f - 1) * 0.6))),
+  };
 }
 
 function labelTexture(text, color) {
@@ -437,7 +543,7 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
   // ---- renderer
   let renderer;
   try {
-    renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'default' });
+    renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'default', precision: 'highp' });
   } catch {
     return inertView(root, '3D view could not start the graphics driver. The map view still works.');
   }
@@ -447,22 +553,96 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#120c0a');
-  const camera = new THREE.PerspectiveCamera(45, 1, 1, 12000);
+  // Near plane of 2 m keeps depth precision usable on mobile GPUs.
+  const camera = new THREE.PerspectiveCamera(45, 1, 2, 12000);
 
-  // Relief light from the north-west, the usual map convention. HiRISE already
-  // carries its own shading, so this is kept gentle.
-  scene.add(new THREE.AmbientLight(0xffffff, 0.8 * Math.PI));
-  const sun = new THREE.DirectionalLight(0xfff1e0, 0.75 * Math.PI);
-  sun.position.set(-0.6, 0.8, -0.6).multiplyScalar(1000);
-  scene.add(sun);
+  // No lights: every material in this scene is unlit. The relief shading is
+  // baked into the terrain texture below (see hillshade()).
+  const gl = renderer.getContext();
+  const caps = renderer.capabilities;
+  const maxTex = caps.maxTextureSize || 2048;
 
   // ---- terrain
-  const block = chooseBlock(terrain.meta);
-  const { canvas: imageCanvas, missing } = await stitchTiles(block);
-  const imageTex = new THREE.CanvasTexture(imageCanvas);
-  imageTex.colorSpace = THREE.SRGBColorSpace;
-  imageTex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-  let slopeTex = null;
+  // The block is chosen so its stitched picture fits the device's texture limit;
+  // if even the smallest block does not, the picture is drawn scaled down.
+  const block = chooseBlock(terrain.meta, Math.min(MAX_TEXTURE_PX, maxTex));
+  const texScale = Math.min(1, maxTex / Math.max(block.width, block.height));
+  const texW = Math.max(1, Math.floor(block.width * texScale));
+  const texH = Math.max(1, Math.floor(block.height * texScale));
+
+  // Imagery goes here as tiles arrive. It starts as a flat warm Mars colour, so
+  // the ground is never black while tiles load or if one fails.
+  const imageCanvas = document.createElement('canvas');
+  imageCanvas.width = texW;
+  imageCanvas.height = texH;
+  const imageCtx = imageCanvas.getContext('2d');
+  imageCtx.fillStyle = BASE_GROUND;
+  imageCtx.fillRect(0, 0, texW, texH);
+
+  // Shading is worked out once from the elevation grid.
+  const maps = cellMaps(terrain, block, texW, texH, texScale);
+  const shade = shadeCanvases(samplePixels(hillshade(terrain), terrain, maps, 1), texW, texH);
+
+  // What is drawn: imagery (and optionally the slope colours) with the shading
+  // multiplied in. Each shown picture is its own canvas and texture.
+  const makeShown = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = texW;
+    canvas.height = texH;
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+    // Mipmaps on a picture whose sides are not powers of two are only valid in
+    // WebGL2; on WebGL1 plain linear filtering is the safe choice.
+    const pow2 = (n) => (n & (n - 1)) === 0;
+    const mips = caps.isWebGL2 !== false || (pow2(texW) && pow2(texH));
+    tex.generateMipmaps = mips;
+    tex.minFilter = mips ? THREE.LinearMipmapLinearFilter : THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.anisotropy = Math.min(4, caps.getMaxAnisotropy());
+    return { canvas, ctx: canvas.getContext('2d'), tex };
+  };
+  const plain = makeShown();
+  let tinted = null; // made when the slope tint is first asked for
+  let slopeCanvas = null;
+  let slopeFailed = false;
+
+  function compose(t, withSlope) {
+    const c = t.ctx;
+    c.globalCompositeOperation = 'source-over';
+    c.drawImage(imageCanvas, 0, 0);
+    if (withSlope && slopeCanvas) c.drawImage(slopeCanvas, 0, 0);
+    c.globalCompositeOperation = 'multiply';
+    c.drawImage(shade.dark, 0, 0);
+    c.globalCompositeOperation = 'screen';
+    c.drawImage(shade.light, 0, 0);
+    c.globalCompositeOperation = 'source-over';
+    t.tex.needsUpdate = true; // the canvas changed, so upload it again
+  }
+  function recompose() {
+    try {
+      compose(plain, false);
+      if (tinted) compose(tinted, true);
+    } catch (e) {
+      console.warn('3D view: could not draw the terrain picture', e);
+    }
+    invalidate();
+    updateDebug();
+  }
+  // Tiles arrive in bursts; drawing and uploading after every one would stall a
+  // slow device, so group them.
+  let composeTimer = 0;
+  function scheduleCompose() {
+    if (composeTimer || disposed) return;
+    composeTimer = setTimeout(() => { composeTimer = 0; if (!disposed) recompose(); }, 150);
+  }
+
+  const tiles = loadTiles(block, imageCtx, texScale, scheduleCompose);
+  const ready = tiles.done.then(() => {
+    if (composeTimer) { clearTimeout(composeTimer); composeTimer = 0; }
+    if (!disposed) recompose();
+  });
+  compose(plain, false); // first picture straight away: warm colour with relief
 
   const terrainGroup = new THREE.Group(); // scaled in y for the exaggeration
   scene.add(terrainGroup);
@@ -495,8 +675,7 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
   terrainGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   terrainGeo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
   terrainGeo.setIndex(new THREE.BufferAttribute(indices, 1));
-  terrainGeo.computeVertexNormals();
-  const terrainMat = new THREE.MeshLambertMaterial({ map: imageTex });
+  const terrainMat = new THREE.MeshBasicMaterial({ map: plain.tex });
   const terrainMesh = new THREE.Mesh(terrainGeo, terrainMat);
   terrainGroup.add(terrainMesh);
 
@@ -516,8 +695,7 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
   edge(Array.from({ length: nz }, (_, j) => vert(nx - 1, j)));
   const skirtGeo = new THREE.BufferGeometry();
   skirtGeo.setAttribute('position', new THREE.Float32BufferAttribute(skirtPos, 3));
-  skirtGeo.computeVertexNormals();
-  const skirtMat = new THREE.MeshLambertMaterial({ color: 0x2a1b15, side: THREE.DoubleSide });
+  const skirtMat = new THREE.MeshBasicMaterial({ color: 0x2a1b15, side: THREE.DoubleSide });
   terrainGroup.add(new THREE.Mesh(skirtGeo, skirtMat));
 
   // ---- routes
@@ -679,7 +857,9 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
   let raf = 0;
   let lastT = 0;
   let transition = 0; // seconds left of the slower glide after a mode change
-  let chaseBack = 55;
+  const CHASE_BACK = 55; // metres behind the walker on a wide screen
+  let chaseZoom = 1; // the user's wheel / pinch factor on top of that
+  const MIN_CLEARANCE = 6; // the camera never goes nearer than this to the ground under it
   let heading = 0; // eased heading of the walker, radians; forward = (sin, cos) in (x, z)
   let tubeStep = null;
   let routesVisible = true;
@@ -737,7 +917,9 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
     if (mode === 'chase') {
       const w = walkerWorld(new THREE.Vector3());
       const fx = Math.sin(heading), fz = Math.cos(heading);
-      des.pos.set(w.x - fx * chaseBack, w.y + chaseBack * 0.42, w.z - fz * chaseBack);
+      // Further back on an upright screen so the walker is not oversized.
+      const back = CHASE_BACK * chaseAspectScale(camera.aspect) * chaseZoom;
+      des.pos.set(w.x - fx * back, w.y + back * 0.42, w.z - fz * back);
       des.look.set(w.x + fx * 18, w.y + 1, w.z + fz * 18);
     } else {
       const t = new THREE.Vector3(centreOfRoutes.x, yOf(centreOfRoutes.y), centreOfRoutes.z);
@@ -746,7 +928,7 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
       des.pos.set(t.x + orbit.dist * sp * Math.sin(orbit.az), t.y + orbit.dist * Math.cos(orbit.pol), t.z + orbit.dist * sp * Math.cos(orbit.az));
     }
     // Keep the camera above the ground it is over.
-    const gy = yOf(surfaceHeight(grid, des.pos.x, des.pos.z)) + 6;
+    const gy = yOf(surfaceHeight(grid, des.pos.x, des.pos.z)) + MIN_CLEARANCE;
     if (des.pos.y < gy) des.pos.y = gy;
   }
 
@@ -798,6 +980,11 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
 
   // Draw the scene once with the camera where it is now.
   function renderNow() {
+    // The camera glides from its old place to the new one, and on the way it can
+    // pass under a hill. Under the surface only the back of the ground faces it,
+    // which is not drawn, so hold it above the ground at every frame.
+    const floor = yOf(surfaceHeight(grid, cur.pos.x, cur.pos.z)) + MIN_CLEARANCE;
+    if (cur.pos.y < floor) cur.pos.y = floor;
     camera.position.copy(cur.pos);
     camera.lookAt(cur.look);
     camera.updateMatrixWorld();
@@ -847,6 +1034,7 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
     compassNeedle.style.transform = `rotate(${(-yaw).toFixed(1)}deg)`;
 
     renderer.render(scene, camera);
+    updateDebug();
   }
 
   function tick(t) {
@@ -884,7 +1072,8 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
     if (pointers.size === 2) {
       const [a, b] = [...pointers.values()];
       const d = Math.hypot(a.x - b.x, a.y - b.y);
-      if (pinch > 0) zoom(pinch / d);
+      // Ignore a jump (a finger lifting or a stale pointer) and very close fingers.
+      if (pinch > 10 && d > 10) zoom(clamp(pinch / d, 0.85, 1.18));
       pinch = d;
     } else if (mode === 'orbit') {
       orbit.az -= dx * 0.006;
@@ -895,10 +1084,14 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
   function onUp(e) {
     pointers.delete(e.pointerId);
     pinch = 0;
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      pinch = Math.hypot(a.x - b.x, a.y - b.y);
+    }
   }
   function zoom(factor) {
-    if (mode === 'orbit') orbit.dist = clamp(orbit.dist * factor, 90, 4000);
-    else chaseBack = clamp(chaseBack * factor, 25, 160);
+    if (mode === 'orbit') orbit.dist = clamp(orbit.dist * factor, 120, 4000);
+    else chaseZoom = clamp(chaseZoom * factor, 0.7, 2.2);
     invalidate();
   }
   function onWheel(e) {
@@ -912,8 +1105,51 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
   el.addEventListener('pointermove', onMove);
   el.addEventListener('pointerup', onUp);
   el.addEventListener('pointercancel', onUp);
+  el.addEventListener('lostpointercapture', onUp);
   el.addEventListener('wheel', onWheel, { passive: false });
   el.addEventListener('dblclick', onDouble);
+
+  // The GPU can drop the context (a tablet under memory pressure, a tab in the
+  // background). Stop the browser from giving up on it, and on return upload
+  // every texture and rebuild the materials, then draw again.
+  function onLost(e) {
+    e.preventDefault();
+    updateDebug();
+  }
+  function onRestored() {
+    plain.tex.needsUpdate = true;
+    if (tinted) tinted.tex.needsUpdate = true;
+    terrainMat.needsUpdate = true;
+    for (const t of labelTextures) t.needsUpdate = true;
+    tubeStep = null;
+    invalidate();
+    updateDebug();
+  }
+  el.addEventListener('webglcontextlost', onLost);
+  el.addEventListener('webglcontextrestored', onRestored);
+
+  // One line of facts for reading off a tablet screen. It exists only when the
+  // page address contains "v3debug"; otherwise no element and no extra GL calls.
+  const wantDebug = /v3debug/.test(String(globalThis.location?.href || ''));
+  const dbg = wantDebug ? document.createElement('div') : null;
+  let lastGlError = 'none';
+  let rendererName = '?';
+  if (dbg) {
+    dbg.className = 'v3d-debug';
+    root.appendChild(dbg);
+    try {
+      const info = gl.getExtension('WEBGL_debug_renderer_info');
+      rendererName = String(info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
+    } catch {
+      rendererName = 'unreadable';
+    }
+  }
+  function updateDebug() {
+    if (!dbg) return;
+    const err = gl.getError();
+    if (err !== gl.NO_ERROR) lastGlError = `0x${err.toString(16)}`;
+    dbg.textContent = `${rendererName} | WebGL${caps.isWebGL2 ? 2 : 1} | max tex ${maxTex} | terrain tex ${texW}x${texH} | tiles ${tiles.loaded} ok ${tiles.failed} failed of ${tiles.total} | dpr ${renderer.getPixelRatio()} | aspect ${camera.aspect.toFixed(2)} chase back ${Math.round(CHASE_BACK * chaseAspectScale(camera.aspect) * chaseZoom)} m | gl error ${lastGlError}${gl.isContextLost() ? ' | CONTEXT LOST' : ''}`;
+  }
 
   function resize() {
     if (disposed) return;
@@ -1059,12 +1295,19 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
       invalidate();
     },
     setSlopeTint(on) {
-      if (on && !slopeTex) {
-        slopeTex = new THREE.CanvasTexture(bakeSlope(terrain, block, imageCanvas));
-        slopeTex.colorSpace = THREE.SRGBColorSpace;
-        slopeTex.anisotropy = imageTex.anisotropy;
+      // The tint is optional: if it cannot be made the plain imagery stays.
+      if (on && !tinted && !slopeFailed) {
+        try {
+          slopeCanvas = slopeLayer(terrain, maps);
+          tinted = makeShown();
+          compose(tinted, true);
+        } catch (e) {
+          console.warn('3D view: slope tint unavailable', e);
+          slopeFailed = true;
+          tinted = null;
+        }
       }
-      terrainMat.map = on ? slopeTex : imageTex;
+      terrainMat.map = on && tinted ? tinted.tex : plain.tex;
       terrainMat.needsUpdate = true;
       invalidate();
     },
@@ -1079,6 +1322,7 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
       el.removeEventListener('pointermove', onMove);
       el.removeEventListener('pointerup', onUp);
       el.removeEventListener('pointercancel', onUp);
+      el.removeEventListener('lostpointercapture', onUp);
       el.removeEventListener('wheel', onWheel);
       el.removeEventListener('dblclick', onDouble);
       clearTrailNow();
@@ -1088,7 +1332,10 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
       for (const p of pins) p.sprite.material.dispose();
       for (const t of labelTextures) t.dispose();
       terrainGeo.dispose(); skirtGeo.dispose(); terrainMat.dispose(); skirtMat.dispose();
-      imageTex.dispose(); slopeTex?.dispose();
+      plain.tex.dispose(); tinted?.tex.dispose();
+      if (composeTimer) clearTimeout(composeTimer);
+      el.removeEventListener('webglcontextlost', onLost);
+      el.removeEventListener('webglcontextrestored', onRestored);
       pinPole.dispose(); pinPoleMat.dispose();
       walkerBody.geometry.dispose(); walkerBody.material.dispose();
       ring.geometry.dispose(); ringMat.dispose(); beam.geometry.dispose(); beamMat.dispose();
@@ -1106,11 +1353,13 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
         renderNow();
       },
       state: () => ({
-        mode, exag, activeId, walkerDist, missingTiles: missing,
+        mode, exag, activeId, walkerDist, missingTiles: tiles.failed,
         cam: cur.pos.toArray(), look: cur.look.toArray(), orbit: { ...orbit },
-        block, vertices: grid.nx * grid.nz,
+        block, vertices: grid.nx * grid.nz, tiles: { ...tiles, done: undefined }, texSize: [texW, texH],
       }),
       grid, prepared, block,
+      // Resolves when every tile has loaded or failed and the picture is drawn.
+      ready,
       setOrbit(o) { Object.assign(orbit, o); },
     },
   };

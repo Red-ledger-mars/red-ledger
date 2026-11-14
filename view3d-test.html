@@ -88,7 +88,12 @@ if (q.has('az') || q.has('pol') || q.has('dist')) {
   view.debug.setOrbit(o);
 }
 view.show();
-if (q.has('settle')) view.debug.settle(); // draws now, without waiting for animation frames
+// With ?settle the picture is drawn now, without waiting for animation frames.
+// The tiles load in the background, so wait for them before the final draw.
+if (q.has('settle')) {
+  view.debug.settle();
+  view.debug.ready?.then(() => view.debug.settle());
+}
 
 $('dist').oninput = (e) => setDist(Number(e.target.value));
 $('route').onchange = (e) => { route = e.target.value; view.setRoute(route); syncSlider(); setDist(Math.min(Number($('dist').value), total())); };
