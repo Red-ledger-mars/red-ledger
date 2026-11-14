@@ -9,9 +9,9 @@ export const SITE = {
   center: [-4.805, 137.3825], // lat, lon (east positive)
   zoom: 16,
   minZoom: 9,
-  // Past about zoom 17 no imagery layer draws and the map goes black;
-  // the sharpest stored tiles are zoom 16.
-  maxZoom: 16.5,
+  // Leaflet tile layers stop at zoom 18 by default, so a deeper map zoom
+  // draws no imagery at all and the map goes black.
+  maxZoom: 18,
   bounds: [[-5.6, 136.6], [-4.0, 138.2]],
 };
 
