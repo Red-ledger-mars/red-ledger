@@ -117,10 +117,14 @@ function routeButton(def) {
   return `
     <button class="route" type="button" data-route="${def.id}" aria-pressed="${def.id === state.active}">
       <span class="route-name label">${def.name} · ${def.hint}</span>
-      <span class="route-big">${num(t.peakHeatNoRest, 2, { assumed: true, colour: heatColor(t.peakHeatNoRest) })}</span>
-      <span class="route-meta label"><span class="unit">kJ/kg</span> peak heat · ${fmt(t.dist / 1000, 2)} km · ${minutes(t.seconds)} min with rests</span>
+      <span class="route-big">${num(t.peakHeatNoRest, 2, { assumed: true, colour: heatColor(t.peakHeatNoRest) })}<small class="label"><span class="unit">kJ/kg</span> peak heat with no rest</small></span>
+      <span class="route-meta label">${heatRange(t)}</span>
     </button>`;
 }
+
+// Agreed with the Main chat: wherever heat is shown to two decimals against
+// the limit, the range measured on people stays in the same view.
+const heatRange = (t) => `Range from NASA's measurements of people: ${t.peakHeatRange.map((v) => fmt(v, 1)).join(' to ')} kJ/kg`;
 
 function routeDetail() {
   const t = state.routes[state.active].totals;
@@ -241,7 +245,7 @@ function build() {
 // The two routes face to face, one row per measure. The bar under each
 // number is its length against the larger of the two.
 const FACEOFF = [
-  { label: 'Peak heat, no rests', unit: 'kJ/kg', value: (t) => t.peakHeatNoRest, digits: 2, assumed: true, heat: true },
+  { label: 'Peak heat, no rests', unit: 'kJ/kg', value: (t) => t.peakHeatNoRest, digits: 2, assumed: true, heat: true, note: heatRange },
   { label: 'Time with rests', unit: 'min', value: (t) => t.seconds / 60, digits: 0 },
   { label: 'Energy', unit: 'kcal', value: (t) => t.kcal, digits: 0, assumed: true },
   { label: 'Radiation', unit: 'µSv', value: (t) => t.dose, digits: 1, assumed: true, full: true },
@@ -252,11 +256,13 @@ const FACEOFF = [
 function faceoff() {
   const head = `<div class="fo-row fo-head label"><span></span>${ROUTES.map((d) => `<span>${d.name}<br>${d.hint}</span>`).join('')}</div>`;
   const rows = FACEOFF.map((row) => {
-    const values = ROUTES.map((d) => row.value(state.routes[d.id].totals));
+    const totals = ROUTES.map((d) => state.routes[d.id].totals);
+    const values = totals.map(row.value);
     const most = Math.max(...values);
-    const cells = values.map((v) => {
+    const cells = values.map((v, i) => {
       const colour = row.heat ? heatColor(v) : null;
-      return `<span class="fo-cell"><b>${num(v, row.digits, { assumed: row.assumed, colour })}</b><small class="unit">${row.unit}</small><i style="width: ${((v / most) * 100).toFixed(1)}%;${colour ? ` background: ${colour};` : ''}"></i></span>`;
+      const note = row.note ? `<span class="fo-note label">${row.note(totals[i])}</span>` : '';
+      return `<span class="fo-cell"><b>${num(v, row.digits, { assumed: row.assumed, colour })}</b><small class="unit">${row.unit}</small>${note}<i style="width: ${((v / most) * 100).toFixed(1)}%;${colour ? ` background: ${colour};` : ''}"></i></span>`;
     });
     return `<div class="fo-row${row.full ? ' full-only' : ''}"><span class="label">${row.label}</span>${cells.join('')}</div>`;
   });
@@ -268,7 +274,7 @@ function faceoff() {
 function buildHud() {
   $('hud').innerHTML = `
     <p class="label">Body heat</p>
-    <p class="hud-line"><span class="hud-value assumed" id="hud-heat">0.00</span> <span class="label"><span class="unit">kJ/kg</span> · NASA limit ${fmt(MODEL.heatLimitKJkg, 1)}</span></p>
+    <p class="hud-line"><span class="label">about</span> <span class="hud-value assumed" id="hud-heat">0.0</span> <span class="label"><span class="unit">kJ/kg</span> · NASA limit ${fmt(MODEL.heatLimitKJkg, 1)}</span></p>
     <div class="meter"><i id="hud-fill"></i><b style="left: ${(MODEL.heatLimitKJkg / MODEL.heatContingencyKJkg) * 100}%"></b></div>
     <p class="label" id="hud-meta"></p>
     <p class="label hud-event" id="hud-event"></p>
@@ -280,7 +286,7 @@ function renderHud(p, route) {
   const hud = $('hud');
   hud.style.setProperty('--hud-colour', colour);
   const value = $('hud-heat');
-  value.textContent = fmt(p.heat, 2);
+  value.textContent = fmt(p.heat, 1);
   value.style.setProperty('--stroke', colour);
   $('hud-fill').style.width = `${clamp01(p.heat / MODEL.heatContingencyKJkg) * 100}%`;
   $('hud-meta').textContent = `${fmt(p.dist)} m walked · ${minutes(p.seconds)} min`;

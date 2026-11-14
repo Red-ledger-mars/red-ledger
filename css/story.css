@@ -174,6 +174,7 @@ body:not(.loading) #loader { opacity: 0; visibility: hidden; }
 .route-name { color: var(--fg); }
 .route-big { font: var(--display-weight) var(--size-display)/0.9 var(--font-display); }
 .route-big, .fo-cell b, .hud-value, .hud-rows dd, .meta, #hud-meta { font-variant-numeric: tabular-nums; }
+.route-big small { margin-left: 8px; font-family: var(--font-body); color: var(--fg-2); }
 .route-meta { color: var(--fg-2); }
 
 /* Details only the full version shows */
@@ -253,6 +254,7 @@ body.ending .foot::before {
 .fo-cell { position: relative; padding-bottom: 12px; }
 .fo-cell b { font: var(--display-weight) var(--size-display)/0.9 var(--font-display); }
 .fo-cell small { margin-left: 8px; font-size: var(--size-small); color: var(--fg-2); }
+.fo-note { display: block; margin-top: 8px; color: var(--fg-3); }
 /* A bar under each number, its length against the larger of the two. */
 .fo-cell i { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--fg); }
 
