@@ -12,6 +12,9 @@ import { pointAt } from './route.js';
 import { createView3D } from './view3d.js';
 import { heatColor } from './heat.js';
 import { smoothScroll } from './smooth-scroll.js';
+import { loadComms } from './comms.js';
+import { loadSky } from './sky.js';
+import { createFreeWalk } from './freewalk.js';
 
 const $ = (id) => document.getElementById(id);
 const wait = (ms) => new Promise((done) => setTimeout(done, ms));
@@ -40,6 +43,11 @@ const state = {
   chapter: null,    // the chapter in the middle of the screen
   dist: -1,         // metres walked along the active route
   steepLeg: -1,     // the leg that holds the steepest ground
+  plans: {},        // carried load in kg -> { direct, body }, from routes.json
+  loadKg: 0,        // the carried load the story shows
+  comms: null,      // orbiter visibility, loaded after the page opens
+  startMinute: null, // minute of the sol the walk starts; null until comms load
+  free: null,       // the free walk in progress, or null
 };
 
 // A number as the page shows it. Assumed numbers are hollow (see the key
@@ -66,8 +74,10 @@ async function boot() {
     fetch('data/walk.json').then((r) => r.json()).then(tick('Stops')),
     fetch('data/routes.json').then((r) => r.json()).then(tick('Routes')),
   ]);
+  state.plans = planned.loads;
   for (const def of ROUTES) state.routes[def.id] = planned.loads[0][def.pricing];
   state.walk = walk;
+  state.terrain = terrain;
 
   progress(0.8, 'HiRISE imagery and 3D ground');
   state.view = await createView3D($('stage'), {
@@ -107,7 +117,11 @@ async function boot() {
   update();
   bindAuto();
   smoothScroll();
+  bindFree();
   if (!REDUCED) setAuto(true);
+  // Orbiter passes only matter for the start time on the face-off, so they
+  // load after the story has started. Without them that control stays away.
+  loadComms().then((comms) => { state.comms = comms; pickStart(); refreshEnd(); }).catch(() => {});
 }
 
 // The text column covers the left of the screen, so the scene centres in
@@ -228,10 +242,10 @@ function build() {
     <section class="chapter end" data-kind="end" id="end">
       <div class="chapter-body">
         <h2>Face-off</h2>
-        ${faceoff()}
+        <div id="end-live">${planner()}${faceoff()}</div>
         <div class="actions">
           <button class="act" type="button" id="replay">Replay</button>
-          <a class="act" href="classic.html">Walk it yourself</a>
+          <button class="act" type="button" id="free-open">Walk it yourself</button>
           <a class="act full-only" href="classic.html#brief">Walk brief</a>
           <a class="act full-only" href="classic.html#proof">Check vs Curiosity</a>
           <a class="act" href="CREDITS.md">Sources and credits</a>
@@ -241,9 +255,11 @@ function build() {
 
   $('story').innerHTML = html.join('');
   buildHud();
+  bindPlanner();
+  $('free-open').addEventListener('click', startFree);
 
   for (const btn of document.querySelectorAll('.route')) btn.addEventListener('click', () => setActive(btn.dataset.route));
-  $('replay').addEventListener('click', () => { scrollTo(0, 0); setAuto(true); });
+  $('replay').addEventListener('click', () => { endFree(); scrollTo(0, 0); setAuto(true); });
   $('start').addEventListener('click', () => setAuto(true));
   findSteepLeg();
 }
@@ -252,6 +268,7 @@ function build() {
 // number is its length against the larger of the two.
 const FACEOFF = [
   { label: 'Peak heat, no rests', unit: 'kJ/kg', value: (t) => t.peakHeatNoRest, digits: 2, assumed: true, heat: true, note: heatRange },
+  { label: 'Planned rests', unit: (v) => (v === 1 ? 'rest' : 'rests'), value: (t) => t.restCount, digits: 0, note: (t) => `${minutes(t.restSeconds)} min resting` },
   { label: 'Time with rests', unit: 'min', value: (t) => t.seconds / 60, digits: 0 },
   { label: 'Energy', unit: 'kcal', value: (t) => t.kcal, digits: 0, assumed: true },
   { label: 'Radiation', unit: 'µSv', value: (t) => t.dose, digits: 1, assumed: true, full: true },
@@ -259,20 +276,98 @@ const FACEOFF = [
   { label: 'Climb', unit: 'm', value: (t) => t.climb, digits: 0, full: true },
 ];
 
+// Orbiter contact for a route at the chosen start time, as the planner page
+// words it.
+const contactShare = (contact) => contact.inContact.filter(Boolean).length / contact.inContact.length;
+const CONTACT_ROW = {
+  label: 'Orbiter in view',
+  unit: '% of the walk',
+  digits: 0,
+  value: (t, id) => contactShare(state.comms.routeContact(state.routes[id].points, state.startMinute)) * 100,
+  note: (t, id) => {
+    const gap = state.comms.routeContact(state.routes[id].points, state.startMinute).longestGapMin;
+    return gap > 0 ? `Up to ${Math.round(gap)} min with no contact` : 'Orbiter in view for the whole walk';
+  },
+};
+
 function faceoff() {
   const head = `<div class="fo-row fo-head label"><span></span>${ROUTES.map((d) => `<span>${d.name}<br>${d.hint}</span>`).join('')}</div>`;
-  const rows = FACEOFF.map((row) => {
+  const rows = [...FACEOFF, ...(state.comms ? [CONTACT_ROW] : [])].map((row) => {
     const totals = ROUTES.map((d) => state.routes[d.id].totals);
-    const values = totals.map(row.value);
-    const most = Math.max(...values);
+    const values = totals.map((t, i) => row.value(t, ROUTES[i].id));
+    const most = Math.max(...values) || 1;
     const cells = values.map((v, i) => {
       const colour = row.heat ? heatColor(v) : null;
-      const note = row.note ? `<span class="fo-note label">${row.note(totals[i])}</span>` : '';
-      return `<span class="fo-cell"><b>${num(v, row.digits, { assumed: row.assumed, colour })}</b><small class="unit">${row.unit}</small>${note}<i style="width: ${((v / most) * 100).toFixed(1)}%;${colour ? ` background: ${colour};` : ''}"></i></span>`;
+      const note = row.note ? `<span class="fo-note label">${row.note(totals[i], ROUTES[i].id)}</span>` : '';
+      return `<span class="fo-cell"><b>${num(v, row.digits, { assumed: row.assumed, colour })}</b><small class="unit">${typeof row.unit === 'function' ? row.unit(v) : row.unit}</small>${note}<i style="width: ${((v / most) * 100).toFixed(1)}%;${colour ? ` background: ${colour};` : ''}"></i></span>`;
     });
     return `<div class="fo-row${row.full ? ' full-only' : ''}"><span class="label">${row.label}</span>${cells.join('')}</div>`;
   });
   return `<div class="faceoff">${head}${rows.join('')}</div>`;
+}
+
+/* Planner: the visitor changes the load and the start time */
+
+function planner() {
+  const loads = Object.keys(state.plans).map(Number).sort((a, b) => a - b);
+  const start = state.comms && state.startMinute != null ? `
+      <label class="plan-group"><span class="label">Start</span>
+        <select id="plan-start" class="label">${startOptions()}</select>
+      </label>` : '';
+  return `
+    <div class="plan" role="group" aria-label="Change the walk">
+      <div class="plan-group"><span class="label">Carried load</span>
+        <span class="seg">${loads.map((kg) => `<button type="button" class="label" data-load="${kg}" aria-pressed="${kg === state.loadKg}">${kg} kg</button>`).join('')}</span>
+      </div>${start}
+    </div>`;
+}
+
+// Start times every 20 minutes of daylight on the sol the orbiter positions
+// are for; the first pick keeps the body-cost route in contact longest. The
+// same choice as the planner page.
+const START_MINUTES = Array.from({ length: 37 }, (_, i) => 640 + i * 20);
+const bodyShare = (minute) => contactShare(state.comms.routeContact(state.routes.body.points, minute));
+
+function pickStart() {
+  let best = { minute: START_MINUTES[0], share: -1 };
+  for (const minute of START_MINUTES) {
+    const share = bodyShare(minute);
+    if (share > best.share) best = { minute, share };
+  }
+  state.startMinute = best.minute;
+}
+
+function startOptions() {
+  return START_MINUTES.map((minute) => `<option value="${minute}"${minute === state.startMinute ? ' selected' : ''}>${state.comms.localTime(minute)} · ${Math.round(bodyShare(minute) * 100)}% in contact</option>`).join('');
+}
+
+function bindPlanner() {
+  for (const btn of document.querySelectorAll('[data-load]')) btn.addEventListener('click', () => setLoad(Number(btn.dataset.load)));
+  $('plan-start')?.addEventListener('change', (e) => { state.startMinute = Number(e.target.value); refreshEnd(); });
+}
+
+// Redraws the controls and the face-off in place, keeping the page where it is.
+function refreshEnd() {
+  const live = $('end-live');
+  if (!live) return;
+  live.innerHTML = planner() + faceoff();
+  bindPlanner();
+}
+
+// A new load changes every number in the story: the routes, their rests, the
+// heat along them. The story is rebuilt and the page stays on the face-off.
+function setLoad(kg) {
+  if (kg === state.loadKg || !state.plans[kg]) return;
+  state.loadKg = kg;
+  for (const def of ROUTES) state.routes[def.id] = state.plans[kg][def.pricing];
+  state.view.setRoutes?.(state.routes);
+  state.view.setRoute(state.active);
+  build();
+  measure();
+  state.chapter = null;
+  state.dist = -1;
+  scrollTo({ top: $('end').offsetTop, behavior: 'instant' });
+  update();
 }
 
 /* The live number */
@@ -337,7 +432,7 @@ function scrollForDist(dist) {
 }
 
 function update() {
-  if (!state.chapters.length) return;
+  if (!state.chapters.length || state.free) return;
   const route = state.routes[state.active];
   const y = scrollY + innerHeight * 0.5;
   const c = chapterAt(y);
@@ -401,6 +496,117 @@ function findSteepLeg() {
   }
 }
 
+/* Walk it yourself: the visitor steers, the body model answers */
+
+const keys = new Set();
+const freeClock = { last: 0, drawn: 0 };
+
+function freePanel() {
+  let panel = $('free');
+  if (panel) return panel;
+  panel = document.createElement('section');
+  panel.id = 'free';
+  panel.className = 'free-panel';
+  panel.hidden = true;
+  panel.setAttribute('aria-label', 'Walk it yourself');
+  panel.innerHTML = `
+    <h2>Walk it yourself</h2>
+    <p class="lede">You choose the ground and the body model runs on it. The planned route and its rests do not apply.</p>
+    <p class="label free-msg" id="free-msg" aria-live="polite"></p>
+    <div class="free-keys">
+      <button type="button" class="label" data-key="ArrowLeft">Turn left</button>
+      <button type="button" class="label" data-key="ArrowUp">Walk</button>
+      <button type="button" class="label" data-key="ArrowRight">Turn right</button>
+    </div>
+    <p class="actions"><button class="act" type="button" id="free-end">End free walk</button></p>`;
+  document.body.append(panel);
+  // On-screen keys for touch and trackpad users: held down like arrow keys.
+  for (const btn of panel.querySelectorAll('[data-key]')) {
+    const key = btn.dataset.key;
+    btn.addEventListener('pointerdown', (e) => { e.preventDefault(); btn.setPointerCapture?.(e.pointerId); keys.add(key); });
+    for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) btn.addEventListener(type, () => keys.delete(key));
+  }
+  $('free-end').addEventListener('click', endFree);
+  return panel;
+}
+
+async function startFree() {
+  if (state.free || !state.view.available) return;
+  setAuto(false);
+  if (state.sky === undefined) state.sky = await loadSky().catch(() => null);
+  state.freeScroll = scrollY;
+  state.free = createFreeWalk({ terrain: state.terrain, sky: state.sky, walk: state.walk, loadKg: state.loadKg });
+  document.body.classList.add('freewalk');
+  document.body.classList.remove('ending');
+  for (const ch of state.chapters) ch.el.classList.remove('is-active');
+  freePanel().hidden = false;
+  $('hud').hidden = false;
+  state.view.setRoutesVisible?.(false);
+  state.view.clearTrail?.();
+  state.view.setMode('chase');
+  state.view.setWalkerAt?.(state.free.lat, state.free.lon, state.free.heading);
+  renderFree();
+  freeClock.last = performance.now();
+  requestAnimationFrame(freeFrame);
+}
+
+function endFree() {
+  if (!state.free) return;
+  state.free = null;
+  keys.clear();
+  document.body.classList.remove('freewalk');
+  freePanel().hidden = true;
+  state.view.clearTrail?.();
+  state.view.setRoutesVisible?.(true);
+  state.view.setRoute(state.active);
+  scrollTo({ top: state.freeScroll, behavior: 'instant' });
+  state.chapter = null;
+  state.dist = -1;
+  update();
+}
+
+function freeFrame(now) {
+  const f = state.free;
+  if (!f) return;
+  const dt = Math.min(0.2, (now - freeClock.last) / 1000);
+  freeClock.last = now;
+  if (f.tick(now, dt, keys)) state.view.setTrail?.(f.trail);
+  state.view.setWalkerAt?.(f.lat, f.lon, f.heading);
+  // The numbers redraw ten times a second; the walker moves every frame.
+  if (now - freeClock.drawn > 100) { freeClock.drawn = now; renderFree(); }
+  requestAnimationFrame(freeFrame);
+}
+
+function renderFree() {
+  const f = state.free;
+  const l = f.ledger;
+  const colour = heatColor(l.heatKJkg);
+  $('hud').style.setProperty('--hud-colour', colour);
+  const value = $('hud-heat');
+  value.textContent = fmt(l.heatKJkg, 1);
+  value.style.setProperty('--stroke', colour);
+  $('hud-fill').style.width = `${clamp01(l.heatKJkg / MODEL.heatContingencyKJkg) * 100}%`;
+  $('hud-meta').textContent = `${fmt(f.dist)} m walked · ${minutes(l.seconds)} min · ${f.rests} forced rest${f.rests === 1 ? '' : 's'}`;
+  $('hud-event').textContent = '';
+  if (FULL) {
+    $('hud-rows').innerHTML = `
+      <dt>Energy <span class="unit">kcal</span></dt><dd>${num(l.kcal, 0, { assumed: true })}</dd>
+      <dt>Radiation <span class="unit">µSv</span></dt><dd>${num(l.doseUSv, 1, { assumed: true })}</dd>
+      ${f.skyPct != null ? `<dt>Sky blocked</dt><dd>${fmt(f.skyPct)}%</dd>` : ''}`;
+  }
+  $('free-msg').textContent = f.message;
+}
+
+function bindFree() {
+  addEventListener('keydown', (e) => {
+    if (!state.free) return;
+    if (e.key.startsWith('Arrow')) { e.preventDefault(); keys.add(e.key); }
+    if (e.key === 'Escape') endFree();
+  });
+  addEventListener('keyup', (e) => keys.delete(e.key));
+  addEventListener('blur', () => keys.clear());
+}
+
 /* Autoplay */
 
 const auto = { on: false, y: 0, last: 0 };
@@ -433,6 +639,7 @@ function autoFrame(now) {
 
 function bindAuto() {
   $('auto').addEventListener('click', () => {
+    endFree();
     const atEnd = state.chapter?.dataset.kind === 'end';
     if (!auto.on && atEnd) scrollTo(0, 0);
     setAuto(!auto.on);
