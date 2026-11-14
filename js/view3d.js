@@ -426,7 +426,9 @@ function labelTexture(text, color) {
 // it stays readable in the wide view and does not swallow the chase view; the
 // vertex positions are rewritten in place when that happens.
 class RouteTube {
-  constructor(route, grid, lift, color) {
+  // `pointColors`, if given, is one CSS colour per route point; the tube is
+  // then shaded along its length instead of in one colour.
+  constructor(route, grid, lift, color, pointColors = null) {
     this.route = route;
     this.lift = lift;
     this.sides = 6;
@@ -467,7 +469,16 @@ class RouteTube {
     this.geometry = new THREE.BufferGeometry();
     this.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * S * 3), 3));
     this.geometry.setIndex(index);
-    this.material = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true });
+    if (pointColors) {
+      const rgb = new Float32Array(n * S * 3);
+      const c = new THREE.Color();
+      for (let i = 0; i < n; i++) {
+        c.set(pointColors[i]);
+        for (let k = 0; k < S; k++) rgb.set([c.r, c.g, c.b], (i * S + k) * 3);
+      }
+      this.geometry.setAttribute('color', new THREE.BufferAttribute(rgb, 3));
+    }
+    this.material = new THREE.MeshBasicMaterial({ color: pointColors ? 0xffffff : color, vertexColors: !!pointColors, side: THREE.DoubleSide, transparent: true });
     this.mesh = new THREE.Mesh(this.geometry, this.material);
     this.mesh.frustumCulled = false;
     this.radius = 0;
@@ -527,7 +538,7 @@ function inertView(root, message) {
   };
 }
 
-export async function createView3D(container, { terrain, routes, colors = {} }) {
+export async function createView3D(container, { terrain, routes, colors = {}, pointColors = null }) {
   const root = document.createElement('div');
   root.className = 'v3d-root';
   root.style.display = 'none';
@@ -716,7 +727,7 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
     tubes = {};
     for (const id of ids) {
       prepared[id] = prepareRoute(terrain, grid, next[id]);
-      tubes[id] = new RouteTube(prepared[id], grid, LIFT, colorOf(id));
+      tubes[id] = new RouteTube(prepared[id], grid, LIFT, colorOf(id), pointColors?.(id, next[id]) ?? null);
       tubes[id].mesh.visible = routesVisible;
       terrainGroup.add(tubes[id].mesh);
     }

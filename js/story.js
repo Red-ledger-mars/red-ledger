@@ -73,6 +73,8 @@ async function boot() {
     terrain,
     routes: state.routes,
     colors: Object.fromEntries(ROUTES.map((d) => [d.id, d.colour])),
+    // Each route line is shaded by the body heat the plan gives at each point.
+    pointColors: (id, route) => route.points.map((p) => heatColor(p.heat)),
   });
   if (state.view.available) {
     state.view.show();
@@ -132,12 +134,19 @@ function build() {
   const legs = stops.length - 1;
   const html = [];
 
+  // Wording from the Main chat. Any other outcome of the data shows no
+  // verdict line, so the page never says something nobody has checked.
+  const bothOver = ROUTES.every((d) => state.routes[d.id].totals.peakHeatNoRest > MODEL.heatLimitKJkg);
+  if (!bothOver) console.warn('Story: the routes no longer both pass the heat limit; the verdict line is hidden.');
+  const VERDICT = 'By the model\'s central estimate, both routes go over the heat limit unless the walker rests.';
+
   html.push(`
     <section class="chapter centred" data-kind="title" data-play="${PLAY.title}">
       <div class="chapter-body">
         <p class="kicker mono">One walk at Gale crater, Mars</p>
         <h1 class="title">Mars is<br>costly</h1>
         <p class="lede">Two routes to the same rocks. What each one costs the body, step by step.</p>
+        ${bothOver ? `<p class="result">${VERDICT}</p>` : ''}
         <p class="cue mono">Scroll ↓ or press Auto</p>
         <p class="quiet">A planning forecast, not a diagnosis.</p>
       </div>
@@ -171,16 +180,12 @@ function build() {
       </section>`);
   }
 
-  // Wording from the Main chat. Any other outcome of the data shows no
-  // verdict line, so the page never says something nobody has checked.
-  const bothOver = ROUTES.every((d) => state.routes[d.id].totals.peakHeatNoRest > MODEL.heatLimitKJkg);
-  if (!bothOver) console.warn('Story: the routes no longer both pass the heat limit; the verdict line is hidden.');
   const restsKeepUnder = ROUTES.every((d) => state.routes[d.id].totals.peakHeat < MODEL.heatLimitKJkg);
   html.push(`
     <section class="chapter centred" data-kind="verdict" data-play="${PLAY.verdict}">
       <div class="chapter-body">
         <p class="kicker mono">Home · the verdict</p>
-        ${bothOver ? '<h2 class="long">By the model\'s central estimate, both routes go over the heat limit unless the walker rests.</h2>' : ''}
+        ${bothOver ? `<h2 class="long">${VERDICT}</h2>` : ''}
         ${restsKeepUnder ? `<p class="lede">With the planned rests, both stay under ${fmt(MODEL.heatLimitKJkg, 1)} kJ/kg.</p>` : ''}
       </div>
     </section>`);
@@ -334,9 +339,6 @@ function setDist(dist) {
   const route = state.routes[state.active];
   const p = pointAt(route, dist);
   state.view.setWalker(dist);
-  const upTo = route.points.indexOf(p);
-  if (dist > 0) state.view.setTrail(route.points.slice(0, upTo + 1));
-  else state.view.clearTrail();
   const kind = state.chapter?.dataset.kind;
   if (dist > 0 && (kind === 'leg' || kind === 'verdict')) renderHud(p, route);
 }
@@ -346,7 +348,6 @@ function setActive(id) {
   state.active = id;
   for (const btn of document.querySelectorAll('.route')) btn.setAttribute('aria-pressed', String(btn.dataset.route === id));
   state.view.setRoute(id);
-  state.view.clearTrail();
   if (FULL) $('route-detail').outerHTML = routeDetail();
   findSteepLeg();
   state.chapter = null;

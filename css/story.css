@@ -132,7 +132,10 @@ body:not(.loading) #loader { opacity: 0; visibility: hidden; }
 .chapter h2.long { font-size: clamp(38px, 4vw, 64px); line-height: 0.92; }
 .lede { margin: 24px 0 0; max-width: 34ch; font-size: 18px; color: var(--fg-2); }
 .lede b { color: var(--fg); font-weight: 500; }
-.cue { margin-top: 48px; color: var(--fg-3); }
+/* The finding, on the first screen. The red edge is the heat colour for
+   "over the limit", the only meaning red has on this page. */
+.result { margin: 22px 0 0; max-width: 32ch; padding-left: 14px; border-left: 2px solid var(--heat-hot); font-size: 19px; font-weight: 500; line-height: 1.4; }
+.cue { margin-top: 40px; color: var(--fg-3); }
 .quiet { margin: 14px 0 0; font-size: 13px; color: var(--fg-3); }
 .chapter-body > .actions { margin-top: 28px; }
 .place-note { margin: 14px 0 0; color: var(--fg-3); }
