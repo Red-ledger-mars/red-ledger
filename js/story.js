@@ -105,8 +105,15 @@ async function boot() {
       scrollTo({ top: scrollForDist(dist), behavior: 'instant' });
     });
   } else {
-    document.body.classList.add('no3d');
+    showFlat();
   }
+
+  // The 3D view says when it stops drawing (a lost graphics context, a
+  // render error or a black picture); the flat ground then takes over.
+  $('stage').addEventListener('v3d-status', (e) => {
+    if (!e.detail?.ok) showFlat();
+    else document.body.classList.remove('flat');
+  });
 
   build();
   progress(1, 'Ready');
@@ -409,10 +416,24 @@ const REACH_TEXT = {
 
 // The reach map on the 3D ground for the load shown. Drawn once per load.
 const reachImages = {};
+// The flat ground: the stored HiRISE tiles cropped to exactly the reach
+// bounds, so the reach picture stacks on it. Only loaded when 3D fails.
+function showFlat() {
+  document.body.classList.add('flat');
+  if ($('flat')) return;
+  const box = document.createElement('div');
+  box.id = 'flat';
+  box.innerHTML = '<img src="img/ground-flat.jpg" alt="Orbital picture of the walk area at Gale crater"><img id="flat-reach" alt="" hidden>';
+  $('stage').after(box);
+  if (state.chapter?.dataset.kind === 'reach') showReach();
+}
+
 function showReach() {
-  if (!state.reach || !state.view.setOverlay) return;
+  if (!state.reach) return;
   reachImages[state.loadKg] ??= state.reach.image(state.loadKg);
-  state.view.setOverlay(reachImages[state.loadKg], state.reach.bounds);
+  state.view.setOverlay?.(reachImages[state.loadKg], state.reach.bounds);
+  const flat = $('flat-reach');
+  if (flat) { flat.src = reachImages[state.loadKg]; flat.hidden = false; }
 }
 
 /* The live number */
@@ -500,13 +521,18 @@ function setChapter(c) {
   const wasReach = state.chapter?.dataset.kind === 'reach';
   state.chapter = c.el;
   const walking = c.kind === 'leg';
-  state.view.setMode(walking ? 'chase' : 'orbit');
+  const move = state.view.setMode(walking ? 'chase' : 'orbit');
+  if (c.kind === 'verdict' && move?.then) {
+    c.el.classList.add('settling');
+    move.then(() => c.el.classList.remove('settling'));
+  }
   if (c.kind === 'reach') {
     state.view.setRoutesVisible?.(false);
     showReach();
   } else if (wasReach) {
     state.view.setOverlay?.(null);
     state.view.setRoutesVisible?.(true);
+    if ($('flat-reach')) $('flat-reach').hidden = true;
   }
   // The live number shows only during the walk, so it never sits under
   // the verdict text in the same left column.

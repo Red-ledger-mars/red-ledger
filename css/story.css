@@ -143,6 +143,17 @@ body:not(.loading) #loader { opacity: 0; visibility: hidden; }
   .chapter.is-active:not(.end) .chapter-body { transform: none; }
 }
 .chapter.wide-text .chapter-body { width: min(720px, 54vw); }
+/* The verdict waits until the camera has pulled back from the walker. */
+.chapter.is-active.settling .chapter-body { opacity: 0; }
+
+/* Flat ground when the 3D view cannot draw: the picture sits right of the
+   text column, and the reach picture stacks exactly on it. */
+#flat { display: none; }
+body.flat #flat { position: fixed; top: 0; bottom: 0; left: 40vw; right: 0; z-index: 0; display: grid; }
+body.flat #flat img { grid-area: 1 / 1; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+body.flat #flat img:first-child { image-rendering: auto; }
+body.flat #stage { visibility: hidden; }
+@media (max-width: 720px) { body.flat #flat { left: 0; bottom: 45vh; } }
 /* Short windows: smaller headlines so a chapter's text ends above the live
    number. Still the same three sizes, each a little smaller. */
 @media (max-height: 760px) and (min-width: 721px) {
