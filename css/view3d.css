@@ -129,3 +129,20 @@
 @starting-style { .v3d-root { opacity: 0; } }
 /* Opened with the V key: no fade. */
 .v3d-instant .v3d-root { transition: none; }
+
+/* Grab handle over the walker, on pages that let the visitor drag it. */
+.v3d-handle {
+  position: absolute;
+  left: -22px;
+  top: -22px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+.v3d-handle[hidden] { display: none; }
+.v3d-handle:focus-visible { outline: 2px solid var(--amber, #ffb547); outline-offset: 2px; }
+.v3d-dragging, .v3d-dragging .v3d-handle { cursor: grabbing; }

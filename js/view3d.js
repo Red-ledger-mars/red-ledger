@@ -883,6 +883,21 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
   const easeInOut = (t) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
   const marks = { pins: true, ring: true };
   let viewShift = 0; // share of the width the picture centre is moved right
+  // Dragging the walker by hand (setWalkerDrag). An invisible handle sits over
+  // the walker, so the page can leave the rest of the view without input.
+  const handle = document.createElement('div');
+  handle.className = 'v3d-handle';
+  handle.hidden = true;
+  handle.tabIndex = 0;
+  handle.setAttribute('role', 'slider');
+  handle.setAttribute('aria-label', 'Walker position on the route, in metres');
+  root.appendChild(handle);
+  const DRAG_WINDOW = 150; // m either side of the walker searched under the pointer
+  let onDrag = null; // the page's callback, (dist, phase)
+  let dragging = false;
+  let hover = false;
+  let grip = 0; // 0..1, eased: the walker grows a little when it can be grabbed
+  const proj = new THREE.Vector3();
   const CHASE_BACK = 55; // metres behind the walker on a wide screen
   let chaseZoom = 1; // the user's wheel / pinch factor on top of that
   const MIN_CLEARANCE = 6; // the camera never goes nearer than this to the ground under it
@@ -962,6 +977,14 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
   // it is still moving, so the loop keeps going.
   function stepCamera(dt, instant = false) {
     let moving = false;
+    const gripTo = hover || dragging ? 1 : 0;
+    if (grip !== gripTo) {
+      grip = instant || REDUCED || Math.abs(gripTo - grip) < 0.01 ? gripTo : grip + (gripTo - grip) * (1 - Math.exp(-dt / 0.06));
+      moving = true;
+    }
+    // While the walker is held the camera keeps still, so the walker follows
+    // the pointer exactly; on release the camera picks it up again.
+    if (dragging && !instant) return moving;
     if (walkerDist !== walkerTarget) {
       const gap = walkerTarget - walkerDist;
       walkerDist = instant || !walkerEase || Math.abs(gap) < 0.05 ? walkerTarget : walkerDist + gap * (1 - Math.exp(-WALKER_K * dt));
@@ -1048,7 +1071,17 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
     // Walker and pins keep a readable size on screen.
     walkerWorld(walker.position);
     const ws = clamp(camera.position.distanceTo(walker.position) * 0.004, 1.1, 8);
-    walker.scale.setScalar(ws);
+    walker.scale.setScalar(ws * (1 + 0.3 * grip));
+    if (onDrag) {
+      proj.copy(walker.position).project(camera);
+      const off = proj.z > 1 || free.on;
+      handle.hidden = off;
+      if (!off) {
+        const c = renderer.domElement;
+        handle.style.transform = `translate(${((proj.x + 1) / 2) * c.clientWidth}px, ${((1 - proj.y) / 2) * c.clientHeight}px)`;
+      }
+      handle.setAttribute('aria-valuenow', String(Math.round(walkerDist)));
+    }
     beam.scale.set(0.14, Math.min(dist * 0.04, 60) / ws, 0.14);
     beam.position.y = Math.min(dist * 0.04, 60) / ws / 2;
     marker.visible = free.on;
@@ -1147,6 +1180,67 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
   el.addEventListener('pointercancel', onUp);
   el.addEventListener('lostpointercapture', onUp);
   el.addEventListener('wheel', onWheel, { passive: false });
+
+  // The route distance under the pointer: the nearest point of the route on
+  // screen, searched near the walker so a drag slides along the path and
+  // never jumps to a far part of the route that crosses nearby.
+  function distUnder(clientX, clientY) {
+    const r = prepared[activeId];
+    const rect = renderer.domElement.getBoundingClientRect();
+    const px = clientX - rect.left, py = clientY - rect.top;
+    let best = null, bestD2 = Infinity, prev = null;
+    for (let i = 0; i < r.n; i++) {
+      if (Math.abs(r.d[i] - walkerDist) > DRAG_WINDOW) { prev = null; continue; }
+      proj.set(r.x[i], yOf(r.y[i] + LIFT + 0.6), r.z[i]).project(camera);
+      const s = { x: ((proj.x + 1) / 2) * rect.width, y: ((1 - proj.y) / 2) * rect.height, d: r.d[i], ok: proj.z <= 1 };
+      if (prev && s.ok && prev.ok) {
+        const vx = s.x - prev.x, vy = s.y - prev.y;
+        const len2 = vx * vx + vy * vy;
+        const t = len2 ? clamp(((px - prev.x) * vx + (py - prev.y) * vy) / len2, 0, 1) : 0;
+        const qx = prev.x + t * vx - px, qy = prev.y + t * vy - py;
+        if (qx * qx + qy * qy < bestD2) { bestD2 = qx * qx + qy * qy; best = prev.d + t * (s.d - prev.d); }
+      }
+      prev = s;
+    }
+    return best;
+  }
+  function dragTo(dist) {
+    walkerDist = walkerTarget = clamp(dist, 0, prepared[activeId].total);
+    onDrag?.(walkerDist, 'move');
+    invalidate();
+  }
+  function endDrag() {
+    if (!dragging) return;
+    dragging = false;
+    root.classList.remove('v3d-dragging');
+    onDrag?.(walkerDist, 'end');
+    invalidate();
+  }
+  handle.addEventListener('pointerdown', (e) => {
+    if (!onDrag || e.button > 0) return;
+    try { handle.setPointerCapture(e.pointerId); } catch { /* not an active pointer */ }
+    dragging = true;
+    root.classList.add('v3d-dragging');
+    onDrag(walkerDist, 'start');
+    invalidate();
+  });
+  handle.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const d = distUnder(e.clientX, e.clientY);
+    if (d !== null) dragTo(d);
+  });
+  handle.addEventListener('pointerup', endDrag);
+  handle.addEventListener('pointercancel', endDrag);
+  handle.addEventListener('lostpointercapture', endDrag);
+  handle.addEventListener('pointerenter', () => { hover = true; invalidate(); });
+  handle.addEventListener('pointerleave', () => { hover = false; invalidate(); });
+  // Keyboard: the arrow keys move the walker 10 m, Page Up and Down 100 m.
+  handle.addEventListener('keydown', (e) => {
+    const step = { ArrowRight: 10, ArrowUp: 10, ArrowLeft: -10, ArrowDown: -10, PageUp: 100, PageDown: -100 }[e.key];
+    if (!onDrag || !step) return;
+    e.preventDefault();
+    dragTo(walkerDist + step);
+  });
   el.addEventListener('dblclick', onDouble);
 
   // The GPU can drop the context (a tablet under memory pressure, a tab in the
@@ -1280,6 +1374,17 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
       marks.ring = !!showRing;
       pinGroup.visible = routesVisible && marks.pins;
       ring.visible = beam.visible = marks.ring;
+      invalidate();
+    },
+    // Lets the visitor drag the walker along the route. fn(dist, phase) gets
+    // the route distance in metres and 'start', 'move' or 'end'; null turns
+    // dragging off.
+    setWalkerDrag(fn) {
+      onDrag = typeof fn === 'function' ? fn : null;
+      if (!onDrag) { endDrag(); hover = false; }
+      handle.hidden = !onDrag;
+      handle.setAttribute('aria-valuemin', '0');
+      handle.setAttribute('aria-valuemax', String(Math.round(prepared[activeId].total)));
       invalidate();
     },
     // Moves the picture centre right by this share of the width (0 to 0.4), for
