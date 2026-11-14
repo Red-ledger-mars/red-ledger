@@ -255,3 +255,11 @@ html, body {
   .bar-fill { transition: none; }
 }
 .target a { color: var(--text); }
+
+.site-weather { font: 11px/1.5 var(--mono); color: var(--dim); }
+.site-weather b { color: var(--text); font-weight: 600; }
+.site-weather a { color: inherit; }
+.brand { flex: none; }
+.brand-mark { white-space: nowrap; }
+.site { min-width: 0; }
+.layers { flex: none; max-width: 46%; }

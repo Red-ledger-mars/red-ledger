@@ -19,7 +19,8 @@ Work in progress. This section is updated as parts are finished.
 - [x] Elevation profile and a walk control that moves along the route
 - [ ] Body-cost model: walking energy is in (source check pending); heat, radiation dose and the way back are not built yet
 - [x] Curiosity's own photos at the two stops it visited
-- [ ] Demo walk stored in the repo
+- [x] Demo copy in the repo: elevation, waypoints, photos, weather and the walk-area imagery (zoom 13 to 16), so the walk still shows if NASA's servers cannot be reached
+- [x] Curiosity's measured temperature and pressure range for the site
 
 ## Run it
 

@@ -77,9 +77,12 @@ function addLayerButton({ label, credit, on }, leaf) {
 function buildLayers() {
   for (const layer of LAYERS) {
     const options = { ...layer.options, attribution: layer.credit };
-    const leaf = layer.kind === 'image'
+    let leaf = layer.kind === 'image'
       ? L.imageOverlay(layer.url, layer.bounds, options)
       : L.tileLayer(layer.url, options);
+    // A copy of the walk area stored in the repo sits under the live tiles,
+    // so the walk still has imagery if NASA's server cannot be reached.
+    if (layer.local) leaf = L.layerGroup([L.tileLayer(layer.local.url, layer.local.options), leaf]);
     addLayerButton(layer, leaf);
   }
 }
@@ -115,6 +118,15 @@ async function buildRoverPath() {
       .bindTooltip(`Curiosity, sol ${w.sol} · ${w.elev.toFixed(0)} m`)
       .addTo(map);
   }
+}
+
+// What Curiosity's weather station measured while the rover was in this
+// area. The feed is published for outreach, so it is labelled as such.
+async function buildWeather() {
+  const { summary, sols, source } = await (await fetch('data/rems_boxwork.json')).json();
+  const span = (lo, hi, unit) => `<b>${lo.toLocaleString('en')} to ${hi.toLocaleString('en')}</b> ${unit}`;
+  $('site-weather').innerHTML = `Measured here over ${sols.length} sols: air ${span(summary.air_min_c.min, summary.air_max_c.max, '°C')} · ground ${
+    span(summary.ground_min_c.min, summary.ground_max_c.max, '°C')} · pressure ${span(summary.pressure_pa.min, summary.pressure_pa.max, 'Pa')} · <a href="${source}" target="_blank" rel="noopener">Curiosity REMS, outreach data</a>`;
 }
 
 /* Body ledger */
@@ -312,22 +324,28 @@ function drawProfileCursor() {
 // A full walk plays in about 40 seconds whatever its length.
 const PLAY_SECONDS = 40;
 
-function tick(last) {
-  if (!state.playing) return;
+// Each press of Walk starts a new loop with its own number, so a frame left
+// over from an earlier loop stops instead of running alongside the new one.
+let loopId = 0;
+
+function tick(last, id) {
+  if (!state.playing || id !== loopId) return;
   const now = performance.now();
   const total = state.routes[state.active].totals.dist;
   state.dist = Math.min(total, state.dist + ((now - last) / 1000) * (total / PLAY_SECONDS));
   renderWalk();
   if (state.dist >= total) { setPlaying(false); return; }
-  requestAnimationFrame(() => tick(now));
+  requestAnimationFrame(() => tick(now, id));
 }
 
 function setPlaying(on) {
   state.playing = on;
+  loopId++;
   $('play').textContent = on ? 'Pause' : 'Walk';
   if (on) {
     if (state.dist >= state.routes[state.active].totals.dist) state.dist = 0;
-    requestAnimationFrame(() => tick(performance.now()));
+    const id = loopId;
+    requestAnimationFrame(() => tick(performance.now(), id));
   }
 }
 
@@ -368,6 +386,7 @@ async function buildWalk(terrain) {
 buildLayers();
 buildBars();
 buildRoverPath();
+buildWeather();
 loadTerrain().then((terrain) => {
   state.terrain = terrain;
   buildSlopeLayer(terrain);

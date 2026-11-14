@@ -15,7 +15,7 @@ export const PRICING = {
   direct: (run, rise) => Math.hypot(run, rise),
   // Walking energy at Mars gravity. Steps steeper than anything in the
   // walking measurements are refused.
-  body: (run, rise) => (Math.abs(rise / run) > MAX_MEASURED_GRADIENT ? Infinity : walkCostMars(rise / run) * run),
+  body: (run, rise) => (Math.abs(rise / run) > MAX_MEASURED_GRADIENT ? Infinity : walkCostMars(rise / run) * Math.hypot(run, rise)),
 };
 
 class MinHeap {
@@ -135,7 +135,8 @@ function describe(terrain, cells, stops) {
       gradient = rise / run;
       dist += Math.hypot(run, rise);
       if (rise > 0) climb += rise; else descent -= rise;
-      joules += walkCostMars(gradient) * run * mass;
+      // The measured cost is per metre walked along the slope, not per metre on the map.
+      joules += walkCostMars(gradient) * Math.hypot(run, rise) * mass;
       steepest = Math.max(steepest, Math.abs(gradient));
       if (Math.abs(gradient) > MAX_MEASURED_GRADIENT) beyondMeasured += run;
     }

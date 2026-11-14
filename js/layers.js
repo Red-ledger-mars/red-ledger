@@ -24,6 +24,9 @@ const TREK = 'https://trek.nasa.gov/tiles/Mars/EQ';
 // rover has driven, so thermal layers are placed as a single image.
 const TREK_Z9_BOUNDS = [[-4.921875, 137.109375], [-4.5703125, 137.4609375]];
 
+// The part of the walk area that is also stored in the repo (tools/cache_tiles.py).
+const LOCAL_BOUNDS = [[-4.8260, 137.3660], [-4.7860, 137.4000]];
+
 export const LAYERS = [
   {
     id: 'ctx',
@@ -34,6 +37,7 @@ export const LAYERS = [
     base: true,
     url: `${MMGIS}/MSL_CTX_ortho_mosaic_6m/{z}/{x}/{y}.png`,
     options: { tms: true, minNativeZoom: 6, maxNativeZoom: 13, bounds: [[-7.84, 135.98], [-3.40, 139.49]] },
+    local: { url: 'tiles/ctx/{z}/{x}/{y}.png', options: { tms: true, minNativeZoom: 10, maxNativeZoom: 13, bounds: LOCAL_BOUNDS } },
     credit: 'Context Camera (CTX), Mars Reconnaissance Orbiter. NASA/JPL-Caltech/MSSS',
   },
   {
@@ -45,6 +49,7 @@ export const LAYERS = [
     base: true,
     url: `${MMGIS}/MSL_Gale_HiRISE-LRGB_78quads/{z}/{x}/{y}.png`,
     options: { tms: true, minNativeZoom: 10, maxNativeZoom: 18, bounds: [[-4.8756, 137.3267], [-4.5551, 137.4786]] },
+    local: { url: 'tiles/hirise/{z}/{x}/{y}.png', options: { tms: true, minNativeZoom: 13, maxNativeZoom: 16, bounds: LOCAL_BOUNDS } },
     credit: 'HiRISE camera, Mars Reconnaissance Orbiter. NASA/JPL-Caltech/University of Arizona',
   },
   {
