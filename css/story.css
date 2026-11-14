@@ -91,6 +91,7 @@ body:not(.loading) #loader { opacity: 0; visibility: hidden; }
 .info-panel a { color: var(--fg); }
 .key-mark { font: var(--display-weight) var(--size-text)/1 var(--font-display); }
 .auto {
+  border-radius: var(--radius, 0);
   margin-top: -8px;
   padding: 8px 16px;
   background: none;
@@ -103,7 +104,8 @@ body:not(.loading) #loader { opacity: 0; visibility: hidden; }
 .foot { position: fixed; left: 28px; bottom: 16px; z-index: 10; }
 .logo {
   font: 400 var(--size-logo)/1 var(--font-logo);
-  letter-spacing: 0.08em;
+  font-style: var(--logo-style, normal);
+  letter-spacing: var(--logo-tracking, 0.08em);
   text-decoration: none;
   color: var(--fg);
 }
@@ -149,7 +151,13 @@ body:not(.loading) #loader { opacity: 0; visibility: hidden; }
 /* Flat ground when the 3D view cannot draw: the picture sits right of the
    text column, and the reach picture stacks exactly on it. */
 #flat { display: none; }
-body.flat #flat { position: fixed; top: 0; bottom: 0; left: 40vw; right: 0; z-index: 0; display: grid; }
+body.flat #flat {
+  position: fixed; top: 0; bottom: 0; left: 46vw; right: 0; z-index: 0; display: grid;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 14%);
+  mask-image: linear-gradient(to right, transparent, #000 14%);
+  transition: opacity 900ms ease;
+}
+body.flat.ending #flat { opacity: 0.3; }
 body.flat #flat img { grid-area: 1 / 1; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
 body.flat #flat img:first-child { image-rendering: auto; }
 body.flat #stage { visibility: hidden; }
@@ -164,7 +172,16 @@ body.flat #stage { visibility: hidden; }
 .title, .chapter h2, .free-panel h2 {
   margin: 0;
   font: var(--display-weight) var(--size-display)/0.92 var(--font-display);
+  letter-spacing: var(--display-tracking, 0);
   text-transform: var(--display-case);
+}
+/* Accent words in headlines. Plain in a theme that sets nothing; the
+   Editorial theme sets them in an italic serif. */
+em {
+  font-family: var(--font-accent, inherit);
+  font-style: var(--accent-style, normal);
+  font-weight: var(--accent-weight, inherit);
+  letter-spacing: var(--accent-tracking, inherit);
 }
 .meta { margin-top: 12px; color: var(--fg-3); }
 .lede { margin-top: 12px; max-width: 40ch; color: var(--fg-2); }
@@ -193,9 +210,9 @@ body.flat #stage { visibility: hidden; }
 .route[aria-pressed="true"] { opacity: 1; border-top-color: var(--fg); }
 @media (hover: hover) { .route:hover { opacity: 0.8; } .route[aria-pressed="true"]:hover { opacity: 1; } }
 .route-name { color: var(--fg); }
-.route-big { font: var(--display-weight) var(--size-display)/0.9 var(--font-display); }
+.route-big { font: var(--display-weight) var(--size-display)/0.9 var(--font-display); letter-spacing: var(--display-tracking, 0); }
 .route-big, .fo-cell b, .hud-value, .hud-rows dd, .meta, #hud-meta { font-variant-numeric: tabular-nums; }
-.route-big small { margin-left: 8px; font-family: var(--font-body); color: var(--fg-2); }
+.route-big small { margin-left: 8px; font-family: var(--font-body); letter-spacing: normal; color: var(--fg-2); }
 .route-meta { color: var(--fg-2); }
 
 /* Details only the full version shows */
@@ -207,7 +224,7 @@ body.flat #stage { visibility: hidden; }
 .detail dd { margin: 0; color: var(--fg); }
 
 .actions { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-top: 24px; }
-.act.primary { padding: 12px 20px; border: 0; background: var(--fg); color: var(--bg); font-weight: 500; }
+.act.primary { padding: 12px 20px; border: 0; border-radius: var(--radius, 0); background: var(--fg); color: var(--bg); font-weight: 500; }
 .route, .auto, .act { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: no-preference) {
   .route, .auto, .act { transition-property: opacity, background-color, color, scale; transition-duration: 150ms; transition-timing-function: ease-out; }
@@ -234,6 +251,7 @@ body.flat #stage { visibility: hidden; }
 #hud[hidden] { display: block; opacity: 0; pointer-events: none; }
 .hud-line { margin: 4px 0 0; }
 .hud-value {
+  letter-spacing: var(--display-tracking, 0);
   display: inline-block;
   margin-right: 8px;
   font: var(--display-weight) var(--size-display)/0.9 var(--font-display);
@@ -249,12 +267,12 @@ body.flat #stage { visibility: hidden; }
 
 .plan { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 32px; margin-top: 24px; padding: 16px 0; border-top: 1px solid var(--line); }
 .plan-group { display: flex; align-items: center; gap: 12px; color: var(--fg-2); }
-.seg { display: inline-flex; border: 1px solid var(--line); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius, 0); overflow: hidden; }
 .seg button { padding: 8px 12px; background: none; border: 0; border-left: 1px solid var(--line); color: var(--fg-2); cursor: pointer; }
 .seg button:first-child { border-left: 0; }
 .seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
 @media (hover: hover) { .seg button[aria-pressed="false"]:hover { color: var(--fg); } }
-.plan select { padding: 8px 12px; color: var(--fg); background: var(--bg); border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.plan select { padding: 8px 12px; border-radius: var(--radius, 0); color: var(--fg); background: var(--bg); border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
 
 /* ---- How far can a body go: load switch and legend for the reach map */
 
@@ -271,6 +289,7 @@ body.flat #stage { visibility: hidden; }
 .free-msg { min-height: 2.8em; margin-top: 16px; color: var(--fg); }
 .free-keys { display: flex; gap: 8px; margin-top: 16px; }
 .free-keys button {
+  border-radius: var(--radius, 0);
   padding: 12px 16px;
   color: var(--fg);
   background: none;
@@ -313,7 +332,7 @@ body.ending .foot::before {
 .fo-head { border-top: 0; padding-bottom: 8px; color: var(--fg); }
 .fo-row > .label:first-child { color: var(--fg-2); padding-bottom: 8px; }
 .fo-cell { position: relative; padding-bottom: 12px; }
-.fo-cell b { font: var(--display-weight) var(--size-display)/0.9 var(--font-display); }
+.fo-cell b { font: var(--display-weight) var(--size-display)/0.9 var(--font-display); letter-spacing: var(--display-tracking, 0); }
 .fo-cell small { margin-left: 8px; font-size: var(--size-small); color: var(--fg-2); }
 .fo-note { display: block; margin-top: 8px; color: var(--fg-3); }
 /* A bar under each number, its length against the larger of the two. */

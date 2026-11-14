@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="css/view3d.css">
   <link rel="stylesheet" href="css/themes/mission.css">
   <link rel="stylesheet" href="css/story.css">
-  <script>{ const t = new URLSearchParams(location.search).get('theme'); if (/^[a-z]+$/.test(t || '')) document.documentElement.dataset.theme = t; }</script>
+  <script>{ const t = new URLSearchParams(location.search).get('theme'); if (/^[a-z]+$/.test(t || '') && t !== 'mission') { document.documentElement.dataset.theme = t; document.write(`<link rel="stylesheet" href="css/themes/${t}.css">`); } }</script>
 </head>
 <body class="loading">
   <div id="stage" aria-hidden="true"></div>

@@ -97,6 +97,9 @@ async function boot() {
     // scene moved right of the text column. These hooks come with the 3D
     // view's own update and are skipped until then.
     state.view.setMarks?.({ pins: false, ring: false });
+    // The walker is drawn as the astronaut figure (AI-made frames, credited
+    // by the 3D view); if the image fails the plain dot stays.
+    state.view.setWalkerFigure?.('img/walker.png');
     shiftView();
     // Dragging the walker along the route moves the page to that moment, so
     // the scroll position stays the one clock everything else follows.
@@ -189,7 +192,7 @@ function build() {
   html.push(`
     <section class="chapter" data-kind="title" data-play="${PLAY.title}">
       <div class="chapter-body">
-        <h1 class="title">Mars is<br>costly</h1>
+        <h1 class="title">Mars is<br><em>costly</em></h1>
         ${bothOver ? `<p class="result">${VERDICT}</p>` : ''}
         <p class="actions"><button class="act primary" type="button" id="start">Start the walk</button></p>
         <p class="quiet">A planning forecast, not a diagnosis.</p>
@@ -199,7 +202,7 @@ function build() {
   html.push(`
     <section class="chapter" data-kind="routes" data-play="${PLAY.routes}">
       <div class="chapter-body">
-        <h2>Same stops.<br>Different heat.</h2>
+        <h2>Same stops.<br><em>Different heat.</em></h2>
         <div class="routes">${ROUTES.map(routeButton).join('')}</div>
         <p class="lede">Each big number is the most body heat the walker would store with no rest. <a href="${esc(SOURCES.heatLimit.url)}" target="_blank" rel="noopener">NASA's limit</a> for suited work is <b>${fmt(MODEL.heatLimitKJkg, 1)} kJ/kg</b>.</p>
         <p class="quiet">Hollow numbers rest on an assumption</p>
@@ -245,7 +248,7 @@ function build() {
   html.push(`
     <section class="chapter" data-kind="reach" data-play="${PLAY.reach}">
       <div class="chapter-body">
-        <h2>How far can a body go without a rest?</h2>
+        <h2>How far can a body go <em>without a rest?</em></h2>
         <p class="lede">This map is coloured by the rests a body needs to walk from the habitat to each point and back.</p>
         <p class="lede">Clear ground needs no rest. Each band of colour is one more rest the plan adds.</p>
         <p class="lede">${REACH_TEXT[state.loadKg] ?? REACH_TEXT[0]}</p>
@@ -261,7 +264,7 @@ function build() {
   html.push(`
     <section class="chapter wide-text" data-kind="test" data-play="${PLAY.test}">
       <div class="chapter-body">
-        <h2>We tested the model against NASA's measurements of people. It failed.</h2>
+        <h2>We tested the model against NASA's measurements of people. It <em>failed.</em></h2>
         <p class="lede">The test and its pass mark were fixed in the repository before any measurement was collected. NASA has measured how hard people work when they walk on a treadmill at Moon and Mars gravity: we used 40 of those measurements, 19 of them in a spacesuit. On level ground people in the suit used 36% more energy than the model predicted. On climbs the model predicted up to 2.2 times too much. We corrected it by the rule we had set. The revised model is within 14% of all 12 sloped measurements, a fix made after seeing them.</p>
         <p class="actions"><a class="act" href="classic.html#proof">How we tested it</a></p>
       </div>
@@ -590,7 +593,7 @@ function freePanel() {
   panel.hidden = true;
   panel.setAttribute('aria-label', 'Walk it yourself');
   panel.innerHTML = `
-    <h2>Walk it yourself</h2>
+    <h2>Walk it <em>yourself</em></h2>
     <p class="lede">You choose the ground and the body model runs on it. The planned route and its rests do not apply.</p>
     <p class="label free-msg" id="free-msg" aria-live="polite"></p>
     <div class="free-keys">
