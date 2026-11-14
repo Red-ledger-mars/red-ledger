@@ -837,6 +837,21 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
   walker.add(walkerBody, ring, beam);
   scene.add(walker);
 
+  // A drawn walker in place of the dot (setWalkerFigure): a strip of 10
+  // square frames seen from behind, 8 walking and 2 resting. The walk cycle
+  // plays while the walker moves and stops on the standing frame when it
+  // stops; setWalkerResting() alternates the rest frames once a second.
+  const FIG_FRAMES = 10, FIG_WALK = 8, FIG_FPS = 8;
+  const FIG_SIZE = 4.7; // frame height, in walker-dot radii
+  const figMat = new THREE.SpriteMaterial({ transparent: true, depthTest: false, depthWrite: false, toneMapped: false });
+  const figure = new THREE.Sprite(figMat);
+  figure.center.set(0.5, 0.05); // the soles sit 4 px above the bottom of an 80 px frame
+  figure.renderOrder = 20; // a marker: drawn over the ground, never cut by a ridge
+  figure.visible = false;
+  scene.add(figure);
+  const figNow = new THREE.Vector3(), figPrev = new THREE.Vector3(NaN, NaN, NaN);
+  let figFrame = 0, figClock = 0, figRest = false, figToken = 0;
+
   // Wedge on the ground in front of a free walker. Drawn over the terrain (no
   // depth test) so a slope in front of it cannot hide which way it points.
   const markerGeo = new THREE.BufferGeometry();
@@ -1046,6 +1061,16 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
       grip = instant || REDUCED || Math.abs(gripTo - grip) < 0.01 ? gripTo : grip + (gripTo - grip) * (1 - Math.exp(-dt / 0.06));
       moving = true;
     }
+    if (figure.visible) {
+      walkerWorld(figNow);
+      const speed = Number.isFinite(figPrev.x) && dt > 0 ? figNow.distanceTo(figPrev) / dt : 0;
+      figPrev.copy(figNow);
+      let f = 0;
+      if (figRest) { figClock += dt; f = FIG_WALK + (Math.floor(figClock) % 2); moving = true; }
+      else if (speed > 0.3) { figClock += dt; f = Math.floor(figClock * FIG_FPS) % FIG_WALK; moving = true; }
+      else figClock = 0;
+      if (f !== figFrame) { figFrame = f; moving = true; }
+    }
     // While the walker is held the camera keeps still, so the walker follows
     // the pointer exactly; on release the camera picks it up again.
     if (dragging && !instant) return moving;
@@ -1144,8 +1169,16 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
     walkerWorld(walker.position);
     const ws = clamp(camera.position.distanceTo(walker.position) * 0.004, 1.1, 8);
     walker.scale.setScalar(ws * (1 + 0.3 * grip));
+    const figH = FIG_SIZE * ws * (1 + 0.3 * grip);
+    if (figure.visible) {
+      figure.position.set(walker.position.x, walker.position.y - yOf(0.6), walker.position.z);
+      figure.scale.set(figH, figH, 1);
+      figMat.map.offset.x = figFrame / FIG_FRAMES;
+    }
     if (onDrag) {
-      proj.copy(walker.position).project(camera);
+      proj.copy(walker.position);
+      if (figure.visible) proj.y += figH * 0.4; // grab the figure by its middle
+      proj.project(camera);
       const off = proj.z > 1 || free.on;
       handle.hidden = off;
       if (!off) {
@@ -1461,6 +1494,48 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
       if (!walkerEase) { walkerDist = walkerTarget; walkerVel = 0; }
       invalidate();
     },
+    // Draws the walker as a figure from a sprite strip (see figure above): src
+    // is an image URL, 10 square frames in a row. Resolves true once shown;
+    // false if it could not load, and the dot stays. null brings the dot back.
+    setWalkerFigure(src) {
+      const token = ++figToken;
+      if (!src) {
+        figure.visible = false;
+        walkerBody.visible = true;
+        credit.textContent = CREDIT_TEXT;
+        invalidate();
+        return Promise.resolve(false);
+      }
+      return new Promise((done) => {
+        const img = new Image();
+        img.onload = () => {
+          if (token !== figToken || disposed) { done(false); return; }
+          const tex = new THREE.Texture(img);
+          tex.colorSpace = THREE.SRGBColorSpace;
+          tex.generateMipmaps = false; // mipmaps would bleed one frame into the next
+          tex.minFilter = tex.magFilter = THREE.LinearFilter;
+          tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+          tex.repeat.set(1 / FIG_FRAMES, 1);
+          tex.needsUpdate = true;
+          figMat.map?.dispose();
+          figMat.map = tex;
+          figMat.needsUpdate = true;
+          figure.visible = true;
+          walkerBody.visible = false;
+          credit.textContent = `${CREDIT_TEXT} · Walker figure made with AI`; // the project labels AI-made images
+          invalidate();
+          done(true);
+        };
+        img.onerror = () => done(false);
+        img.src = src;
+      });
+    },
+    // The resting pose: the rest frames alternate once a second, like breathing.
+    setWalkerResting(on) {
+      figRest = !!on;
+      figClock = 0;
+      invalidate();
+    },
     // Shows or hides the numbered stop pins and the walker's ring and beam.
     // The walker's dot always stays.
     setMarks({ pins = true, ring: showRing = true } = {}) {
@@ -1656,7 +1731,7 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
       el.removeEventListener('webglcontextlost', onLost);
       el.removeEventListener('webglcontextrestored', onRestored);
       pinPole.dispose(); pinPoleMat.dispose();
-      walkerBody.geometry.dispose(); walkerBody.material.dispose();
+      walkerBody.geometry.dispose(); walkerBody.material.dispose(); figMat.map?.dispose(); figMat.dispose();
       ring.geometry.dispose(); ringMat.dispose(); beam.geometry.dispose(); beamMat.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
