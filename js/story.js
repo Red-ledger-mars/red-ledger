@@ -11,6 +11,7 @@ import { MODEL, SOURCES, energyLeftPct } from './body.js';
 import { pointAt } from './route.js';
 import { createView3D } from './view3d.js';
 import { heatColor, heatShare } from './heat.js';
+import { smoothScroll } from './smooth-scroll.js';
 
 const $ = (id) => document.getElementById(id);
 const wait = (ms) => new Promise((done) => setTimeout(done, ms));
@@ -99,6 +100,7 @@ async function boot() {
   measure();
   update();
   bindAuto();
+  smoothScroll();
   if (!REDUCED) setAuto(true);
 }
 
