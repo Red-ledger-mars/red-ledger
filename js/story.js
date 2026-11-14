@@ -10,7 +10,7 @@ import { loadTerrain } from './terrain.js';
 import { MODEL, SOURCES, energyLeftPct } from './body.js';
 import { pointAt } from './route.js';
 import { createView3D } from './view3d.js';
-import { heatColor, heatShare } from './heat.js';
+import { heatColor } from './heat.js';
 import { smoothScroll } from './smooth-scroll.js';
 
 const $ = (id) => document.getElementById(id);
@@ -117,7 +117,7 @@ function routeButton(def) {
   return `
     <button class="route" type="button" data-route="${def.id}" aria-pressed="${def.id === state.active}">
       <span class="route-name label">${def.name} · ${def.hint}</span>
-      <span class="route-big">${num(t.peakHeatNoRest, 1, { assumed: true, colour: heatColor(t.peakHeatNoRest) })}</span>
+      <span class="route-big">${num(t.peakHeatNoRest, 2, { assumed: true, colour: heatColor(t.peakHeatNoRest) })}</span>
       <span class="route-meta label"><span class="unit">kJ/kg</span> peak heat · ${fmt(t.dist / 1000, 2)} km · ${minutes(t.seconds)} min with rests</span>
     </button>`;
 }
@@ -157,6 +157,7 @@ function build() {
       <div class="chapter-body">
         <h1 class="title">Mars is<br>costly</h1>
         ${bothOver ? `<p class="result">${VERDICT}</p>` : ''}
+        <p class="actions"><button class="act primary" type="button" id="start">Start the walk</button></p>
         <p class="quiet">A planning forecast, not a diagnosis.</p>
       </div>
     </section>`);
@@ -167,7 +168,7 @@ function build() {
         <h2>Same stops.<br>Different heat.</h2>
         <div class="routes">${ROUTES.map(routeButton).join('')}</div>
         <p class="lede">Each big number is the most body heat the walker would store with no rest. <a href="${esc(SOURCES.heatLimit.url)}" target="_blank" rel="noopener">NASA's limit</a> for suited work is <b>${fmt(MODEL.heatLimitKJkg, 1)} kJ/kg</b>.</p>
-        <p class="quiet">Hollow numbers rest on an assumption.</p>
+        <p class="quiet">Hollow numbers rest on an assumption</p>
       </div>
     </section>`);
 
@@ -233,6 +234,7 @@ function build() {
 
   for (const btn of document.querySelectorAll('.route')) btn.addEventListener('click', () => setActive(btn.dataset.route));
   $('replay').addEventListener('click', () => { scrollTo(0, 0); setAuto(true); });
+  $('start').addEventListener('click', () => setAuto(true));
   findSteepLeg();
 }
 
@@ -292,9 +294,6 @@ function renderHud(p, route) {
       <dt>Way home, energy left</dt><dd>${fmt(left)}%</dd>
       <dt>Sky blocked</dt><dd>${fmt(p.skyPct)}%</dd>`;
   }
-  const glow = $('glow');
-  glow.style.setProperty('--glow-colour', colour);
-  glow.style.setProperty('--glow', clamp01((heatShare(p.heat) - 0.3) / 0.7).toFixed(3));
 }
 
 /* Scroll: the clock */
@@ -340,7 +339,6 @@ function setChapter(c) {
   $('hud').hidden = !walking;
   // Long reading and the face-off dim the ground behind the text.
   document.body.classList.toggle('ending', c.kind === 'end' || c.kind === 'test');
-  if (!walking) $('glow').style.setProperty('--glow', 0);
 }
 
 function setDist(dist) {
