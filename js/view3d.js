@@ -890,12 +890,16 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
   let lastT = 0;
   let walkerTarget = 0; // where setWalker last put the walker
   let walkerEase = false; // glide to walkerTarget instead of jumping there
-  const WALKER_K = 7; // 1/s; the gliding walker closes 63% of the gap in 0.14 s
+  // The gliding walker is a critically damped spring: it starts gently, so a
+  // fast scroll reads as a quick walk, and stops without overshooting. It
+  // covers about 90% of a jump in 0.65 s.
+  const WALKER_W = 6; // 1/s
+  let walkerVel = 0; // m/s
   // A change between the overview and the view behind the walker is a timed
   // move that starts and ends gently, like a crane shot. The end point keeps
   // updating, so the move lands on a walker that is still walking.
-  const MOVE_S = 1.6;
-  let move = null; // { from: { pos, look }, t, lift }
+  const MOVE_S = { chase: 1.6, orbit: 2.5 }; // the pull-back to the overview is slower
+  let move = null; // { from: { pos, look }, t, lift, dur, done }
   const easeInOut = (t) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
   const marks = { pins: true, ring: true };
   let viewShift = 0; // share of the width the picture centre is moved right
@@ -991,6 +995,15 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
 
   // Moves the camera part of the way to where it should be. Returns true while
   // it is still moving, so the loop keeps going.
+  // Ends the camera move, telling whoever waits for it whether it arrived.
+  function endMove(arrived) {
+    if (!move) return;
+    clearTimeout(move.timer);
+    const done = move.done;
+    move = null;
+    done?.(arrived);
+  }
+
   function stepCamera(dt, instant = false) {
     let moving = false;
     const gripTo = hover || dragging ? 1 : 0;
@@ -1001,9 +1014,17 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
     // While the walker is held the camera keeps still, so the walker follows
     // the pointer exactly; on release the camera picks it up again.
     if (dragging && !instant) return moving;
-    if (walkerDist !== walkerTarget) {
-      const gap = walkerTarget - walkerDist;
-      walkerDist = instant || !walkerEase || Math.abs(gap) < 0.05 ? walkerTarget : walkerDist + gap * (1 - Math.exp(-WALKER_K * dt));
+    if (walkerDist !== walkerTarget || walkerVel !== 0) {
+      const e0 = walkerDist - walkerTarget;
+      if (instant || !walkerEase || (Math.abs(e0) < 0.05 && Math.abs(walkerVel) < 0.5)) {
+        walkerDist = walkerTarget;
+        walkerVel = 0;
+      } else {
+        // Exact step of the spring for this frame, stable at any frame rate.
+        const c = walkerVel + WALKER_W * e0, k = Math.exp(-WALKER_W * dt);
+        walkerDist = walkerTarget + (e0 + c * dt) * k;
+        walkerVel = (walkerVel - WALKER_W * c * dt) * k;
+      }
       moving = true;
     }
     if (mode === 'chase') {
@@ -1018,15 +1039,15 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
     }
     computeDesired();
     if (move && !instant) {
-      move.t = Math.min(1, move.t + dt / MOVE_S);
+      move.t = Math.min(1, move.t + dt / move.dur);
       const e = easeInOut(move.t);
       cur.pos.lerpVectors(move.from.pos, des.pos, e);
       cur.look.lerpVectors(move.from.look, des.look, e);
       cur.pos.y += Math.sin(Math.PI * e) * move.lift; // swoops over the ground
-      if (move.t >= 1) move = null;
+      if (move.t >= 1) endMove(true);
       return true;
     }
-    move = null;
+    endMove(true);
     const k = mode === 'chase' ? 4.5 : 14;
     const f = instant ? 1 : 1 - Math.exp(-k * dt);
     cur.pos.lerp(des.pos, f);
@@ -1222,6 +1243,7 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
   }
   function dragTo(dist) {
     walkerDist = walkerTarget = clamp(dist, 0, prepared[activeId].total);
+    walkerVel = 0;
     onDrag?.(walkerDist, 'move');
     invalidate();
   }
@@ -1237,6 +1259,7 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
     try { handle.setPointerCapture(e.pointerId); } catch { /* not an active pointer */ }
     dragging = true;
     walkerDist = walkerTarget; // finish any glide, so the drag starts where the page put the walker
+    walkerVel = 0;
     root.classList.add('v3d-dragging');
     onDrag(walkerDist, 'start');
     invalidate();
@@ -1382,7 +1405,7 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
       free.on = false;
       walkerTarget = clamp(Number(dist) || 0, 0, prepared[activeId].total);
       walkerEase = ease && !REDUCED;
-      if (!walkerEase) walkerDist = walkerTarget;
+      if (!walkerEase) { walkerDist = walkerTarget; walkerVel = 0; }
       invalidate();
     },
     // Shows or hides the numbered stop pins and the walker's ring and beam.
@@ -1464,19 +1487,32 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
       routesVisible = v;
       invalidate();
     },
+    // Returns a promise that resolves when the camera has arrived (true), or
+    // when a newer change of view took over (false). A page can wait on it,
+    // for example to show text once the camera has settled. The move takes
+    // MOVE_S seconds; a timer resolves it even if no frames are drawn.
     setMode(m) {
       const next = m === 'chase' ? 'chase' : 'orbit';
-      if (next === mode) return;
+      if (next === mode) return Promise.resolve(true);
+      endMove(false);
       mode = next;
       if (mode === 'chase') {
         const t = targetHeading();
         if (t !== null) heading = t;
       }
       computeDesired();
-      if (REDUCED) { move = null; stepCamera(0, true); }
-      else move = { from: { pos: cur.pos.clone(), look: cur.look.clone() }, t: 0, lift: 0.08 * cur.pos.distanceTo(des.pos) };
       updateHint();
-      invalidate();
+      if (REDUCED) {
+        stepCamera(0, true);
+        invalidate();
+        return Promise.resolve(true);
+      }
+      return new Promise((done) => {
+        const dur = MOVE_S[mode];
+        move = { from: { pos: cur.pos.clone(), look: cur.look.clone() }, t: 0, lift: 0.08 * cur.pos.distanceTo(des.pos), dur, done };
+        move.timer = setTimeout(() => endMove(true), dur * 1000 + 500);
+        invalidate();
+      });
     },
     setExaggeration(v) {
       exag = Number(v) === 2 ? 2 : 1;
