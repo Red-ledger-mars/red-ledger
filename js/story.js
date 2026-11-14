@@ -311,7 +311,7 @@ function faceoff() {
 function planner() {
   const loads = Object.keys(state.plans).map(Number).sort((a, b) => a - b);
   const start = state.comms && state.startMinute != null ? `
-      <label class="plan-group"><span class="label">Start</span>
+      <label class="plan-group"><span class="label">Start, on the day modelled</span>
         <select id="plan-start" class="label">${startOptions()}</select>
       </label>` : '';
   return `
