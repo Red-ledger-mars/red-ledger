@@ -239,8 +239,9 @@ function build() {
     <section class="chapter" data-kind="reach" data-play="${PLAY.reach}">
       <div class="chapter-body">
         <h2>How far can a body go without a rest?</h2>
-        <p class="lede">${REACH_TEXT[state.loadKg] ?? REACH_TEXT[0]}</p>
+        <p class="lede">This map is coloured by the rests a body needs to walk from the habitat to each point and back.</p>
         <p class="lede">Clear ground needs no rest. Each band of colour is one more rest the plan adds.</p>
+        <p class="lede">${REACH_TEXT[state.loadKg] ?? REACH_TEXT[0]}</p>
         <div class="plan-group reach-load"><span class="label">Carried load</span>${loadButtons()}</div>
         <div class="reach-legend">
           <p class="label">Rests needed</p>
