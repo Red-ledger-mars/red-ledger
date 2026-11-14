@@ -2,6 +2,8 @@
 
 **Every Mars map shows where things are. This one shows what each step costs a human body.**
 
+**Try it:** https://red-ledger-mars.github.io/red-ledger/ (the walk) and https://red-ledger-mars.github.io/red-ledger/globe.html (the whole planet). Nothing to install.
+
 Red Ledger is a helmet display for a single Marswalk at Gale crater (Mount Sharp), the region the Curiosity rover has explored since 2012. It layers data from several NASA missions at the scale of one excursion and prices each walking route in four things: energy burned, heat against the suit's cooling limit, radiation dose, and whether there is enough left to walk back.
 
 Built for the NASA Space Apps Challenge 2026, challenge "Interplanetary Survival Guide: Martian Map", by team Red Ledger (Raipur local event). All work started after the hackathon opened on 14 November 2026, 11:00 IST.
