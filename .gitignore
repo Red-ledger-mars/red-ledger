@@ -1,0 +1,9 @@
+brief/
+.env
+.env.*
+node_modules/
+__pycache__/
+*.tif
+*.tiff
+data/raw/
+CLAUDE.md
