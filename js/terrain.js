@@ -93,30 +93,40 @@ export async function loadTerrain() {
   return new Terrain(meta, z);
 }
 
-// Slope classes for the map layer and its legend. The steps are plain
-// degrees; no claim is made here about what a suited walker can climb.
-export const SLOPE_STEPS = [
-  { upTo: 5, color: [99, 214, 193, 0] },
-  { upTo: 10, color: [120, 214, 150, 110] },
-  { upTo: 15, color: [240, 220, 90, 150] },
-  { upTo: 20, color: [255, 170, 60, 175] },
-  { upTo: 25, color: [255, 95, 50, 195] },
-  { upTo: Infinity, color: [225, 30, 90, 215] },
-];
+// How slope is drawn. Ground a walker crosses without thinking stays clear,
+// so the picture underneath is visible; colour starts at 12 degrees and is
+// full at 30. No claim is made here about what a suited walker can climb.
+export const SLOPE_RAMP = {
+  title: 'Slope',
+  unit: '°',
+  min: 12,
+  max: 30,
+  color(deg) {
+    const t = Math.max(0, Math.min(1, (deg - this.min) / (this.max - this.min)));
+    return [255, Math.round(190 - 150 * t), Math.round(70 - 30 * t), Math.round(235 * Math.min(1, t * 1.6))];
+  },
+};
 
-// Draws the slope classes to an image the map can lay over the terrain.
-export function slopeImage(t) {
+// Draws a grid of values to an image the map can lay over the terrain.
+// The outer cells fade out so the layer has no hard edge.
+export function rampImage(values, cols, rows, ramp, scale = 1) {
   const canvas = document.createElement('canvas');
-  canvas.width = t.cols;
-  canvas.height = t.rows;
+  canvas.width = cols;
+  canvas.height = rows;
   const ctx = canvas.getContext('2d');
-  const img = ctx.createImageData(t.cols, t.rows);
-  for (let i = 0; i < t.slope.length; i++) {
-    const s = t.slope[i];
-    if (Number.isNaN(s)) continue;
-    const [r, g, b, a] = SLOPE_STEPS.find((step) => s < step.upTo).color;
-    img.data.set([r, g, b, a], i * 4);
+  const img = ctx.createImageData(cols, rows);
+  const fade = Math.max(2, Math.round(Math.min(cols, rows) * 0.03));
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const v = values[r * cols + c] * scale;
+      if (Number.isNaN(v)) continue;
+      const [red, green, blue, alpha] = ramp.color(v);
+      const edge = Math.min(1, Math.min(c, r, cols - 1 - c, rows - 1 - r) / fade);
+      img.data.set([red, green, blue, alpha * edge], (r * cols + c) * 4);
+    }
   }
   ctx.putImageData(img, 0, 0);
   return canvas.toDataURL('image/png');
 }
+
+export const slopeImage = (t) => rampImage(t.slope, t.cols, t.rows, SLOPE_RAMP);

@@ -25,6 +25,8 @@ Work in progress. This section is updated as parts are finished.
 - [x] Radiation layer: how much sky the terrain blocks, computed with the method of the Curiosity RAD team and checked against the eight places where the rover measured a dose drop (6 of 8 within 1 percentage point; shown in the page under "Check vs RAD")
 - [x] A whole-Mars globe (`globe.html`): the surveyed patch is ringed and opens the walk; any other point shows its coordinates and MOLA elevation and is labelled as not yet surveyed at walk scale
 
+Keys on the walk page: Space plays or pauses the walk, D and B choose the direct or the body-cost route, 1 to 5 choose the overlay.
+
 ## Run it
 
 It is a static page with no build step. Serve the folder with any web server:

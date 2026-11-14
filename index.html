@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="css/hud.css">
 </head>
-<body>
+<body class="booting">
   <div id="map" aria-label="Map of the walk area at Gale crater, Mars"></div>
   <div class="visor" aria-hidden="true"></div>
 
@@ -18,20 +18,38 @@
       <span class="brand-sub">Marswalk cost display · <a href="globe.html">whole Mars</a></span>
     </div>
     <div class="site">
-      <span class="site-name">Gale crater · Mount Sharp</span>
-      <span class="site-coord" id="cursor-coord">move over the map</span>
-      <span class="site-weather" id="site-weather"></span>
+      <span class="site-name">Gale crater · Mount Sharp · boxwork ridges</span>
+      <span class="site-coord" id="cursor-coord"></span>
     </div>
-    <nav class="layers" id="layers" aria-label="Data layers"></nav>
+    <details class="chip-pop" id="weather">
+      <summary>Site weather</summary>
+      <div class="pop" id="weather-body"></div>
+    </details>
+    <nav class="overlays" id="overlays" aria-label="Map overlay"></nav>
   </header>
 
   <aside class="ledger" aria-label="Body cost along the route">
-    <h2>Body ledger</h2>
+    <header class="ledger-head">
+      <h2>Body ledger</h2>
+      <span class="ledger-mode" id="ledger-mode"></span>
+    </header>
     <div class="bars" id="bars"></div>
-    <p class="ledger-note" id="ledger-note">Waiting for route data.</p>
+    <div class="legend" id="legend" hidden>
+      <span class="legend-title" id="legend-title"></span>
+      <canvas id="legend-strip" width="200" height="8"></canvas>
+      <span class="legend-ticks" id="legend-ticks"></span>
+    </div>
+    <p class="ledger-note" id="ledger-note">Loading the terrain…</p>
+    <div class="ledger-foot">
+      <button type="button" id="proof-open">Check vs Curiosity</button>
+      <details class="sources" id="sources">
+        <summary>Sources and assumptions</summary>
+        <ul id="sources-list"></ul>
+      </details>
+    </div>
   </aside>
 
-  <aside class="target" id="target" aria-label="Selected waypoint" hidden>
+  <aside class="target" id="target" aria-label="Selected stop" hidden>
     <figure id="target-photo" hidden>
       <img id="target-img" alt="">
       <button id="target-swap" type="button"></button>
@@ -42,29 +60,35 @@
       <p id="target-text"></p>
       <p class="credit" id="target-credit"></p>
     </div>
+    <button type="button" class="close" id="target-close" aria-label="Close">×</button>
   </aside>
-
-  <aside class="proof" id="proof" aria-label="Check against Curiosity's radiation measurements" hidden>
-    <h2>Checked against Curiosity</h2>
-    <div id="proof-body"></div>
-  </aside>
-
-  <div class="legend" id="legend" aria-label="Slope legend" hidden><b>Slope</b></div>
 
   <section class="walk" aria-label="Route comparison and walk control">
     <div class="routes" id="routes"></div>
     <div class="scrub">
       <button id="play" type="button" disabled>Walk</button>
       <input id="progress" type="range" min="0" max="1000" value="0" disabled aria-label="Position along the route">
-      <span id="progress-text" class="mono">0 m</span>
+      <span id="progress-text" class="mono"></span>
     </div>
-    <canvas id="profile" height="70" aria-label="Elevation profile of the route"></canvas>
+    <canvas id="profile" aria-label="Elevation profile of the route"></canvas>
   </section>
+
+  <dialog class="proof" id="proof" aria-label="Check against Curiosity's radiation measurements">
+    <header>
+      <h2>Checked against Curiosity</h2>
+      <button type="button" class="close" id="proof-close" aria-label="Close">×</button>
+    </header>
+    <div id="proof-body"></div>
+  </dialog>
 
   <footer class="foot">
     <span>Made with NASA open data.</span>
     <a href="CREDITS.md">Sources and credits</a>
-    <span class="assume-key"><i></i> marks an assumption, not a measurement</span>
+    <details class="chip-pop up" id="map-credits">
+      <summary>Map credits</summary>
+      <div class="pop" id="map-credits-body"></div>
+    </details>
+    <span class="assume-key"><i class="assume"></i>marks an assumption, not a measurement</span>
   </footer>
 
   <script src="vendor/leaflet/leaflet.js"></script>

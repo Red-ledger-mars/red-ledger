@@ -4,6 +4,8 @@
 // (Guo et al. 2026): the blocked share of the upper hemisphere, weighted by
 // solid angle, seen from 1 m above the ground, out to 20 km.
 
+import { rampImage } from './terrain.js';
+
 const DEG = Math.PI / 180;
 const RADIUS_M = 3396190;
 
@@ -42,24 +44,18 @@ export async function loadSky() {
   return new Sky(meta, values);
 }
 
-export const SKY_STEPS = [
-  { upTo: 8, color: [120, 190, 255, 0] },
-  { upTo: 12, color: [120, 190, 255, 70] },
-  { upTo: 16, color: [90, 150, 255, 120] },
-  { upTo: 20, color: [80, 105, 245, 160] },
-  { upTo: 25, color: [110, 70, 225, 195] },
-  { upTo: Infinity, color: [160, 50, 200, 225] },
-];
+// How the layer is drawn: clear where the sky is open, deeper violet where
+// more of it is blocked.
+export const SKY_RAMP = {
+  title: 'Sky blocked',
+  unit: '%',
+  min: 12,
+  max: 32,
+  color(pct) {
+    const t = Math.max(0, Math.min(1, (pct - this.min) / (this.max - this.min)));
+    return [Math.round(110 + 60 * t), Math.round(150 - 100 * t), 255, Math.round(225 * Math.min(1, t * 1.5))];
+  },
+};
 
-export function skyImage(sky) {
-  const canvas = document.createElement('canvas');
-  canvas.width = sky.cols;
-  canvas.height = sky.rows;
-  const ctx = canvas.getContext('2d');
-  const img = ctx.createImageData(sky.cols, sky.rows);
-  for (let i = 0; i < sky.values.length; i++) {
-    img.data.set(SKY_STEPS.find((step) => sky.values[i] / 2 < step.upTo).color, i * 4);
-  }
-  ctx.putImageData(img, 0, 0);
-  return canvas.toDataURL('image/png');
-}
+// Stored values are half-percent steps, hence the 0.5.
+export const skyImage = (sky) => rampImage(sky.values, sky.cols, sky.rows, SKY_RAMP, 0.5);
