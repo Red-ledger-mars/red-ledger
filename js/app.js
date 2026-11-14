@@ -1564,12 +1564,14 @@ async function start() {
 
   // A link can open a part of the page directly: #proof for the tests,
   // #brief for the walk brief, #own to place a walk of your own,
-  // #walk=<id> for a ready-made walk, #reach for the reach layer.
+  // #walk=<id> for a ready-made walk, #reach for the reach layer, #free to
+  // steer the walker yourself.
   if (location.hash === '#proof') $('proof').showModal();
   if (location.hash === '#brief') openBrief();
   if (location.hash === '#own') startOwn();
   if (location.hash.startsWith('#walk=')) pickWalk(location.hash.slice(6));
   if (location.hash === '#reach') setOverlay('reach');
+  if (location.hash === '#free') startFree();
 }
 
 start();
