@@ -35,7 +35,7 @@ Work in progress. This section is updated as parts are finished.
 - [x] Radiation layer: how much sky the terrain blocks, computed with the method of the Curiosity RAD team and checked against the eight places where the rover measured a dose drop (6 of 8 within 1 percentage point; shown in the page under "Check vs RAD")
 - [x] A whole-Mars globe (`globe.html`): the surveyed patch is ringed and opens the walk; any other point shows its coordinates and MOLA elevation and is labelled as not yet surveyed at walk scale
 
-Keys on the walk page: Space plays or pauses the walk, D and B choose the direct or the body-cost route, 1 to 5 choose the overlay, L changes the carried load, V switches between the map and the 3D view, R switches the clean screen for filming on and off, P plays a fixed sequence (Escape stops it). Opening `globe.html?rec` plays everything in one take, from the whole planet to the end of the walk.
+Keys on the walk page: Space plays or pauses the walk, D and B choose the direct or the body-cost route, 1 to 5 choose the overlay, L changes the carried load, V switches between the map and the 3D view, R switches the clean screen for filming on and off, P plays a fixed sequence of about 16 seconds and Shift+P a longer one of about 50 seconds (Escape stops either). Opening `globe.html?rec` plays everything in one take, from the whole planet to the end of the short sequence.
 
 ## Run it
 

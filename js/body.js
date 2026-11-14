@@ -271,3 +271,8 @@ export const levelWorkW = (loadKg = 0) => walkCostMars(0) * totalMassKg(loadKg) 
 
 // Mean body temperature rise for a given stored heat.
 export const tempRiseC = (heatKJkg) => heatKJkg / MODEL.bodySpecificHeat;
+
+// Share of the energy budget still left at a point of the walk, in percent,
+// after the energy used so far and the cheapest way home from that point.
+export const energyLeftPct = (kcal, backKcal) =>
+  ((MODEL.energyBudgetKcal - kcal - backKcal) / MODEL.energyBudgetKcal) * 100;
