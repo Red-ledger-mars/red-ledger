@@ -659,7 +659,35 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
   const ready = tiles.done.then(() => {
     if (composeTimer) { clearTimeout(composeTimer); composeTimer = 0; }
     if (!disposed) recompose();
+    checkDrawn = true; // look at the first picture with the imagery in it
   });
+
+  // Whether the view is really drawing. A page listens for 'v3d-status' on
+  // the container (detail { ok, why }) or calls status(), and shows a flat
+  // map instead when ok is false: the graphics context was lost and did not
+  // come back, drawing threw, or the first full picture came out black.
+  let health = { ok: true, why: '' };
+  let checkDrawn = false;
+  let lostTimer = 0;
+  function report(ok, why = '') {
+    if (health.ok === ok && health.why === why) return;
+    health = { ok, why };
+    if (!ok) console.warn(`3D view: not drawing (${why})`);
+    container.dispatchEvent(new CustomEvent('v3d-status', { detail: { ...health } }));
+  }
+  // Reads a 3 x 3 grid of pixels just after drawing: if every one is as dark
+  // as the empty background, nothing was drawn.
+  function drawnSomething() {
+    const w = gl.drawingBufferWidth, h = gl.drawingBufferHeight;
+    const px = new Uint8Array(4);
+    for (const fx of [0.3, 0.55, 0.8]) {
+      for (const fy of [0.25, 0.5, 0.75]) {
+        gl.readPixels(Math.floor(w * fx), Math.floor(h * fy), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+        if (Math.max(px[0], px[1], px[2]) > 24) return true;
+      }
+    }
+    return false;
+  }
   compose(plain, false); // first picture straight away: warm colour with relief
 
   const terrainGroup = new THREE.Group(); // scaled in y for the exaggeration
@@ -1143,7 +1171,18 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
     const yaw = Math.atan2(tmp.x, -tmp.z) / DEG;
     compassNeedle.style.transform = `rotate(${(-yaw).toFixed(1)}deg)`;
 
-    renderer.render(scene, camera);
+    try {
+      renderer.render(scene, camera);
+    } catch (e) {
+      console.warn('3D view: drawing failed', e);
+      report(false, 'render-error');
+      return;
+    }
+    if (checkDrawn && !gl.isContextLost()) {
+      checkDrawn = false;
+      const drawn = drawnSomething();
+      report(drawn, drawn ? '' : 'black');
+    }
     updateDebug();
   }
 
@@ -1289,8 +1328,14 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
   function onLost(e) {
     e.preventDefault();
     updateDebug();
+    // Give the browser a moment to bring the context back before telling the page.
+    clearTimeout(lostTimer);
+    lostTimer = setTimeout(() => { if (gl.isContextLost()) report(false, 'context-lost'); }, 2500);
   }
   function onRestored() {
+    clearTimeout(lostTimer);
+    report(true);
+    checkDrawn = true;
     plain.tex.needsUpdate = true;
     if (tinted) tinted.tex.needsUpdate = true;
     if (overlayMat.map) overlayMat.map.needsUpdate = true;
@@ -1364,6 +1409,7 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
 
   const api = {
     available: true,
+    status: () => ({ ...health }),
     show() {
       if (disposed) return;
       shown = true;
