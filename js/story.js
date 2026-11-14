@@ -34,7 +34,7 @@ const ROUTES = [
 
 // Seconds of autoplay. The legs of the walk share PLAY.walk by length, so
 // the whole story runs for about a minute.
-const PLAY = { title: 5, routes: 8, detail: 5, walk: 34, verdict: 5, reach: 7, test: 8 };
+const PLAY = { title: 6, routes: 11, detail: 7, walk: 62, verdict: 8, reach: 11, test: 14 };
 
 const state = {
   routes: {},       // id -> planned route with no load carried
@@ -213,7 +213,7 @@ function build() {
     const len = to.dist - from.dist;
     const place = to.place;
     html.push(`
-      <section class="chapter" data-kind="leg" data-leg="${i}" data-play="${(PLAY.walk * len / total).toFixed(2)}" style="height: ${Math.max(120, Math.round(560 * len / total))}vh">
+      <section class="chapter" data-kind="leg" data-leg="${i}" data-play="${(PLAY.walk * len / total).toFixed(2)}" style="height: ${Math.max(180, Math.round(1000 * len / total))}vh">
         <div class="chapter-body">
           <h2>${esc(place.name)}</h2>
           <p class="meta">Leg ${i + 1} of ${legs} · ${fmt(len)} m<span class="steep-note" hidden> · steepest ground</span>${place.assumption ? ' · Assumed place' : ''}</p>
@@ -480,7 +480,8 @@ function update() {
   if (!state.chapters.length || state.free) return;
   const route = state.routes[state.active];
   const y = scrollY + innerHeight * 0.5;
-  const c = chapterAt(y);
+  const end = state.chapters.at(-1);
+  const c = end.kind === 'end' && end.top < scrollY + innerHeight * 0.85 ? end : chapterAt(y);
   let dist = 0;
   if (c.kind === 'leg') {
     const a = route.stops[c.leg].dist;
