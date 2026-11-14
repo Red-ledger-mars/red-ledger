@@ -1220,6 +1220,7 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
     if (!onDrag || e.button > 0) return;
     try { handle.setPointerCapture(e.pointerId); } catch { /* not an active pointer */ }
     dragging = true;
+    walkerDist = walkerTarget; // finish any glide, so the drag starts where the page put the walker
     root.classList.add('v3d-dragging');
     onDrag(walkerDist, 'start');
     invalidate();
@@ -1239,7 +1240,7 @@ export async function createView3D(container, { terrain, routes, colors = {}, po
     const step = { ArrowRight: 10, ArrowUp: 10, ArrowLeft: -10, ArrowDown: -10, PageUp: 100, PageDown: -100 }[e.key];
     if (!onDrag || !step) return;
     e.preventDefault();
-    dragTo(walkerDist + step);
+    dragTo(walkerTarget + step);
   });
   el.addEventListener('dblclick', onDouble);
 
