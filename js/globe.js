@@ -315,17 +315,16 @@ async function loadPatches() {
   state.patches = patches;
   const n = patches.length;
   $('intro-count').textContent = `${n} patch${n === 1 ? '' : 'es'} surveyed`;
-  for (const id of ['patch-ring', 'patch-label']) {
-    $(id).href = patches[0].href;
-    $(id).title = `${patches[0].name}. ${patches[0].summary}`;
-  }
+  $('patch-ring').href = patches[0].href;
+  for (const id of ['patch-ring', 'patch-label']) $(id).title = `${patches[0].name}. ${patches[0].summary}`;
   requestRender();
 }
 
 /* Walk: ease the camera to the patch while the ring grows and fades, fade the
    page to the background colour, then open the walk page. */
 
-function walk() {
+// `to` is the page to open: the story by default, or the door chosen.
+function walk(to = null) {
   if (state.leaving) return;
   state.leaving = true;
   state.idle = false;
@@ -333,7 +332,7 @@ function walk() {
   hideHint();
   // In recording mode the walk page is told to play its own sequence, so a
   // single take runs from the whole planet to the end of the walk.
-  const href = (state.patches[0] ? state.patches[0].href : 'index.html') + (RECORDING ? '?rec=auto' : '');
+  const href = (to ?? (state.patches[0] ? state.patches[0].href : 'index.html')) + (RECORDING && !to ? '?rec=auto' : '');
   if (state.reduced) { location.href = href; return; }
   const t = facing(state.patches[0] ? state.patches[0].centre.lat : GALE.lat,
     state.patches[0] ? state.patches[0].centre.lon : GALE.lon);
@@ -348,11 +347,13 @@ function walk() {
   setTimeout(() => { location.href = href; }, GO_MS + 450);
 }
 
-for (const id of ['patch-ring', 'patch-label']) {
-  $(id).addEventListener('click', (e) => {
+// Two doors at the patch: the story, or the map tool to plan a walk of your
+// own. The ring itself opens the story.
+for (const el of [$('patch-ring'), $('door-story'), $('door-own')]) {
+  el.addEventListener('click', (e) => {
     if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
     e.preventDefault();
-    walk();
+    walk(el === $('patch-ring') ? null : el.getAttribute('href'));
   });
 }
 

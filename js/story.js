@@ -267,6 +267,7 @@ function build() {
         <div class="actions">
           <button class="act" type="button" id="replay">Replay</button>
           <button class="act" type="button" id="free-open">Walk it yourself</button>
+          <a class="act" href="classic.html">Open the map tool</a>
           <a class="act full-only" href="classic.html#brief">Walk brief</a>
           <a class="act full-only" href="classic.html#proof">Check vs Curiosity</a>
           <a class="act" href="CREDITS.md">Sources and credits</a>
