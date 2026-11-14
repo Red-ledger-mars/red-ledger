@@ -113,7 +113,7 @@ function cellOf(terrain, point) {
 
 // Plans the whole walk (habitat, each stop in order, back to the habitat)
 // under one pricing, and records every step of it.
-export function planWalk(terrain, walk, pricing, back) {
+export function planWalk(terrain, walk, pricing, back, sky) {
   const places = [walk.habitat, ...walk.stops, walk.habitat];
   const cells = [];
   const stopAt = []; // index into `cells` where each place is reached
@@ -125,11 +125,11 @@ export function planWalk(terrain, walk, pricing, back) {
     cells.push(...leg);
     stopAt.push(cells.length - 1);
   }
-  return describe(terrain, cells, stopAt.map((index, i) => ({ index, place: places[i] })), back);
+  return describe(terrain, cells, stopAt.map((index, i) => ({ index, place: places[i] })), back, sky);
 }
 
 // Turns a list of cells into points that carry the state of the body there.
-function describe(terrain, cells, stops, back) {
+function describe(terrain, cells, stops, back, sky) {
   const { cols, px, z } = terrain;
   const ledger = new Ledger();
   const points = [];
@@ -143,6 +143,8 @@ function describe(terrain, cells, stops, back) {
     const c = cells[k] % cols;
     const r = (cells[k] - c) / cols;
     let gradient = 0;
+    const { lat, lon } = terrain.toLatLon(c, r);
+    const skyPct = sky?.at(lat, lon) ?? MODEL.skyReferencePct;
     if (k > 0) {
       const pc = cells[k - 1] % cols;
       const pr = (cells[k - 1] - pc) / cols;
@@ -150,13 +152,12 @@ function describe(terrain, cells, stops, back) {
       const rise = z[cells[k]] - z[cells[k - 1]];
       gradient = rise / run;
       now = step(run, rise);
-      ledger.add(now);
+      ledger.add(now, skyPct);
       dist += now.length;
       if (rise > 0) climb += rise; else descent -= rise;
       steepest = Math.max(steepest, Math.abs(gradient));
       if (Math.abs(gradient) > MAX_MEASURED_GRADIENT) beyondMeasured += run;
     }
-    const { lat, lon } = terrain.toLatLon(c, r);
     points.push({
       lat,
       lon,
@@ -167,6 +168,7 @@ function describe(terrain, cells, stops, back) {
       kcal: ledger.kcal,
       heat: ledger.heatKJkg,
       dose: ledger.doseUSv,
+      skyPct,
       speed: now.speed,
       metabolicW: now.metabolicW,
       // Energy still needed to walk home from here by the cheapest way.

@@ -1,0 +1,72 @@
+{
+ "source": "MSL Gale Merged DEM 1 m v3, 32m overview level of the .ovr file",
+ "source_url": "https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_dem_1m",
+ "credit": "NASA/JPL-Caltech/University of Arizona/USGS",
+ "file": "far_32m.bin",
+ "encoding": "uint16 little-endian, row-major from the north-west corner; metres = base_m + value * scale_m",
+ "cols": 1031,
+ "rows": 1302,
+ "pixel_x_m": 31.98836081474297,
+ "pixel_y_m": 32.0,
+ "base_m": -4626,
+ "scale_m": 0.1,
+ "nodata": 65535,
+ "radius_m": 3396190.0,
+ "projection": "equirectangular, centre longitude 0, sphere R = 3396190 m: x = R * lon_rad, y = R * lat_rad",
+ "x_left_m": 8127993.4928,
+ "y_top_m": -260557.0752,
+ "west": 137.12416650636058,
+ "east": 137.6805590545812,
+ "north": -4.395755458685412,
+ "south": -5.098652339493924,
+ "min_m": -4625.36,
+ "max_m": -323.85,
+ "nodata_fraction": 0.1626,
+ "place": "All validation sites and the walk area, plus 20 km, clipped to the DEM",
+ "requested_radius_km": 20.0,
+ "dem_extent": {
+  "west": 137.12416650636058,
+  "east": 137.6805590545812,
+  "north": -4.129604796443786,
+  "south": -5.098652339493924
+ },
+ "distance_to_dem_edge": {
+  "tower_buttes": {
+   "to_west_edge_km": 15.2,
+   "to_east_edge_km": 17.7,
+   "to_north_edge_km": 36.0,
+   "to_south_edge_km": 21.5
+  },
+  "bloodstone_hill": {
+   "to_west_edge_km": 15.6,
+   "to_east_edge_km": 17.3,
+   "to_north_edge_km": 35.8,
+   "to_south_edge_km": 21.6
+  },
+  "mt_mercou": {
+   "to_west_edge_km": 17.0,
+   "to_east_edge_km": 15.8,
+   "to_north_edge_km": 35.9,
+   "to_south_edge_km": 21.5
+  },
+  "maria_gordon_notch": {
+   "to_west_edge_km": 16.0,
+   "to_east_edge_km": 16.9,
+   "to_north_edge_km": 36.6,
+   "to_south_edge_km": 20.8
+  },
+  "paraitepuy": {
+   "to_west_edge_km": 16.2,
+   "to_east_edge_km": 16.6,
+   "to_north_edge_km": 37.3,
+   "to_south_edge_km": 20.1
+  },
+  "boxwork": {
+   "to_west_edge_km": 14.5,
+   "to_east_edge_km": 16.8,
+   "to_north_edge_km": 39.1,
+   "to_south_edge_km": 16.4
+  }
+ },
+ "where_data_ends": "The DEM rectangle ends 14 to 18 km east and west of every place and 16 to 22 km to the south (distance_to_dem_edge), so the 20 km radius is not reached there. Inside the rectangle the valid data is narrower still: the west and south-east margins are no data (nodata_fraction). Beyond either, no terrain is counted. The summit of Mount Sharp lies east of the DEM and is not included. tools/shielding.mjs reports, per point, the distance at which each ray ran out of data."
+}

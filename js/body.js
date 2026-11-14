@@ -69,8 +69,14 @@ export const SOURCES = {
   dose: {
     label: 'Guo et al. 2015, Curiosity RAD, arXiv:1507.03473',
     url: 'https://arxiv.org/abs/1507.03473',
-    what: 'Dose equivalent on the surface at Gale crater about 0.7 mSv per day. The model assumes open sky everywhere; terrain shielding is not applied yet.',
+    what: 'Dose equivalent on the surface at Gale crater about 0.7 mSv per day.',
     status: 'primary',
+  },
+  shielding: {
+    label: 'Guo et al. 2026, JGR Planets, Table 1',
+    url: 'https://elib.dlr.de/224554/',
+    what: 'At eight places Curiosity measured 2% to 19% less dose where terrain blocked more sky: about 1% less dose for each extra percentage point of sky blocked (0.7 to 1.5 across the sites, no error bars given). The model applies 1% per point, counted from the 10% of sky blocked in the reference period of Guo et al. 2021. Applying it to dose equivalent is our assumption.',
+    status: 'assumption',
   },
   doseLimit: {
     label: 'NASA-STD-3001 Vol 1 Rev C, [V1 4030]',
@@ -93,6 +99,8 @@ export const MODEL = {
   bodySpecificHeat: 3.47,        // kJ/kg/°C
   energyBudgetKcal: 1800,
   doseRateUSvPerS: 700 / 86400,  // 0.7 mSv per day
+  skyReferencePct: 10,           // sky blocked where that rate was measured
+  dosePerSkyPoint: 0.01,         // share of dose lost per extra point of sky blocked
   careerLimitUSv: 600000,
 };
 
@@ -139,9 +147,12 @@ export class Ledger {
     this.storedJ = 0;      // body heat the suit has not removed
     this.peakStoredJ = 0;
     this.overLimitM = 0;   // metres walked while over the 3.0 kJ/kg limit
+    this.doseUSv = 0;
   }
 
-  add(s) {
+  // `skyPct` is the share of sky the terrain blocks during this step.
+  add(s, skyPct = MODEL.skyReferencePct) {
+    this.doseUSv += s.seconds * MODEL.doseRateUSvPerS * doseFactor(skyPct);
     this.seconds += s.seconds;
     this.joules += s.joules;
     // The suit removes up to its limit. Heat above that stays in the body;
@@ -154,8 +165,11 @@ export class Ledger {
   get kcal() { return this.joules / JOULES_PER_KCAL; }
   get heatKJkg() { return this.storedJ / 1000 / MODEL.bodyMassKg; }
   get peakHeatKJkg() { return this.peakStoredJ / 1000 / MODEL.bodyMassKg; }
-  get doseUSv() { return this.seconds * MODEL.doseRateUSvPerS; }
 }
+
+// Dose rate at a place relative to the reference rate, from how much sky
+// the terrain blocks there.
+export const doseFactor = (skyPct) => 1 - MODEL.dosePerSkyPoint * (skyPct - MODEL.skyReferencePct);
 
 // Mean body temperature rise for a given stored heat.
 export const tempRiseC = (heatKJkg) => heatKJkg / MODEL.bodySpecificHeat;

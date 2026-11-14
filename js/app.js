@@ -2,6 +2,7 @@ import { SITE, LAYERS } from './layers.js';
 import { loadTerrain, slopeImage, SLOPE_STEPS } from './terrain.js';
 import { planWalk, pointAt, returnCost } from './route.js';
 import { SOURCES, MODEL, MAX_MEASURED_GRADIENT, tempRiseC } from './body.js';
+import { loadSky, skyImage, SKY_STEPS } from './sky.js';
 
 const L = window.L;
 const $ = (id) => document.getElementById(id);
@@ -23,6 +24,7 @@ const ROUTES = [
 
 const state = {
   terrain: null,
+  sky: null,
   walk: null,
   photos: [],      // Curiosity photos for the stops
   routes: {},      // id -> described route from planWalk
@@ -54,6 +56,8 @@ map.on('mousemove', (e) => {
   if (elev != null && !Number.isNaN(elev)) {
     text += `  ·  ${elev.toFixed(0)} m  ·  slope ${state.terrain.slopeAt(lat, lng).toFixed(0)}°`;
   }
+  const sky = state.sky?.at(lat, lng);
+  if (sky != null) text += `  ·  sky blocked ${sky.toFixed(0)}%`;
   $('cursor-coord').textContent = text;
 });
 
@@ -87,25 +91,73 @@ function buildLayers() {
   }
 }
 
-// Slope is computed in the page from the stored elevation crop, then laid
-// over the imagery. The legend is shown only while the layer is on.
-function buildSlopeLayer(terrain) {
-  const credit = `Slope from ${terrain.meta.source}. ${terrain.meta.credit}`;
-  const leaf = L.imageOverlay(slopeImage(terrain), terrain.bounds, { opacity: 0.7, attribution: credit });
+// The legend follows whichever computed layer was switched on last.
+function showLegend(title, steps, unit) {
   const legend = $('legend');
   let from = 0;
-  for (const step of SLOPE_STEPS) {
+  legend.innerHTML = `<b>${title}</b>`;
+  for (const step of steps) {
     const [r, g, b, a] = step.color;
     const item = document.createElement('span');
     item.innerHTML = `<i style="background: rgba(${r}, ${g}, ${b}, ${Math.max(a / 255, 0.12)})"></i>${
-      step.upTo === Infinity ? `over ${from}°` : `${from}–${step.upTo}°`}`;
+      step.upTo === Infinity ? `over ${from}${unit}` : `${from}–${step.upTo}${unit}`}`;
     legend.append(item);
     from = step.upTo;
   }
-  leaf.on('add', () => { legend.hidden = false; });
-  leaf.on('remove', () => { legend.hidden = true; });
+  legend.hidden = false;
+  legend.dataset.for = title;
+}
+
+function legendLayer(leaf, title, steps, unit) {
+  leaf.on('add', () => showLegend(title, steps, unit));
+  leaf.on('remove', () => { if ($('legend').dataset.for === title) $('legend').hidden = true; });
+}
+
+// Slope is computed in the page from the stored elevation crop, then laid
+// over the imagery.
+function buildSlopeLayer(terrain) {
+  const credit = `Slope from ${terrain.meta.source}. ${terrain.meta.credit}`;
+  const leaf = L.imageOverlay(slopeImage(terrain), terrain.bounds, { opacity: 0.7, attribution: credit });
+  legendLayer(leaf, 'Slope', SLOPE_STEPS, '°');
   addLayerButton({ label: 'Slope 4 m', credit, on: true }, leaf);
   L.rectangle(terrain.bounds, { color: '#efe6da', weight: 1, opacity: 0.5, fill: false, dashArray: '6 6', interactive: false }).addTo(map);
+}
+
+// Sky blocked by terrain: the radiation layer. More sky blocked means less
+// radiation from above.
+function buildSkyLayer(sky) {
+  const credit = `Sky blocked by terrain, computed from the elevation model with the method of Guo et al. 2026 (Curiosity RAD). ${sky.meta.credit}`;
+  const leaf = L.imageOverlay(skyImage(sky), sky.bounds, { opacity: 0.8, attribution: credit });
+  legendLayer(leaf, 'Sky blocked', SKY_STEPS, '%');
+  addLayerButton({ label: 'Radiation: sky blocked', credit, on: false }, leaf);
+}
+
+// The check of our sky-blocked numbers against the ones the Curiosity RAD
+// team published for the eight places where the rover measured a dose drop.
+async function buildProof() {
+  const check = await (await fetch('data/shielding/validation.json')).json();
+  const within = check.rows.filter((row) => Math.abs(row.difference_pct_points) <= 1).length;
+  $('proof-body').innerHTML = `
+    <p>Our sky-blocked computation against the values the Curiosity RAD team published for the eight places where the rover measured a drop in radiation dose.</p>
+    <table>
+      <thead><tr><th>Place</th><th>Paper</th><th>Ours</th><th>Dose drop measured</th></tr></thead>
+      <tbody>${check.rows.map((row) => `<tr${Math.abs(row.difference_pct_points) > 1 ? ' class="off"' : ''}>
+        <td>${row.period} ${row.place}</td><td>${row.paper_sky_blocked_pct.toFixed(1)}%</td><td>${row.our_sky_blocked_pct.toFixed(1)}%</td><td>${row.measured_dose_decrease_pct.toFixed(1)}%</td></tr>`).join('')}</tbody>
+    </table>
+    <p><b>${within} of ${check.rows.length}</b> agree within 1 percentage point. Mean difference ${check.summary.mean_absolute_difference_pct_points.toFixed(1)} points.</p>
+    <p>Maria Gordon Notch reads 9 points low: it is a narrow valley, our elevation grid is 4 m and the paper used 1 m. This checks the terrain computation only. It does not check the dose model.</p>
+    <p class="credit">Source: <a href="https://elib.dlr.de/224554/" target="_blank" rel="noopener">Guo et al. 2026, JGR Planets 131(4), Table 1</a>. Rover positions: NASA/JPL-Caltech.</p>`;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = 'Check vs RAD';
+  btn.setAttribute('aria-pressed', 'false');
+  btn.addEventListener('click', () => {
+    const open = $('proof').hidden;
+    $('proof').hidden = !open;
+    if (open) $('target').hidden = true;
+    btn.setAttribute('aria-pressed', String(open));
+  });
+  $('layers').append(btn);
 }
 
 // Curiosity's own path: where a wheeled rover has already crossed this ground.
@@ -182,6 +234,7 @@ function stopMarker(place, number) {
 // Clicking the photo switches between the two.
 function showPlace(place, kind = 'wide') {
   $('target').hidden = false;
+  $('proof').hidden = true;
   $('target-name').innerHTML = `${place.assumption ? '<i class="assume"></i>' : ''}${place.name}`;
   $('target-text').textContent = place.text;
   $('target-credit').innerHTML = place.source
@@ -272,8 +325,8 @@ function renderWalk() {
     value: p.dose,
     max: Math.max(...ROUTES.map((d) => state.routes[d.id].totals.dose)),
     digits: 1,
-    note: `${((p.dose / MODEL.careerLimitUSv) * 100).toFixed(4)}% of the NASA career limit. Open sky assumed.`,
-    sources: [SOURCES.dose, SOURCES.doseLimit],
+    note: `Sky blocked here ${p.skyPct.toFixed(0)}%. ${((p.dose / MODEL.careerLimitUSv) * 100).toFixed(4)}% of the NASA career limit.`,
+    sources: [SOURCES.dose, SOURCES.shielding, SOURCES.doseLimit],
   });
   setBar('return', {
     value: ((MODEL.energyBudgetKcal - p.kcal - p.backKcal) / MODEL.energyBudgetKcal) * 100,
@@ -398,7 +451,7 @@ async function buildWalk(terrain) {
 
   const back = returnCost(terrain, state.walk.habitat);
   for (const def of ROUTES) {
-    const route = planWalk(terrain, state.walk, def.pricing, back);
+    const route = planWalk(terrain, state.walk, def.pricing, back, state.sky);
     state.routes[def.id] = route;
     state.lines[def.id] = L.polyline(route.points.map((p) => [p.lat, p.lon]), { color: def.color, lineJoin: 'round' }).addTo(map);
   }
@@ -417,8 +470,11 @@ buildLayers();
 buildBars();
 buildRoverPath();
 buildWeather();
-loadTerrain().then((terrain) => {
+Promise.all([loadTerrain(), loadSky()]).then(([terrain, sky]) => {
   state.terrain = terrain;
+  state.sky = sky;
   buildSlopeLayer(terrain);
+  buildSkyLayer(sky);
+  buildProof();
   return buildWalk(terrain);
 });

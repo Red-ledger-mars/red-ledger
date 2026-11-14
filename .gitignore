@@ -8,3 +8,6 @@ __pycache__/
 data/raw/
 CLAUDE.md
 .claude/
+# Elevation windows for the radiation check; rebuilt by tools/cut_dem_sites.py
+data/shielding/near_*.bin
+data/shielding/far_32m.bin

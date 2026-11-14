@@ -1,0 +1,29 @@
+{
+ "what": "Sky blocked by terrain, percent of the upper hemisphere (solid-angle weighted), on a 16 m grid over the walk-area crop (data/dem_boxwork_4m.json). Same definition as Guo et al. 2026; see brief/research/2026-11-14-shielding-results.md for its limits.",
+ "file": "boxwork_sky_blocked.bin",
+ "encoding": "uint8, row-major from the north-west point; sky blocked percent = value / 2 (half-percent steps)",
+ "cols": 97,
+ "rows": 119,
+ "spacing_m": 16,
+ "origin": "centre of the north-west point",
+ "origin_x_m": 8142569.4928,
+ "origin_y_m": -283933.07519999996,
+ "origin_lon": 137.37007244277245,
+ "origin_lat": -4.790122717848713,
+ "projection": "equirectangular, centre longitude 0, sphere R = 3396190 m: x = R * lon_rad, y = R * lat_rad; rows go south",
+ "settings": {
+  "azStepDeg": 2,
+  "viewHeight": 1,
+  "nearStep": 4,
+  "farStep": 32,
+  "growth": 0.01,
+  "maxDist_m": 20000,
+  "near": "data/shielding/near_boxwork_4m (4 m)",
+  "far": "data/shielding/far_32m (32 m)"
+ },
+ "min_pct": 5.04,
+ "max_pct": 35.91,
+ "mean_pct": 15.32,
+ "compute_seconds": 40.556,
+ "credit": "Elevation: NASA/JPL-Caltech/University of Arizona/USGS (MSL Gale Merged DEM 1 m v3)"
+}
