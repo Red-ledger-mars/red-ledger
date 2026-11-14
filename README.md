@@ -45,7 +45,7 @@ Then open http://localhost:8765 for the walk, or http://localhost:8765/globe.htm
 
 ## What this is for
 
-Tools that watch a crew member's body during a spacewalk assume someone on Earth is reading the screen. On Mars the answer to a question takes at least 8 minutes and up to about 45, and parts of a route have no relay orbiter in view. A system on board cannot tell hard ground from a body in trouble unless it knows what that stretch of ground should cost. Red Ledger produces that expectation from the terrain, before the walk: per point of the route, the pace, work rate and stored heat a healthy walker would show. It is a planning aid. It does not diagnose anything and has not been tested on people.
+Tools that watch a crew member's body during a spacewalk assume someone on Earth is reading the screen. On Mars a signal takes up to about 22 minutes each way (NASA), so the answer to a question can take over 40 minutes; on the sol used here it was 20.1 minutes each way (NASA/JPL Horizons). Parts of a route also have no relay orbiter in view. A system on board cannot tell hard ground from a body in trouble unless it knows what that stretch of ground should cost. Red Ledger produces that expectation from the terrain, before the walk: per point of the route, the pace, work rate and stored heat a healthy walker would show. It is a planning aid. It does not diagnose anything and has not been tested on people.
 
 ## Known limits
 
