@@ -104,9 +104,18 @@ export const SOURCES = {
   },
 };
 
+// How much of the Earth-gravity walking cost remains at a gravity of `g`
+// (as a share of Earth's). One measured point: 33% less at 0.25 g (Farley
+// and McMahon 1992). The value for any other gravity is read off a straight
+// line through that point and Earth gravity.
+export function walkFactor(g) {
+  return 1 - 0.33 * (1 - g) / (1 - 0.25);
+}
+
 export const MODEL = {
   marsGravity: 3.71,             // m/s2
-  marsWalkFactor: 1 - 0.33 * (1 - 0.38) / (1 - 0.25), // Farley point, read off a straight line
+  marsGravityG: 0.38,            // Mars gravity as a share of Earth's
+  marsWalkFactor: walkFactor(0.38),
   bodyMassKg: 80,
   suitMassKg: 96,
   paceMs: 1.0,
@@ -142,6 +151,14 @@ export function walkCostEarth(i) {
 
 // The same cost at Mars gravity.
 export const walkCostMars = (i) => walkCostEarth(i) * MODEL.marsWalkFactor;
+
+// Metabolic rate, in watts, of walking at `speed` metres per second (along
+// the slope) on a gradient, moving `massKg`, at gravity `g`. This is the
+// whole of the model's claim about energy, in one line, so that it can be
+// set against measurements on people (tools/test_body_model.mjs).
+export function walkPowerW({ gradient = 0, speed, massKg, g }) {
+  return walkCostEarth(gradient) * walkFactor(g) * massKg * speed;
+}
 
 // One step of a walk: `run` metres on the map, rising `rise` metres.
 // Returns what it costs and how fast the walker can take it.
