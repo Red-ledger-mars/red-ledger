@@ -427,3 +427,28 @@ button { font: inherit; color: inherit; }
 .free #progress, .free #play, .free .start { display: none; }
 .free #progress-text { flex: 1; text-align: left; color: var(--text); font-size: 14px; }
 .free .routes { opacity: 0.45; pointer-events: none; }
+
+/* Walk brief */
+.ledger-foot .brief-open { background: rgba(255, 85, 51, 0.16); border-color: rgba(255, 85, 51, 0.6); font-weight: 600; }
+.sheet { width: min(780px, calc(100vw - 40px)); max-height: 88vh; border-top-color: var(--red); scrollbar-color: rgba(255, 214, 190, 0.3) transparent; }
+.sheet header { position: sticky; top: 0; z-index: 1; padding-bottom: 10px; background: #120d0b; }
+#brief-body { padding: 4px 22px 20px; font-size: 14px; }
+#brief-body h3 { margin: 18px 0 6px; font: 600 12px/1 var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--dim); }
+#brief-body ul { margin: 0; padding-left: 18px; }
+#brief-body li { margin-bottom: 4px; }
+.brief-title { margin: 0 0 10px; font-size: 16px; font-weight: 600; }
+.verdict { list-style: none; padding: 0 !important; }
+.verdict li { padding: 8px 12px; margin-bottom: 6px; border-left: 3px solid var(--ok); background: rgba(255, 255, 255, 0.05); }
+.verdict li.warn { border-left-color: var(--red); }
+#brief-body table { width: 100%; margin: 0; border-collapse: collapse; font: inherit; }
+#brief-body td:nth-child(n+2) { text-align: left; }
+#brief-body td { padding: 5px 10px 5px 0; vertical-align: top; border-bottom: 1px solid var(--line); }
+#brief-body td:nth-child(-n+2) { font: 13px/1.5 var(--mono); color: var(--dim); white-space: nowrap; }
+#brief-body tr.ev-rest td:last-child, #brief-body tr.ev-heat td:last-child { color: #ff9a7a; }
+#brief-body tr.ev-radio td:last-child { color: #8fbcff; }
+#brief-body tr.ev-unknown td:last-child { color: var(--amber); }
+#brief-body tr.ev-stop td:last-child { font-weight: 600; }
+.brief-checks-title { margin: 10px 0 4px; font-weight: 600; }
+.brief-foot { margin: 16px 0 8px; font-size: 13px; color: var(--dim); }
+.brief-files { margin: 0; font-size: 13px; color: var(--dim); }
+.brief-files button { margin-left: 8px; padding: 6px 10px; font-size: 13px; background: rgba(255, 255, 255, 0.08); border: 1px solid var(--line); border-radius: 3px; cursor: pointer; }

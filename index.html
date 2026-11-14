@@ -53,6 +53,7 @@
     </div>
     <p class="ledger-note" id="ledger-note">Loading the terrain…</p>
     <div class="ledger-foot">
+      <button type="button" id="brief-open" class="brief-open">Walk brief: before, during, after</button>
       <button type="button" id="proof-open">Check vs Curiosity</button>
       <details class="sources" id="sources">
         <summary>Sources and assumptions</summary>
@@ -93,6 +94,14 @@
       <button type="button" class="close" id="proof-close" aria-label="Close">×</button>
     </header>
     <div id="proof-body"></div>
+  </dialog>
+
+  <dialog class="proof sheet" id="brief" aria-label="Walk brief">
+    <header>
+      <h2>Walk brief</h2>
+      <button type="button" class="close" id="brief-close" aria-label="Close">×</button>
+    </header>
+    <div id="brief-body"></div>
   </dialog>
 
   <footer class="foot">

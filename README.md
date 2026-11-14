@@ -24,6 +24,8 @@ Work in progress. This section is updated as parts are finished.
 
 - [x] Heat decides the walk: with a 30 kg load the direct route passes NASA's stored-heat limit (3.7 against 3.0 kJ/kg), so the plan adds a 7 minute rest and the route takes 56 minutes; the body-cost route needs no rest and takes 45
 - [x] Comms shadow: when a relay orbiter (MRO, Mars Odyssey, Trace Gas Orbiter, Mars Express) is above the terrain as seen by the walker, from NASA/JPL Horizons orbit data for sol 4752, with a start-time choice and the share of each route in contact. An independent recomputation matched within 1 minute
+- [x] Walk brief: for the chosen route, load and start time the page writes what to expect before, during and after the walk (where the pace must drop, where heat nears the limit, where to rest, where the radio link is lost), and lists what it cannot forecast
+- [x] Forecast file: the expected pace, work rate, stored heat, dose and orbiter contact at every point of a route, as JSON or CSV, for an onboard system to compare with what a suit measures
 - [x] Free walk: steer the walker over the terrain with the arrow keys; the same body model runs on the ground you choose, refuses slopes no walking study covers, and forces a rest when stored heat nears the limit
 - [x] 3D view of the walk on the real terrain (HiRISE imagery over the 4 m elevation model); pressing Walk switches to it and follows the walker
 - [x] Radiation layer: how much sky the terrain blocks, computed with the method of the Curiosity RAD team and checked against the eight places where the rover measured a dose drop (6 of 8 within 1 percentage point; shown in the page under "Check vs RAD")
@@ -40,6 +42,10 @@ python3 tools/serve.py
 ```
 
 Then open http://localhost:8765 for the walk, or http://localhost:8765/globe.html for the globe.
+
+## What this is for
+
+Tools that watch a crew member's body during a spacewalk assume someone on Earth is reading the screen. On Mars the answer to a question takes at least 8 minutes and up to about 45, and parts of a route have no relay orbiter in view. A system on board cannot tell hard ground from a body in trouble unless it knows what that stretch of ground should cost. Red Ledger produces that expectation from the terrain, before the walk: per point of the route, the pace, work rate and stored heat a healthy walker would show. It is a planning aid. It does not diagnose anything and has not been tested on people.
 
 ## Known limits
 

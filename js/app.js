@@ -2,6 +2,7 @@ import { SITE, LAYERS } from './layers.js';
 import { loadTerrain, slopeImage, SLOPE_RAMP } from './terrain.js';
 import { loadSky, skyImage, SKY_RAMP } from './sky.js';
 import { loadComms, commsImage, COMMS_RAMP } from './comms.js';
+import { buildBrief, forecastFile, forecastCsv, NOT_MODELLED } from './brief.js';
 import { planWalk, pointAt, returnCost } from './route.js';
 import { SOURCES, MODEL, MAX_MEASURED_GRADIENT, tempRiseC, step, Ledger } from './body.js';
 
@@ -46,6 +47,8 @@ const state = {
   contact: {},      // route id -> which points have an orbiter in view
   view3d: null,     // the 3D view, made the first time it is opened
   nextStop: 1,      // index of the next stop the walker will reach
+  lightMinutes: null, // one-way light time to Earth on the comms sol
+  checks: null,     // the crew doctor's own checks, from data/brief_checks.json
   free: null,       // the free walk in progress, or null
   sequence: false,  // true while the recorded sequence is playing
   onWalkEnd: null,  // called when a played walk reaches its end
@@ -214,6 +217,7 @@ async function buildWeather() {
   const comms = await fetch('data/comms/summary.json').then((r) => (r.ok ? r.json() : null)).catch(() => null);
   if (comms) {
     const oneWay = comms.light_time.one_way_minutes_at_start;
+    state.lightMinutes = oneWay;
     $('weather-body').insertAdjacentHTML('beforeend', `<p>Earth was <b>${oneWay.toFixed(1)} light-minutes</b> away on sol ${comms.sol}: a question and its answer take at least ${Math.ceil(oneWay * 2)} minutes. <a href="https://ssd.jpl.nasa.gov/horizons/" target="_blank" rel="noopener">NASA/JPL Horizons</a></p>`);
   }
 }
@@ -336,6 +340,60 @@ async function buildProof() {
   const dialog = $('proof');
   $('proof-open').addEventListener('click', () => dialog.showModal());
   $('proof-close').addEventListener('click', () => dialog.close());
+  dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
+}
+
+/* Walk brief */
+
+function download(name, text, type) {
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([text], { type }));
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+// Writes the brief for the route, load and start time now chosen.
+function openBrief() {
+  const def = ROUTES.find((d) => d.id === state.active);
+  const route = state.routes[def.id];
+  const args = {
+    route,
+    routeName: def.name,
+    loadKg: state.loadKg,
+    comms: state.comms,
+    contact: state.contact[def.id] ?? null,
+    startMinute: state.startMinute,
+    lightMinutes: state.lightMinutes,
+  };
+  const brief = buildBrief(args);
+  const list = (lines) => `<ul>${lines.map((line) => `<li>${line}</li>`).join('')}</ul>`;
+  // The team's own medical checks sit beside the forecast, when written.
+  const checks = (part) => (state.checks?.[part]?.length
+    ? `<p class="brief-checks-title">Crew doctor's checks</p>${list(state.checks[part])}` : '');
+  $('brief-body').innerHTML = `
+    <p class="brief-title">${brief.title}</p>
+    <ul class="verdict">${brief.verdict.map((v) => `<li class="${v.level}">${v.text}</li>`).join('')}</ul>
+    <h3>Before the walk</h3>${list(brief.before)}${checks('before')}
+    <h3>During the walk</h3>
+    <table><tbody>${brief.during.map((e) => `<tr class="ev-${e.kind}"><td>${e.where}</td><td>${e.when}</td><td>${e.text}</td></tr>`).join('')}</tbody></table>${checks('during')}
+    <h3>After the walk</h3>${list(brief.after)}${checks('after')}
+    <h3>Not forecast</h3>${list(NOT_MODELLED)}
+    <p class="brief-foot">A forecast from the terrain and published limits, made before the walk. It is not measured on a person and it is not medical advice. Every limit and number is listed under Sources and assumptions.</p>
+    <p class="brief-files">The same forecast, point by point, for an onboard system to compare with what a suit measures:
+      <button type="button" id="forecast-json">Download JSON</button>
+      <button type="button" id="forecast-csv">Download CSV</button></p>`;
+  const name = `red-ledger-forecast-${def.id}-${state.loadKg}kg`;
+  $('forecast-json').addEventListener('click', () => download(`${name}.json`, JSON.stringify(forecastFile({ ...args, sources: SOURCES }), null, 1), 'application/json'));
+  $('forecast-csv').addEventListener('click', () => download(`${name}.csv`, forecastCsv(route, args.contact), 'text/csv'));
+  $('brief').showModal();
+  $('brief').scrollTop = 0;
+}
+
+function buildBriefControls() {
+  const dialog = $('brief');
+  $('brief-open').addEventListener('click', openBrief);
+  $('brief-close').addEventListener('click', () => dialog.close());
   dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
 }
 
@@ -1081,6 +1139,8 @@ async function start() {
   buildWeather();
   buildProof();
 
+  buildBriefControls();
+  fetch('data/brief_checks.json').then((r) => (r.ok ? r.json() : null)).then((checks) => { state.checks = checks; }).catch(() => {});
   const [terrain, sky, comms, walk, photos] = await Promise.all([
     loadTerrain(),
     loadSky(),
