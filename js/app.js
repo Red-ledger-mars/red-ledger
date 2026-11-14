@@ -70,6 +70,9 @@ const map = L.map('map', {
   zoomSnap: 0.25,
 });
 
+// When the viewer asks for less motion, the map jumps instead of gliding.
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 map.on('mousemove', (e) => {
   const { lat, lng } = e.latlng;
   let text = `${Math.abs(lat).toFixed(4)}°${lat < 0 ? 'S' : 'N'}  ${lng.toFixed(4)}°E`;
@@ -857,7 +860,7 @@ function follow(now) {
   const at = map.latLngToContainerPoint(walker.getLatLng());
   const margin = 60;
   if (at.x > area.left + margin && at.x < area.right - margin && at.y > area.top + margin && at.y < area.bottom - margin) return;
-  map.panBy([at.x - (area.left + area.right) / 2, at.y - (area.top + area.bottom) / 2], { animate: true, duration: 0.9 });
+  map.panBy([at.x - (area.left + area.right) / 2, at.y - (area.top + area.bottom) / 2], { animate: !calm, duration: 0.9 });
 }
 
 function tick(last, id) {
@@ -1226,7 +1229,7 @@ async function start() {
 
   // Fly to the walk, then let the two routes draw themselves.
   const all = L.latLngBounds(ROUTES.flatMap((def) => state.routes[def.id].points.map((p) => [p.lat, p.lon])));
-  map.flyToBounds(all, { ...boundsPadding(), duration: 1.4 });
+  map.flyToBounds(all, { ...boundsPadding(), duration: 1.4, animate: !calm });
   await wait(1500);
   state.stopMarkers = [stopMarker(walk.habitat, 0), ...walk.stops.map((s, i) => stopMarker(s, i + 1))];
   for (const def of ROUTES) await drawIn(def, 900);

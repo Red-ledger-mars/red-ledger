@@ -61,8 +61,11 @@
 }
 .patch-label b { font: 700 14px/1.2 var(--sans); }
 .patch-label small { font: 12px/1.2 var(--sans); color: var(--dim); }
-.patch-label:hover { background: var(--red); color: var(--bg); }
-.patch-label:hover small { color: var(--bg); }
+/* Hover only where a pointer can hover; on touch it would stay lit after a tap. */
+@media (hover: hover) {
+  .patch-label:hover { background: var(--red); color: var(--bg); }
+  .patch-label:hover small { color: var(--bg); }
+}
 .patch-ring[hidden], .patch-label[hidden], .card[hidden], .nogl[hidden] { display: none; }
 .patch-ring:focus-visible, .patch-label:focus-visible, .card-close:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 
@@ -105,7 +108,9 @@
   color: var(--dim);
   background: none; border: 1px solid var(--line); border-radius: 4px; cursor: pointer;
 }
-.card-close:hover { color: var(--text); border-color: var(--text); }
+@media (hover: hover) {
+  .card-close:hover { color: var(--text); border-color: var(--text); }
+}
 
 .globe-credit {
   right: 20px; bottom: calc(var(--foot) + 10px);
