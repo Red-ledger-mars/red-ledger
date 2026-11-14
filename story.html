@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en" data-theme="mission" data-mode="simple">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Red Ledger: Mars is costly</title>
+  <meta name="description" content="One walk at Gale crater, Mars, and what it costs the body, step by step. Made with NASA open data.">
+  <link rel="preload" href="fonts/barlow-condensed-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/view3d.css">
+  <link rel="stylesheet" href="css/themes/mission.css">
+  <link rel="stylesheet" href="css/story.css">
+  <script>{ const t = new URLSearchParams(location.search).get('theme'); if (/^[a-z]+$/.test(t || '')) document.documentElement.dataset.theme = t; }</script>
+</head>
+<body class="loading">
+  <div id="stage" aria-hidden="true"></div>
+  <div class="fade-left" aria-hidden="true"></div>
+
+  <div id="loader" role="status">
+    <div class="loader-line"><i></i></div>
+    <p class="loader-text label"><span id="loader-step">Terrain</span> <span id="loader-pct">0</span>%</p>
+  </div>
+
+  <header class="top">
+    <details class="info">
+      <summary class="label">Made with NASA open data</summary>
+      <div class="info-panel">
+        <p>Gale crater · Mount Sharp · boxwork ridges</p>
+        <p><b class="assumed key-mark">00</b> Hollow numbers rest on an assumption</p>
+        <p>A planning forecast, not a diagnosis.</p>
+        <p><a href="CREDITS.md">Sources and credits</a></p>
+      </div>
+    </details>
+    <a class="label top-credits" href="CREDITS.md">Sources and credits</a>
+    <button id="auto" class="auto label" type="button" aria-pressed="false">Auto</button>
+  </header>
+
+  <main id="story"></main>
+
+  <aside id="hud" aria-live="polite" hidden></aside>
+
+  <footer class="foot">
+    <a class="logo" href="index.html">RED LEDGER</a>
+  </footer>
+
+  <script type="module" src="js/story.js"></script>
+</body>
+</html>

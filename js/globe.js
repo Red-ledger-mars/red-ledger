@@ -36,7 +36,7 @@ const state = {
 };
 state.idle = !state.reduced;
 const GALE = { lat: -4.6, lon: 137.4 };
-// Recording mode: open the page as globe.html?rec. The hint and the pointer
+// Recording mode: open the page as index.html?rec. The hint and the pointer
 // are hidden and the walk starts by itself a moment after the globe settles.
 const RECORDING = new URLSearchParams(location.search).has('rec');
 const SETTLE_MS = 3600, GO_MS = 1200, SWAY_MS = 44000, SWAY_AMP = 0.16;
@@ -315,7 +315,6 @@ async function loadPatches() {
   state.patches = patches;
   const n = patches.length;
   $('intro-count').textContent = `${n} patch${n === 1 ? '' : 'es'} surveyed`;
-  $('patch-ring').href = patches[0].href;
   for (const id of ['patch-ring', 'patch-label']) $(id).title = `${patches[0].name}. ${patches[0].summary}`;
   requestRender();
 }
@@ -332,7 +331,9 @@ function walk(to = null) {
   hideHint();
   // In recording mode the walk page is told to play its own sequence, so a
   // single take runs from the whole planet to the end of the walk.
-  const href = (to ?? (state.patches[0] ? state.patches[0].href : 'index.html')) + (RECORDING && !to ? '?rec=auto' : '');
+  // The ring and Enter open the story; a recording goes to the map tool,
+  // which plays the filmed sequence.
+  const href = to ?? (RECORDING ? 'classic.html?rec=auto' : 'story.html');
   if (state.reduced) { location.href = href; return; }
   const t = facing(state.patches[0] ? state.patches[0].centre.lat : GALE.lat,
     state.patches[0] ? state.patches[0].centre.lon : GALE.lon);

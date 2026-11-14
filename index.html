@@ -1,48 +1,64 @@
 <!doctype html>
-<html lang="en" data-theme="mission" data-mode="simple">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Red Ledger: Mars is costly</title>
-  <meta name="description" content="One walk at Gale crater, Mars, and what it costs the body, step by step. Made with NASA open data.">
-  <link rel="preload" href="fonts/barlow-condensed-700.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/view3d.css">
-  <link rel="stylesheet" href="css/themes/mission.css">
-  <link rel="stylesheet" href="css/story.css">
-  <script>{ const t = new URLSearchParams(location.search).get('theme'); if (/^[a-z]+$/.test(t || '')) document.documentElement.dataset.theme = t; }</script>
+  <title>Red Ledger: Mars at walk scale</title>
+  <meta name="description" content="A globe of Mars. One patch at Gale crater is surveyed at walk scale and opens the Marswalk cost display. Made with NASA open data.">
+  <link rel="stylesheet" href="css/hud.css">
+  <link rel="stylesheet" href="css/globe.css">
 </head>
-<body class="loading">
-  <div id="stage" aria-hidden="true"></div>
-  <div class="fade-left" aria-hidden="true"></div>
-
-  <div id="loader" role="status">
-    <div class="loader-line"><i></i></div>
-    <p class="loader-text label"><span id="loader-step">Terrain</span> <span id="loader-pct">0</span>%</p>
-  </div>
+<body>
+  <div id="globe" aria-label="Globe of Mars. Drag to turn it, scroll to zoom."></div>
+  <div class="visor" aria-hidden="true"></div>
 
   <header class="top">
-    <details class="info">
-      <summary class="label">Made with NASA open data</summary>
-      <div class="info-panel">
-        <p>Gale crater · Mount Sharp · boxwork ridges</p>
-        <p><b class="assumed key-mark">00</b> Hollow numbers rest on an assumption</p>
-        <p>A planning forecast, not a diagnosis.</p>
-        <p><a href="CREDITS.md">Sources and credits</a></p>
-      </div>
-    </details>
-    <a class="label top-credits" href="CREDITS.md">Sources and credits</a>
-    <button id="auto" class="auto label" type="button" aria-pressed="false">Auto</button>
+    <div class="brand">
+      <span class="brand-mark">RED LEDGER</span>
+      <span class="brand-sub">Marswalk cost display</span>
+    </div>
+    <div class="site">
+      <span class="site-name">Mars</span>
+      <span class="site-coord" id="cursor-coord"></span>
+    </div>
+    <nav class="overlays" id="layers" aria-label="Globe layers"></nav>
   </header>
 
-  <main id="story"></main>
+  <section class="intro" aria-label="About this globe">
+    <h1><span class="intro-title">Mars at walk scale</span><strong id="intro-count">1 patch surveyed</strong></h1>
+    <p>Global maps show where things are. A walk needs slope, heat and radiation at the scale of a few metres.</p>
+  </section>
 
-  <aside id="hud" aria-live="polite" hidden></aside>
+  <a class="patch-ring" id="patch-ring" href="story.html" hidden aria-label="Walk Gale crater" tabindex="-1"></a>
+  <div class="patch-label" id="patch-label" hidden>
+    <b>Gale crater</b>
+    <small>Surveyed at walk scale</small>
+    <span class="doors">
+      <a class="door" id="door-story" href="story.html">Story mode</a>
+      <a class="door" id="door-own" href="classic.html#own">Walk your own</a>
+    </span>
+  </div>
+
+  <p class="hint" id="hint">Drag to turn. Scroll to zoom. At Gale crater, choose story mode or walk your own.</p>
+
+  <aside class="card" id="card" aria-label="Selected point" hidden>
+    <button type="button" class="card-close" id="card-close" aria-label="Close">×</button>
+    <h3 id="card-coord"></h3>
+    <p id="card-elev"></p>
+    <p class="card-note">Not yet surveyed at walk scale. Global data only.</p>
+  </aside>
+
+  <p class="globe-credit" id="globe-credit"></p>
+  <p class="nogl" id="nogl" hidden>This page needs WebGL to draw the globe. <a href="story.html">Open the story</a> or <a href="classic.html">the map tool</a> instead.</p>
 
   <footer class="foot">
-    <a class="logo" href="globe.html">RED LEDGER</a>
+    <span>Made with NASA open data.</span>
+    <a href="CREDITS.md">Sources and credits</a>
+    <span class="keys">Keys: 1 2 3 layers, Enter walk</span>
   </footer>
 
-  <script type="module" src="js/story.js"></script>
+  <div class="fade" id="fade" aria-hidden="true"></div>
+
+  <script type="module" src="js/globe.js"></script>
 </body>
 </html>

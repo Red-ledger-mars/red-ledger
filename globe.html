@@ -3,62 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Red Ledger: Mars at walk scale</title>
-  <meta name="description" content="A globe of Mars. One patch at Gale crater is surveyed at walk scale and opens the Marswalk cost display. Made with NASA open data.">
-  <link rel="stylesheet" href="css/hud.css">
-  <link rel="stylesheet" href="css/globe.css">
+  <title>Red Ledger</title>
+  <meta http-equiv="refresh" content="0; url=index.html">
+  <link rel="canonical" href="index.html">
+  <style>body { margin: 0; padding: 24px; background: #000; color: #fff; font: 16px/1.5 system-ui, sans-serif; } a { color: #fff; }</style>
 </head>
 <body>
-  <div id="globe" aria-label="Globe of Mars. Drag to turn it, scroll to zoom."></div>
-  <div class="visor" aria-hidden="true"></div>
-
-  <header class="top">
-    <div class="brand">
-      <span class="brand-mark">RED LEDGER</span>
-      <span class="brand-sub">Marswalk cost display</span>
-    </div>
-    <div class="site">
-      <span class="site-name">Mars</span>
-      <span class="site-coord" id="cursor-coord"></span>
-    </div>
-    <nav class="overlays" id="layers" aria-label="Globe layers"></nav>
-  </header>
-
-  <section class="intro" aria-label="About this globe">
-    <h1><span class="intro-title">Mars at walk scale</span><strong id="intro-count">1 patch surveyed</strong></h1>
-    <p>Global maps show where things are. A walk needs slope, heat and radiation at the scale of a few metres.</p>
-  </section>
-
-  <a class="patch-ring" id="patch-ring" href="index.html" hidden aria-label="Walk Gale crater" tabindex="-1"></a>
-  <div class="patch-label" id="patch-label" hidden>
-    <b>Gale crater</b>
-    <small>Surveyed at walk scale</small>
-    <span class="doors">
-      <a class="door" id="door-story" href="index.html">Story mode</a>
-      <a class="door" id="door-own" href="classic.html#own">Walk your own</a>
-    </span>
-  </div>
-
-  <p class="hint" id="hint">Drag to turn. Scroll to zoom. At Gale crater, choose story mode or walk your own.</p>
-
-  <aside class="card" id="card" aria-label="Selected point" hidden>
-    <button type="button" class="card-close" id="card-close" aria-label="Close">×</button>
-    <h3 id="card-coord"></h3>
-    <p id="card-elev"></p>
-    <p class="card-note">Not yet surveyed at walk scale. Global data only.</p>
-  </aside>
-
-  <p class="globe-credit" id="globe-credit"></p>
-  <p class="nogl" id="nogl" hidden>This page needs WebGL to draw the globe. <a href="index.html">Open the walk page</a> instead.</p>
-
-  <footer class="foot">
-    <span>Made with NASA open data.</span>
-    <a href="CREDITS.md">Sources and credits</a>
-    <span class="keys">Keys: 1 2 3 layers, Enter walk</span>
-  </footer>
-
-  <div class="fade" id="fade" aria-hidden="true"></div>
-
-  <script type="module" src="js/globe.js"></script>
+  <!-- The globe is now the front page. This keeps old links to globe.html working. -->
+  <p>The globe of Mars is now the front page: <a href="index.html">open it</a>.</p>
 </body>
 </html>
