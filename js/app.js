@@ -1513,10 +1513,13 @@ async function start() {
   if (rec !== null) document.body.classList.add('rec');
   if (rec === 'auto') { await wait(1200); runSequence(); }
 
-  // A link can open a sheet directly: #proof for the tests, #brief for the
-  // walk brief.
+  // A link can open a part of the page directly: #proof for the tests,
+  // #brief for the walk brief, #own to place a walk of your own, #reach
+  // for the reach layer.
   if (location.hash === '#proof') $('proof').showModal();
   if (location.hash === '#brief') openBrief();
+  if (location.hash === '#own') startOwn();
+  if (location.hash === '#reach') setOverlay('reach');
 }
 
 start();
