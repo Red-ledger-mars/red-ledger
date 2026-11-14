@@ -15,6 +15,7 @@ import { smoothScroll } from './smooth-scroll.js';
 import { loadComms } from './comms.js';
 import { loadSky } from './sky.js';
 import { createFreeWalk } from './freewalk.js';
+import { loadReach, REACH_LEGEND } from './reach.js';
 
 const $ = (id) => document.getElementById(id);
 const wait = (ms) => new Promise((done) => setTimeout(done, ms));
@@ -33,7 +34,7 @@ const ROUTES = [
 
 // Seconds of autoplay. The legs of the walk share PLAY.walk by length, so
 // the whole story runs for about a minute.
-const PLAY = { title: 5, routes: 8, detail: 5, walk: 34, verdict: 5, test: 8 };
+const PLAY = { title: 5, routes: 8, detail: 5, walk: 34, verdict: 5, reach: 7, test: 8 };
 
 const state = {
   routes: {},       // id -> planned route with no load carried
@@ -48,6 +49,7 @@ const state = {
   comms: null,      // orbiter visibility, loaded after the page opens
   startMinute: null, // minute of the sol the walk starts; null until comms load
   free: null,       // the free walk in progress, or null
+  reach: null,      // the body-reach map, loaded after the page opens
 };
 
 // A number as the page shows it. Assumed numbers are hollow (see the key
@@ -122,6 +124,7 @@ async function boot() {
   // Orbiter passes only matter for the start time on the face-off, so they
   // load after the story has started. Without them that control stays away.
   loadComms().then((comms) => { state.comms = comms; pickStart(); refreshEnd(); }).catch(() => {});
+  loadReach().then((reach) => { state.reach = reach; if (state.chapter?.dataset.kind === 'reach') showReach(); }).catch(() => {});
 }
 
 // The text column covers the left of the screen, so the scene centres in
@@ -229,6 +232,23 @@ function build() {
       </div>
     </section>`);
 
+  // How far a body can go from the habitat and back with no rest. The
+  // sentence, the legend and its colours are the Main chat's, as agreed.
+  const reachLegend = ['none', '1', '2', '3+'].map((label, i) => `<li><i class="swatch" style="background: ${REACH_LEGEND[i].color}"></i>${label}</li>`).join('');
+  html.push(`
+    <section class="chapter" data-kind="reach" data-play="${PLAY.reach}">
+      <div class="chapter-body">
+        <h2>How far can a body go?</h2>
+        <p class="lede">With no load a walker can go 630 to 1,140 m from the habitat, depending on the ground, and come back with no rest. Carrying 30 kg: 490 to 700 m.</p>
+        <div class="plan-group reach-load"><span class="label">Carried load</span>${loadButtons()}</div>
+        <div class="reach-legend">
+          <p class="label">Rests needed</p>
+          <ul class="legend-row label">${reachLegend}</ul>
+          <p class="quiet">To walk from the habitat to a point and back, body-cost route, load shown.</p>
+        </div>
+      </div>
+    </section>`);
+
   html.push(`
     <section class="chapter wide-text" data-kind="test" data-play="${PLAY.test}">
       <div class="chapter-body">
@@ -308,17 +328,19 @@ function faceoff() {
 
 /* Planner: the visitor changes the load and the start time */
 
-function planner() {
+function loadButtons() {
   const loads = Object.keys(state.plans).map(Number).sort((a, b) => a - b);
+  return `<span class="seg">${loads.map((kg) => `<button type="button" class="label" data-load="${kg}" aria-pressed="${kg === state.loadKg}">${kg} kg</button>`).join('')}</span>`;
+}
+
+function planner() {
   const start = state.comms && state.startMinute != null ? `
       <label class="plan-group"><span class="label">Start, on the day modelled</span>
         <select id="plan-start" class="label">${startOptions()}</select>
       </label>` : '';
   return `
     <div class="plan" role="group" aria-label="Change the walk">
-      <div class="plan-group"><span class="label">Carried load</span>
-        <span class="seg">${loads.map((kg) => `<button type="button" class="label" data-load="${kg}" aria-pressed="${kg === state.loadKg}">${kg} kg</button>`).join('')}</span>
-      </div>${start}
+      <div class="plan-group"><span class="label">Carried load</span>${loadButtons()}</div>${start}
     </div>`;
 }
 
@@ -355,9 +377,13 @@ function refreshEnd() {
 }
 
 // A new load changes every number in the story: the routes, their rests, the
-// heat along them. The story is rebuilt and the page stays on the face-off.
+// heat along them. The story is rebuilt and the page stays in the chapter the
+// visitor changed it from.
 function setLoad(kg) {
   if (kg === state.loadKg || !state.plans[kg]) return;
+  const here = state.chapters.find((ch) => ch.el === state.chapter) ?? state.chapters.find((ch) => ch.kind === 'end');
+  const kind = here.kind;
+  const offset = scrollY - here.top;
   state.loadKg = kg;
   for (const def of ROUTES) state.routes[def.id] = state.plans[kg][def.pricing];
   state.view.setRoutes?.(state.routes);
@@ -366,8 +392,17 @@ function setLoad(kg) {
   measure();
   state.chapter = null;
   state.dist = -1;
-  scrollTo({ top: $('end').offsetTop, behavior: 'instant' });
+  const there = state.chapters.find((ch) => ch.kind === kind) ?? state.chapters.at(-1);
+  scrollTo({ top: there.top + offset, behavior: 'instant' });
   update();
+}
+
+// The reach map on the 3D ground for the load shown. Drawn once per load.
+const reachImages = {};
+function showReach() {
+  if (!state.reach || !state.view.setOverlay) return;
+  reachImages[state.loadKg] ??= state.reach.image(state.loadKg);
+  state.view.setOverlay(reachImages[state.loadKg], state.reach.bounds);
 }
 
 /* The live number */
@@ -451,9 +486,17 @@ function update() {
 function setChapter(c) {
   if (state.chapter === c.el) return;
   for (const ch of state.chapters) ch.el.classList.toggle('is-active', ch.el === c.el);
+  const wasReach = state.chapter?.dataset.kind === 'reach';
   state.chapter = c.el;
   const walking = c.kind === 'leg';
   state.view.setMode(walking ? 'chase' : 'orbit');
+  if (c.kind === 'reach') {
+    state.view.setRoutesVisible?.(false);
+    showReach();
+  } else if (wasReach) {
+    state.view.setOverlay?.(null);
+    state.view.setRoutesVisible?.(true);
+  }
   // The live number shows only during the walk, so it never sits under
   // the verdict text in the same left column.
   $('hud').hidden = !walking;
