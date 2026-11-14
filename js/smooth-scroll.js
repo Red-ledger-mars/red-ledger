@@ -65,6 +65,7 @@ export function smoothScroll() {
 // True when the wheel is over something that scrolls by itself and can still
 // move that way.
 function scrollsInside(el, dy) {
+  if (!(el instanceof Element)) return false; // a wheel sent to window or document
   for (; el && el !== document.body && el !== document.documentElement; el = el.parentElement) {
     if (el.scrollHeight <= el.clientHeight) continue;
     const overflow = getComputedStyle(el).overflowY;
