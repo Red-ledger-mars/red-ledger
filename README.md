@@ -13,7 +13,7 @@ Made with NASA open data. This project is not endorsed by NASA.
 Work in progress. This section is updated as parts are finished.
 
 - [x] Page and helmet display layout
-- [ ] NASA map layers
+- [x] NASA map layers: HiRISE colour, CTX, THEMIS day and night infrared, Curiosity's path
 - [ ] Routes and science targets
 - [ ] Body-cost model
 - [ ] Demo walk stored in the repo

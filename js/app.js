@@ -15,12 +15,15 @@ const state = {
   bars: Object.fromEntries(BARS.map((b) => [b.id, { value: null, limit: null, max: null, source: null }])),
 };
 
-// Mars Trek serves tiles on a plain latitude/longitude grid, so the map uses
-// the same grid instead of the web default made for Earth.
+// The map uses the web's standard grid because NASA's rover map tiles for
+// Gale are cut on it. Leaflet assumes Earth's size for distances, so every
+// distance shown on the page is computed separately with the Mars radius.
 const map = L.map('map', {
-  crs: L.CRS.EPSG4326,
   center: SITE.center,
   zoom: SITE.zoom,
+  minZoom: SITE.minZoom,
+  maxZoom: SITE.maxZoom,
+  maxBounds: SITE.bounds,
   zoomControl: false,
   attributionControl: true,
 });
@@ -36,19 +39,35 @@ map.on('mousemove', (e) => {
 function buildLayers() {
   const nav = document.getElementById('layers');
   for (const layer of LAYERS) {
-    const tile = L.tileLayer(layer.url, layer.options);
+    const options = { ...layer.options, attribution: layer.credit };
+    const leaf = layer.kind === 'image'
+      ? L.imageOverlay(layer.url, layer.bounds, options)
+      : L.tileLayer(layer.url, options);
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.textContent = layer.label;
     btn.title = layer.credit;
     btn.setAttribute('aria-pressed', String(Boolean(layer.on)));
-    if (layer.on) tile.addTo(map);
+    if (layer.on) leaf.addTo(map);
     btn.addEventListener('click', () => {
-      const on = !map.hasLayer(tile);
-      if (on) tile.addTo(map); else tile.remove();
+      const on = !map.hasLayer(leaf);
+      if (on) leaf.addTo(map); else leaf.remove();
       btn.setAttribute('aria-pressed', String(on));
     });
     nav.append(btn);
+  }
+}
+
+// Curiosity's own path: where a wheeled rover has already crossed this ground.
+async function buildRoverPath() {
+  const res = await fetch('data/msl_waypoints.json');
+  const { waypoints, credit } = await res.json();
+  const line = waypoints.map((w) => [w.lat, w.lon]);
+  L.polyline(line, { color: '#efe6da', weight: 1.5, opacity: 0.75, dashArray: '2 5', attribution: `Rover path: ${credit}` }).addTo(map);
+  for (const w of waypoints) {
+    L.circleMarker([w.lat, w.lon], { radius: 2.5, color: '#efe6da', weight: 1, fillOpacity: 0.9 })
+      .bindTooltip(`Curiosity, sol ${w.sol} · ${w.elev.toFixed(0)} m`)
+      .addTo(map);
   }
 }
 
@@ -95,3 +114,4 @@ function renderBars() {
 buildLayers();
 buildBars();
 renderBars();
+buildRoverPath();
