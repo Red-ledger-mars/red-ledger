@@ -1,0 +1,476 @@
+{
+ "what": "The body model's predicted metabolic rate set against rates measured on people walking in reduced gravity. ratio = measured / predicted; above 1 means the model predicts too little.",
+ "method": "predicted watts = Minetti 2002 walking cost at the slope x gravity factor (Farley and McMahon 1992, straight line) x mass moved x speed. Fixed before the measurements were collected.",
+ "rule": "If the median ratio of the suited points lies between 0.85 and 1.15 the model stands. Otherwise it is corrected by the median, and the 10th to 90th percentile spread is carried as the uncertainty.",
+ "suited": {
+  "points": 7,
+  "median_ratio": 1.364,
+  "p10_ratio": 1.155,
+  "p90_ratio": 1.637,
+  "lowest_ratio": 1.081,
+  "highest_ratio": 1.663
+ },
+ "unsuited": {
+  "points": 12,
+  "median_ratio": 1.921,
+  "p10_ratio": 1.516,
+  "p90_ratio": 2.056,
+  "lowest_ratio": 1.43,
+  "highest_ratio": 2.222
+ },
+ "suited_level": {
+  "points": 7,
+  "median_ratio": 1.364,
+  "p10_ratio": 1.155,
+  "p90_ratio": 1.637,
+  "lowest_ratio": 1.081,
+  "highest_ratio": 1.663
+ },
+ "suited_sloped": {
+  "points": 0,
+  "median_ratio": null,
+  "p10_ratio": null,
+  "p90_ratio": null,
+  "lowest_ratio": null,
+  "highest_ratio": null
+ },
+ "suited_by_gravity": {
+  "0.16666666666666666": {
+   "points": 5,
+   "median_ratio": 1.233,
+   "p10_ratio": 1.13,
+   "p90_ratio": 1.518,
+   "lowest_ratio": 1.081,
+   "highest_ratio": 1.62
+  },
+  "0.375": {
+   "points": 2,
+   "median_ratio": 1.58,
+   "p10_ratio": 1.514,
+   "p90_ratio": 1.646,
+   "lowest_ratio": 1.497,
+   "highest_ratio": 1.663
+  }
+ },
+ "verdict": "corrected",
+ "correction": 1.364,
+ "uncertainty": [
+  0.847,
+  1.2
+ ],
+ "skipped": [
+  {
+   "id": "IST2-fig39-suited-10pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  },
+  {
+   "id": "IST2-fig39-suited-20pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  },
+  {
+   "id": "IST2-fig39-suited-30pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  },
+  {
+   "id": "IST2-fig39-ss_wm-10pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  },
+  {
+   "id": "IST2-fig39-ss_wm-20pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  },
+  {
+   "id": "IST2-fig39-ss_wm-30pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  },
+  {
+   "id": "IST2-fig39-ss-10pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  },
+  {
+   "id": "IST2-fig39-ss-20pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  },
+  {
+   "id": "IST2-fig39-ss-30pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  },
+  {
+   "id": "IST2-fig39-earth-10pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  },
+  {
+   "id": "IST2-fig39-earth-20pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  },
+  {
+   "id": "IST2-fig39-earth-30pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  },
+  {
+   "id": "IST2-fig37-suited-0.12g-10pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  },
+  {
+   "id": "IST2-fig37-suited-0.12g-20pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  },
+  {
+   "id": "IST2-fig37-suited-0.12g-30pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  },
+  {
+   "id": "IST2-fig37-suited-0.17g-10pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  },
+  {
+   "id": "IST2-fig37-suited-0.17g-20pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  },
+  {
+   "id": "IST2-fig37-suited-0.17g-30pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  },
+  {
+   "id": "IST2-fig37-suited-0.32g-10pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  },
+  {
+   "id": "IST2-fig37-suited-0.32g-20pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  },
+  {
+   "id": "IST2-fig37-suited-0.32g-30pct",
+   "missing": [
+    "speed_m_s"
+   ]
+  }
+ ],
+ "rows": [
+  {
+   "id": "EWT-walkback-mean",
+   "source": "EWT2008",
+   "suited": true,
+   "gravity_g": 0.16666666666666666,
+   "speed_m_s": 1.761,
+   "grade_percent": 0,
+   "gait": null,
+   "mass_kg": 202.4,
+   "measured_w": 695.8,
+   "predicted_w": 564,
+   "ratio": 1.233,
+   "beyond_slope_data": false,
+   "read_from": "table (slide 14) and text (EWT2007 p.17)"
+  },
+  {
+   "id": "EWT-moon-suited-2mph",
+   "source": "EWT2008",
+   "suited": true,
+   "gravity_g": 0.16666666666666666,
+   "speed_m_s": 0.894,
+   "grade_percent": 0,
+   "gait": null,
+   "mass_kg": 202.4,
+   "measured_w": 464,
+   "predicted_w": 286,
+   "ratio": 1.62,
+   "beyond_slope_data": false,
+   "read_from": "estimated from figure (report's second-order trend line through pooled individual-subject points)"
+  },
+  {
+   "id": "EWT-moon-suited-3mph",
+   "source": "EWT2008",
+   "suited": true,
+   "gravity_g": 0.16666666666666666,
+   "speed_m_s": 1.341,
+   "grade_percent": 0,
+   "gait": null,
+   "mass_kg": 202.4,
+   "measured_w": 586,
+   "predicted_w": 430,
+   "ratio": 1.364,
+   "beyond_slope_data": false,
+   "read_from": "estimated from figure (report's second-order trend line through pooled individual-subject points)"
+  },
+  {
+   "id": "EWT-moon-suited-4mph",
+   "source": "EWT2008",
+   "suited": true,
+   "gravity_g": 0.16666666666666666,
+   "speed_m_s": 1.788,
+   "grade_percent": 0,
+   "gait": null,
+   "mass_kg": 202.4,
+   "measured_w": 690,
+   "predicted_w": 573,
+   "ratio": 1.204,
+   "beyond_slope_data": false,
+   "read_from": "estimated from figure (report's second-order trend line through pooled individual-subject points)"
+  },
+  {
+   "id": "EWT-moon-suited-5mph",
+   "source": "EWT2008",
+   "suited": true,
+   "gravity_g": 0.16666666666666666,
+   "speed_m_s": 2.235,
+   "grade_percent": 0,
+   "gait": null,
+   "mass_kg": 202.4,
+   "measured_w": 774,
+   "predicted_w": 716,
+   "ratio": 1.081,
+   "beyond_slope_data": false,
+   "read_from": "estimated from figure (report's second-order trend line through pooled individual-subject points)"
+  },
+  {
+   "id": "EWT-moon-weighted-2mph",
+   "source": "EWT2008",
+   "suited": false,
+   "gravity_g": 0.16666666666666666,
+   "speed_m_s": 0.894,
+   "grade_percent": 0,
+   "gait": null,
+   "mass_kg": 81.4,
+   "measured_w": 256,
+   "predicted_w": 115,
+   "ratio": 2.222,
+   "beyond_slope_data": false,
+   "read_from": "estimated from figure (report's second-order trend line through pooled individual-subject points)"
+  },
+  {
+   "id": "EWT-moon-weighted-3mph",
+   "source": "EWT2008",
+   "suited": false,
+   "gravity_g": 0.16666666666666666,
+   "speed_m_s": 1.341,
+   "grade_percent": 0,
+   "gait": null,
+   "mass_kg": 81.4,
+   "measured_w": 346,
+   "predicted_w": 173,
+   "ratio": 2.002,
+   "beyond_slope_data": false,
+   "read_from": "estimated from figure (report's second-order trend line through pooled individual-subject points)"
+  },
+  {
+   "id": "EWT-moon-weighted-4mph",
+   "source": "EWT2008",
+   "suited": false,
+   "gravity_g": 0.16666666666666666,
+   "speed_m_s": 1.788,
+   "grade_percent": 0,
+   "gait": null,
+   "mass_kg": 81.4,
+   "measured_w": 450,
+   "predicted_w": 230,
+   "ratio": 1.953,
+   "beyond_slope_data": false,
+   "read_from": "estimated from figure (report's second-order trend line through pooled individual-subject points)"
+  },
+  {
+   "id": "EWT-moon-weighted-5mph",
+   "source": "EWT2008",
+   "suited": false,
+   "gravity_g": 0.16666666666666666,
+   "speed_m_s": 2.235,
+   "grade_percent": 0,
+   "gait": null,
+   "mass_kg": 81.4,
+   "measured_w": 562,
+   "predicted_w": 288,
+   "ratio": 1.951,
+   "beyond_slope_data": false,
+   "read_from": "estimated from figure (report's second-order trend line through pooled individual-subject points)"
+  },
+  {
+   "id": "EWT-moon-unsuited-2mph",
+   "source": "EWT2008",
+   "suited": false,
+   "gravity_g": 0.16666666666666666,
+   "speed_m_s": 0.894,
+   "grade_percent": 0,
+   "gait": null,
+   "mass_kg": 81.4,
+   "measured_w": 237,
+   "predicted_w": 115,
+   "ratio": 2.057,
+   "beyond_slope_data": false,
+   "read_from": "estimated from figure (report's second-order trend line through pooled individual-subject points)"
+  },
+  {
+   "id": "EWT-moon-unsuited-3mph",
+   "source": "EWT2008",
+   "suited": false,
+   "gravity_g": 0.16666666666666666,
+   "speed_m_s": 1.341,
+   "grade_percent": 0,
+   "gait": null,
+   "mass_kg": 81.4,
+   "measured_w": 286,
+   "predicted_w": 173,
+   "ratio": 1.655,
+   "beyond_slope_data": false,
+   "read_from": "estimated from figure (report's second-order trend line through pooled individual-subject points)"
+  },
+  {
+   "id": "EWT-moon-unsuited-4mph",
+   "source": "EWT2008",
+   "suited": false,
+   "gravity_g": 0.16666666666666666,
+   "speed_m_s": 1.788,
+   "grade_percent": 0,
+   "gait": null,
+   "mass_kg": 81.4,
+   "measured_w": 349,
+   "predicted_w": 230,
+   "ratio": 1.514,
+   "beyond_slope_data": false,
+   "read_from": "estimated from figure (report's second-order trend line through pooled individual-subject points)"
+  },
+  {
+   "id": "EWT-moon-unsuited-5mph",
+   "source": "EWT2008",
+   "suited": false,
+   "gravity_g": 0.16666666666666666,
+   "speed_m_s": 2.235,
+   "grade_percent": 0,
+   "gait": null,
+   "mass_kg": 81.4,
+   "measured_w": 412,
+   "predicted_w": 288,
+   "ratio": 1.43,
+   "beyond_slope_data": false,
+   "read_from": "estimated from figure (report's second-order trend line through pooled individual-subject points)"
+  },
+  {
+   "id": "EWT-mars-suited-2.5mph",
+   "source": "EWT2008",
+   "suited": true,
+   "gravity_g": 0.375,
+   "speed_m_s": 1.118,
+   "grade_percent": 0,
+   "gait": null,
+   "mass_kg": 202.4,
+   "measured_w": 614,
+   "predicted_w": 410,
+   "ratio": 1.497,
+   "beyond_slope_data": false,
+   "read_from": "estimated from figure (report's trend line through pooled individual-subject points)"
+  },
+  {
+   "id": "EWT-mars-suited-3.0mph",
+   "source": "EWT2008",
+   "suited": true,
+   "gravity_g": 0.375,
+   "speed_m_s": 1.341,
+   "grade_percent": 0,
+   "gait": null,
+   "mass_kg": 202.4,
+   "measured_w": 818,
+   "predicted_w": 492,
+   "ratio": 1.663,
+   "beyond_slope_data": false,
+   "read_from": "estimated from figure (report's trend line through pooled individual-subject points)"
+  },
+  {
+   "id": "EWT-mars-weighted-3.0mph",
+   "source": "EWT2008",
+   "suited": false,
+   "gravity_g": 0.375,
+   "speed_m_s": 1.341,
+   "grade_percent": 0,
+   "gait": null,
+   "mass_kg": 81.4,
+   "measured_w": 374,
+   "predicted_w": 198,
+   "ratio": 1.89,
+   "beyond_slope_data": false,
+   "read_from": "estimated from figure (report's trend line through pooled individual-subject points)"
+  },
+  {
+   "id": "EWT-mars-weighted-4.0mph",
+   "source": "EWT2008",
+   "suited": false,
+   "gravity_g": 0.375,
+   "speed_m_s": 1.788,
+   "grade_percent": 0,
+   "gait": null,
+   "mass_kg": 81.4,
+   "measured_w": 540,
+   "predicted_w": 264,
+   "ratio": 2.047,
+   "beyond_slope_data": false,
+   "read_from": "estimated from figure (report's trend line through pooled individual-subject points)"
+  },
+  {
+   "id": "EWT-mars-unsuited-3.0mph",
+   "source": "EWT2008",
+   "suited": false,
+   "gravity_g": 0.375,
+   "speed_m_s": 1.341,
+   "grade_percent": 0,
+   "gait": null,
+   "mass_kg": 81.4,
+   "measured_w": 316,
+   "predicted_w": 198,
+   "ratio": 1.597,
+   "beyond_slope_data": false,
+   "read_from": "estimated from figure (report's trend line through pooled individual-subject points)"
+  },
+  {
+   "id": "EWT-mars-unsuited-4.0mph",
+   "source": "EWT2008",
+   "suited": false,
+   "gravity_g": 0.375,
+   "speed_m_s": 1.788,
+   "grade_percent": 0,
+   "gait": null,
+   "mass_kg": 81.4,
+   "measured_w": 406,
+   "predicted_w": 264,
+   "ratio": 1.539,
+   "beyond_slope_data": false,
+   "read_from": "estimated from figure (report's trend line through pooled individual-subject points)"
+  }
+ ]
+}

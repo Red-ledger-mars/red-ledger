@@ -1,6 +1,6 @@
 // Route finding on the elevation grid, and the per-step record of a route.
 
-import { walkCostMars, step, Ledger, MODEL, MAX_MEASURED_GRADIENT, JOULES_PER_KCAL, totalMassKg } from './body.js';
+import { walkCostMars, step, Ledger, MODEL, MAX_MEASURED_GRADIENT, JOULES_PER_KCAL, totalMassKg, SUIT_FACTOR_RANGE } from './body.js';
 
 // Steps to the 16 nearest cells, so a path can head in 16 directions.
 const MOVES = [
@@ -129,21 +129,35 @@ export function planWalk(terrain, walk, pricing, back, sky, options = {}) {
     stopAt.push(cells.length - 1);
   }
   const stops = stopAt.map((index, i) => ({ index, place: places[i] }));
-  const route = describe(terrain, cells, stops, back, sky, { loadKg: options.loadKg ?? 0, rests: options.rests ?? true });
+  const loadKg = options.loadKg ?? 0;
+  const route = describe(terrain, cells, stops, back, sky, { loadKg, rests: options.rests ?? true });
   if (options.rests ?? true) {
     // The same walk with no rests, to show what the planner prevented.
-    const unrested = describe(terrain, cells, stops, back, sky, { loadKg: options.loadKg ?? 0, rests: false });
-    route.totals.peakHeatNoRest = unrested.totals.peakHeat;
-    route.totals.secondsNoRest = unrested.totals.seconds;
-    route.totals.overHeatLimitM = unrested.totals.overHeatLimitM;
+    const peak = (extra) => describe(terrain, cells, stops, back, sky, { loadKg, rests: false, ...extra }).totals;
+    const unrested = peak({});
+    route.totals.peakHeatNoRest = unrested.peakHeat;
+    route.totals.secondsNoRest = unrested.seconds;
+    route.totals.overHeatLimitM = unrested.overHeatLimitM;
+    // The same peak at each end of the spread found when the model was
+    // tested against people.
+    route.totals.peakHeatRange = SUIT_FACTOR_RANGE.map((suitFactor) => peak({ suitFactor }).peakHeat);
+    // The least cooling a suit would need for this walk to stay under the
+    // heat limit with no rest, found by halving the interval.
+    let low = MODEL.restW;
+    let high = 1200;
+    for (let i = 0; i < 14; i++) {
+      const mid = (low + high) / 2;
+      if (peak({ coolingW: mid }).peakHeat > MODEL.heatLimitKJkg) low = mid; else high = mid;
+    }
+    route.totals.coolingNeededW = Math.ceil(high);
   }
   return route;
 }
 
 // Turns a list of cells into points that carry the state of the body there.
-function describe(terrain, cells, stops, back, sky, { loadKg, rests }) {
+function describe(terrain, cells, stops, back, sky, { loadKg, rests, suitFactor, coolingW }) {
   const { cols, px, z } = terrain;
-  const ledger = new Ledger();
+  const ledger = new Ledger(coolingW);
   const points = [];
   let dist = 0;
   let climb = 0;
@@ -170,7 +184,7 @@ function describe(terrain, cells, stops, back, sky, { loadKg, rests }) {
         restSeconds += seconds;
         restStops.push({ dist, seconds, lat: points[k - 1].lat, lon: points[k - 1].lon });
       }
-      now = step(run, rise, loadKg);
+      now = step(run, rise, loadKg, suitFactor);
       ledger.add(now, skyPct);
       dist += now.length;
       if (rise > 0) climb += rise; else descent -= rise;

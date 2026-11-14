@@ -1,0 +1,208 @@
+{
+ "what": "The revised body model set against suited walking on slopes of 10, 20 and 30 percent at 0.12, 0.17 and 0.32 of Earth gravity (NASA/TP-2010-216125, values read from the report's plotted lines). These points were not used to set the suit correction. ratio = measured / predicted at the middle speed.",
+ "speeds_m_s": {
+  "low": 0.56,
+  "mid": 0.765,
+  "high": 0.97
+ },
+ "first_model": {
+  "median_ratio": 0.673,
+  "lowest": 0.444,
+  "highest": 0.942
+ },
+ "revised_model": {
+  "median_ratio": 1.028,
+  "lowest": 0.954,
+  "highest": 1.142,
+  "inside_speed_band": 12,
+  "points": 12
+ },
+ "cautions": [
+  "The revision was made after seeing these measurements; the fit is a check of consistency, not a blind prediction.",
+  "The measured values were read off plotted trend lines (about 1 ml/kg/min reading error) and the speed is known only as a range.",
+  "The report's authors say the rig that offloads weight probably helped the suited subjects on slopes.",
+  "All measurements are at lunar-like gravity; none of the sloped ones is at Mars gravity."
+ ],
+ "rows": [
+  {
+   "id": "IST2-fig39-suited-10pct",
+   "gravity_g": 0.167,
+   "grade_percent": 10,
+   "measured_w": 451,
+   "first_model_w": 479,
+   "first_model_ratio": 0.942,
+   "revised_w": {
+    "low": 289,
+    "mid": 395,
+    "high": 501
+   },
+   "revised_ratio": 1.142,
+   "measured_inside_speed_band": true
+  },
+  {
+   "id": "IST2-fig39-suited-20pct",
+   "gravity_g": 0.167,
+   "grade_percent": 20,
+   "measured_w": 497,
+   "first_model_w": 770,
+   "first_model_ratio": 0.646,
+   "revised_w": {
+    "low": 345,
+    "mid": 472,
+    "high": 598
+   },
+   "revised_ratio": 1.054,
+   "measured_inside_speed_band": true
+  },
+  {
+   "id": "IST2-fig39-suited-30pct",
+   "gravity_g": 0.167,
+   "grade_percent": 30,
+   "measured_w": 568,
+   "first_model_w": 1093,
+   "first_model_ratio": 0.52,
+   "revised_w": {
+    "low": 407,
+    "mid": 557,
+    "high": 706
+   },
+   "revised_ratio": 1.021,
+   "measured_inside_speed_band": true
+  },
+  {
+   "id": "IST2-fig37-suited-0.12g-10pct",
+   "gravity_g": 0.12,
+   "grade_percent": 10,
+   "measured_w": 397,
+   "first_model_w": 463,
+   "first_model_ratio": 0.857,
+   "revised_w": {
+    "low": 269,
+    "mid": 367,
+    "high": 465
+   },
+   "revised_ratio": 1.082,
+   "measured_inside_speed_band": true
+  },
+  {
+   "id": "IST2-fig37-suited-0.12g-20pct",
+   "gravity_g": 0.12,
+   "grade_percent": 20,
+   "measured_w": 411,
+   "first_model_w": 745,
+   "first_model_ratio": 0.552,
+   "revised_w": {
+    "low": 309,
+    "mid": 422,
+    "high": 535
+   },
+   "revised_ratio": 0.974,
+   "measured_inside_speed_band": true
+  },
+  {
+   "id": "IST2-fig37-suited-0.12g-30pct",
+   "gravity_g": 0.12,
+   "grade_percent": 30,
+   "measured_w": 470,
+   "first_model_w": 1057,
+   "first_model_ratio": 0.444,
+   "revised_w": {
+    "low": 354,
+    "mid": 483,
+    "high": 613
+   },
+   "revised_ratio": 0.973,
+   "measured_inside_speed_band": true
+  },
+  {
+   "id": "IST2-fig37-suited-0.17g-10pct",
+   "gravity_g": 0.17,
+   "grade_percent": 10,
+   "measured_w": 414,
+   "first_model_w": 480,
+   "first_model_ratio": 0.863,
+   "revised_w": {
+    "low": 291,
+    "mid": 397,
+    "high": 503
+   },
+   "revised_ratio": 1.043,
+   "measured_inside_speed_band": true
+  },
+  {
+   "id": "IST2-fig37-suited-0.17g-20pct",
+   "gravity_g": 0.17,
+   "grade_percent": 20,
+   "measured_w": 481,
+   "first_model_w": 772,
+   "first_model_ratio": 0.623,
+   "revised_w": {
+    "low": 348,
+    "mid": 475,
+    "high": 602
+   },
+   "revised_ratio": 1.012,
+   "measured_inside_speed_band": true
+  },
+  {
+   "id": "IST2-fig37-suited-0.17g-30pct",
+   "gravity_g": 0.17,
+   "grade_percent": 30,
+   "measured_w": 554,
+   "first_model_w": 1095,
+   "first_model_ratio": 0.506,
+   "revised_w": {
+    "low": 411,
+    "mid": 562,
+    "high": 712
+   },
+   "revised_ratio": 0.986,
+   "measured_inside_speed_band": true
+  },
+  {
+   "id": "IST2-fig37-suited-0.32g-10pct",
+   "gravity_g": 0.32,
+   "grade_percent": 10,
+   "measured_w": 465,
+   "first_model_w": 530,
+   "first_model_ratio": 0.878,
+   "revised_w": {
+    "low": 357,
+    "mid": 487,
+    "high": 618
+   },
+   "revised_ratio": 0.954,
+   "measured_inside_speed_band": true
+  },
+  {
+   "id": "IST2-fig37-suited-0.32g-20pct",
+   "gravity_g": 0.32,
+   "grade_percent": 20,
+   "measured_w": 657,
+   "first_model_w": 852,
+   "first_model_ratio": 0.771,
+   "revised_w": {
+    "low": 464,
+    "mid": 634,
+    "high": 804
+   },
+   "revised_ratio": 1.036,
+   "measured_inside_speed_band": true
+  },
+  {
+   "id": "IST2-fig37-suited-0.32g-30pct",
+   "gravity_g": 0.32,
+   "grade_percent": 30,
+   "measured_w": 846,
+   "first_model_w": 1209,
+   "first_model_ratio": 0.7,
+   "revised_w": {
+    "low": 584,
+    "mid": 797,
+    "high": 1011
+   },
+   "revised_ratio": 1.061,
+   "measured_inside_speed_band": true
+  }
+ ]
+}

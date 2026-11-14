@@ -15,8 +15,14 @@ export const SOURCES = {
   gravity: {
     label: 'Farley and McMahon 1992, J Appl Physiol 73:2709',
     url: 'https://europepmc.org/article/MED/1490989',
-    what: 'Walking at 0.25 of Earth gravity cost 33% less energy. Mars is 0.38: a straight line between the two measured points gives 27% less. Slope cost has never been measured at Mars gravity; the same factor is applied at every slope.',
-    status: 'assumption',
+    what: 'Walking at 0.25 of Earth gravity cost 33% less energy. Mars is 0.38: a straight line between the two measured points gives 27% less on level ground.',
+    status: 'abstract',
+  },
+  people: {
+    label: 'NASA suited walking tests: Walkback Test (NTRS 20070016007, 20080014853) and Integrated Suit Test 2 (NASA/TP-2010-216125)',
+    url: 'https://ntrs.nasa.gov/citations/20110003409',
+    what: 'Measured metabolic rates of people walking in the Mark III suit at 0.12 to 0.38 of Earth gravity, on the level and on slopes up to 30%. The model was tested against them: on the level it predicted too little, so the level cost is multiplied by 1.364 (spread 1.155 to 1.637); on slopes it predicted up to twice too much, so the slope cost is now scaled by gravity. After the change, twelve sloped measurements lie within 5% (median) of the model. All but one value were read from the reports\' plotted lines.',
+    status: 'primary',
   },
   suitMass: {
     label: 'NASA, Apollo A7L-B suit and backpack',
@@ -149,8 +155,32 @@ export function walkCostEarth(i) {
   return 280.5 * g ** 5 - 58.7 * g ** 4 - 76.8 * g ** 3 + 51.9 * g ** 2 + 19.6 * g + 2.5;
 }
 
+// What the test against people changed (tools/test_body_model.mjs and
+// tools/test_body_model_slopes.mjs, data/validation/):
+//
+// 1. On level ground, suited people used 1.364 times the energy the first
+//    model predicted (median of seven NASA measurements; the spread between
+//    the 10th and 90th percentile was 1.155 to 1.637). By the rule fixed
+//    before the data was collected, the level cost is multiplied by 1.364
+//    and that spread is carried as the uncertainty.
+// 2. On slopes the first model applied one gravity factor to the whole
+//    cost and predicted up to twice what was measured. The extra cost of a
+//    slope is mostly work against weight, and weight scales with gravity.
+//    So the slope part of the cost is now scaled by gravity itself.
+export const SUIT_FACTOR = 1.364;
+export const SUIT_FACTOR_RANGE = [1.155, 1.637];
+
+// Energy cost of suited walking, joules per kg per metre walked, on a
+// gradient i at gravity g (as a share of Earth's): the level cost, scaled
+// for gravity and for the suit, plus the extra cost of the slope, scaled
+// by weight.
+export function walkCostSuited(i, g, suitFactor = SUIT_FACTOR) {
+  const level = walkCostEarth(0);
+  return level * walkFactor(g) * suitFactor + (walkCostEarth(i) - level) * g;
+}
+
 // The same cost at Mars gravity.
-export const walkCostMars = (i) => walkCostEarth(i) * MODEL.marsWalkFactor;
+export const walkCostMars = (i, suitFactor = SUIT_FACTOR) => walkCostSuited(i, MODEL.marsGravityG, suitFactor);
 
 // Metabolic rate, in watts, of walking at `speed` metres per second (along
 // the slope) on a gradient, moving `massKg`, at gravity `g`. This is the
@@ -160,12 +190,17 @@ export function walkPowerW({ gradient = 0, speed, massKg, g }) {
   return walkCostEarth(gradient) * walkFactor(g) * massKg * speed;
 }
 
+// The same for the model as revised after the test (see walkCostSuited).
+export function walkPowerSuitedW({ gradient = 0, speed, massKg, g, suitFactor = SUIT_FACTOR }) {
+  return walkCostSuited(gradient, g, suitFactor) * massKg * speed;
+}
+
 // One step of a walk: `run` metres on the map, rising `rise` metres.
 // Returns what it costs and how fast the walker can take it.
-export function step(run, rise, loadKg = 0) {
+export function step(run, rise, loadKg = 0, suitFactor = SUIT_FACTOR) {
   const mass = totalMassKg(loadKg);
   const length = Math.hypot(run, rise);
-  const joules = walkCostMars(rise / run) * length * mass;
+  const joules = walkCostMars(rise / run, suitFactor) * length * mass;
   // At the planned pace the step would need this much power; if that is over
   // the work limit, the walker slows until it is not.
   const speed = Math.min(MODEL.paceMs, MODEL.workLimitW / (joules / length));
@@ -180,7 +215,9 @@ export function step(run, rise, loadKg = 0) {
 // A running record of the body along a walk. Call `add` for each step in
 // order and read the totals after each call.
 export class Ledger {
-  constructor() {
+  // `coolingW` is what the suit can remove; the default is the model's.
+  constructor(coolingW = MODEL.coolingW) {
+    this.coolingW = coolingW;
     this.seconds = 0;
     this.joules = 0;
     this.storedJ = 0;      // body heat the suit has not removed
@@ -196,7 +233,7 @@ export class Ledger {
     this.joules += s.joules;
     // The suit removes up to its limit. Heat above that stays in the body;
     // spare cooling on easier ground takes stored heat back out.
-    this.storedJ = Math.max(0, this.storedJ + (s.heatW - MODEL.coolingW) * s.seconds);
+    this.storedJ = Math.max(0, this.storedJ + (s.heatW - this.coolingW) * s.seconds);
     this.peakStoredJ = Math.max(this.peakStoredJ, this.storedJ);
     if (this.heatKJkg > MODEL.heatLimitKJkg) this.overLimitM += s.length;
   }
@@ -205,11 +242,11 @@ export class Ledger {
   // Returns the seconds rested. Dose and energy keep counting.
   rest(skyPct = MODEL.skyReferencePct) {
     const target = MODEL.resumeAt * MODEL.heatLimitKJkg * 1000 * MODEL.bodyMassKg;
-    const seconds = Math.max(0, (this.storedJ - target) / (MODEL.coolingW - MODEL.restW));
+    const seconds = Math.max(0, (this.storedJ - target) / (this.coolingW - MODEL.restW));
     this.seconds += seconds;
     this.joules += MODEL.restW * seconds;
     this.doseUSv += seconds * MODEL.doseRateUSvPerS * doseFactor(skyPct);
-    this.storedJ -= (MODEL.coolingW - MODEL.restW) * seconds;
+    this.storedJ -= (this.coolingW - MODEL.restW) * seconds;
     return seconds;
   }
 
@@ -224,6 +261,13 @@ export class Ledger {
 // Dose rate at a place relative to the reference rate, from how much sky
 // the terrain blocks there.
 export const doseFactor = (skyPct) => 1 - MODEL.dosePerSkyPoint * (skyPct - MODEL.skyReferencePct);
+
+// The pace on level ground at which the walker makes exactly the heat the
+// suit removes. Faster than this, heat builds up even with no slope.
+export const heatNeutralPace = (loadKg = 0) => MODEL.coolingW / (walkCostMars(0) * totalMassKg(loadKg));
+
+// Work rate on level ground at the planned pace, watts.
+export const levelWorkW = (loadKg = 0) => walkCostMars(0) * totalMassKg(loadKg) * MODEL.paceMs;
 
 // Mean body temperature rise for a given stored heat.
 export const tempRiseC = (heatKJkg) => heatKJkg / MODEL.bodySpecificHeat;

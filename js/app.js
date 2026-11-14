@@ -4,7 +4,7 @@ import { loadSky, skyImage, SKY_RAMP } from './sky.js';
 import { loadComms, commsImage, COMMS_RAMP } from './comms.js';
 import { buildBrief, forecastFile, forecastCsv, NOT_MODELLED } from './brief.js';
 import { planWalk, pointAt, returnCost } from './route.js';
-import { SOURCES, MODEL, MAX_MEASURED_GRADIENT, tempRiseC, step, Ledger } from './body.js';
+import { SOURCES, MODEL, MAX_MEASURED_GRADIENT, tempRiseC, step, Ledger, heatNeutralPace, levelWorkW } from './body.js';
 
 const L = window.L;
 const $ = (id) => document.getElementById(id);
@@ -324,7 +324,7 @@ function renderLedger(ease = false) {
     value: heat,
     max: MODEL.heatContingencyKJkg,
     limit: MODEL.heatLimitKJkg,
-    note: `${ASSUMED}${live ? 'stored now' : `peak if the walker never rests${rests}`} · body about +${tempRiseC(heat).toFixed(1)} °C · mark: NASA limit ${MODEL.heatLimitKJkg.toFixed(1)}`,
+    note: `${ASSUMED}${live ? 'stored now' : `peak if the walker never rests (${t.peakHeatRange.map((v) => v.toFixed(1)).join(' to ')} across the spread measured on people)${rests}`} · body about +${tempRiseC(heat).toFixed(1)} °C · mark: NASA limit ${MODEL.heatLimitKJkg.toFixed(1)}`,
   }, ease);
   const dose = live ? p.dose : t.dose;
   setBar('dose', {
@@ -349,18 +349,39 @@ function buildSources() {
 /* The check against Curiosity's radiation measurements */
 
 async function buildProof() {
-  const check = await (await fetch('data/shielding/validation.json')).json();
+  const get = (file) => fetch(`data/${file}`).then((r) => r.json());
+  const [check, people, slopes] = await Promise.all([
+    get('shielding/validation.json'), get('validation/model_vs_measured.json'), get('validation/model_revised_vs_measured.json'),
+  ]);
   const within = check.rows.filter((row) => Math.abs(row.difference_pct_points) <= 1).length;
+  const level = people.rows.filter((row) => row.suited);
+  const pct = (ratio) => `${ratio >= 1 ? '+' : '−'}${Math.abs(Math.round((ratio - 1) * 100))}%`;
   $('proof-body').innerHTML = `
+    <h3>1. The body model, tested on people</h3>
+    <p>NASA measured how hard people work when they walk in a spacesuit at low gravity. Before collecting those measurements we fixed the test in the project's history: the model's prediction, and the rule that it stands only if the measurements lie within 15% of it.</p>
+    <table>
+      <thead><tr><th>Level ground, suited</th><th>Measured</th><th>First model</th><th>Measured against model</th></tr></thead>
+      <tbody>${level.map((row) => `<tr class="off"><td>${row.gravity_g > 0.3 ? 'Mars' : 'Moon'} gravity, ${row.speed_m_s.toFixed(2)} m/s</td><td>${Math.round(row.measured_w)} W</td><td>${row.predicted_w} W</td><td>${pct(row.ratio)}</td></tr>`).join('')}</tbody>
+    </table>
+    <p><b>It failed.</b> People used ${Math.round((people.suited.median_ratio - 1) * 100)}% more energy than the model said (median; from ${pct(people.suited.lowest_ratio)} to ${pct(people.suited.highest_ratio)}). By the rule set in advance, the level cost is now multiplied by ${people.correction}, and the spread is shown on the heat numbers.</p>
+    <p>The sloped measurements showed a second fault: the first model predicted up to twice the measured cost of a climb, because it scaled the whole cost by one gravity factor. Climbing is work against weight, so the slope part is now scaled by gravity itself. The revised model against sloped measurements that played no part in the correction:</p>
+    <table>
+      <thead><tr><th>Slope, suited</th><th>Measured</th><th>First model</th><th>Revised model</th></tr></thead>
+      <tbody>${slopes.rows.map((row) => `<tr><td>${row.gravity_g.toFixed(2)} g, ${row.grade_percent}% grade</td><td>${row.measured_w} W</td><td>${row.first_model_w} W</td><td>${row.revised_w.mid} W (${pct(row.revised_ratio)})</td></tr>`).join('')}</tbody>
+    </table>
+    <p><b>All ${slopes.revised_model.points} lie within ${Math.round((Math.max(slopes.revised_model.highest - 1, 1 - slopes.revised_model.lowest)) * 100)}% of the revised model</b> (median ${pct(slopes.revised_model.median_ratio)}). The change was made after seeing these measurements, so this shows the model is consistent with them; it is not a blind prediction. All but one value were read from the reports' plotted lines, the sloped walking speed is known only as a range, and none of the sloped tests was at Mars gravity.</p>
+    <p>Sources: <a href="https://ntrs.nasa.gov/citations/20070016007" target="_blank" rel="noopener">NASA Walkback Test</a>, <a href="https://ntrs.nasa.gov/citations/20110003409" target="_blank" rel="noopener">NASA Integrated Suit Test 2, NASA/TP-2010-216125</a>.</p>
+    <h3>2. The radiation layer, tested against Curiosity</h3>
     <p>At eight places the Curiosity rover measured less radiation where terrain blocked part of the sky. We computed the share of sky blocked at the same places from NASA's elevation model and compared it with the published values.</p>
     <table>
       <thead><tr><th>Place</th><th>Sky blocked, published</th><th>Sky blocked, ours</th><th>Dose drop measured</th></tr></thead>
       <tbody>${check.rows.map((row) => `<tr${Math.abs(row.difference_pct_points) > 1 ? ' class="off"' : ''}>
         <td>${row.period} ${row.place}</td><td>${row.paper_sky_blocked_pct.toFixed(1)}%</td><td>${row.our_sky_blocked_pct.toFixed(1)}%</td><td>${row.measured_dose_decrease_pct.toFixed(1)}%</td></tr>`).join('')}</tbody>
     </table>
-    <p><b>${within} of ${check.rows.length} agree within 1 percentage point.</b> Mean difference ${check.summary.mean_absolute_difference_pct_points.toFixed(1)} points.</p>
-    <p>Maria Gordon Notch is a narrow valley and reads 9 points low: our elevation grid is 4 m and the paper used 1 m. This checks the terrain computation. It does not check the dose model.</p>
-    <p>Source: <a href="https://elib.dlr.de/224554/" target="_blank" rel="noopener">Guo et al. 2026, JGR Planets 131(4), Table 1</a>. Rover positions: NASA/JPL-Caltech.</p>`;
+    <p><b>${within} of ${check.rows.length} agree within 1 percentage point.</b> Mean difference ${check.summary.mean_absolute_difference_pct_points.toFixed(1)} points. Maria Gordon Notch is a narrow valley and reads 9 points low: our elevation grid is 4 m and the paper used 1 m. This checks the terrain computation. It does not check the dose model.</p>
+    <p>Source: <a href="https://elib.dlr.de/224554/" target="_blank" rel="noopener">Guo et al. 2026, JGR Planets 131(4), Table 1</a>. Rover positions: NASA/JPL-Caltech.</p>
+    <h3>3. The orbiter passes, computed twice</h3>
+    <p>A second, separate computation of the relay orbiter passes over the habitat matched the first within 1 minute and 0.1 degree. The Sun's rise and day length from the same method match Curiosity's weather record within 1 minute.</p>`;
   const dialog = $('proof');
   $('proof-open').addEventListener('click', () => dialog.showModal());
   $('proof-close').addEventListener('click', () => dialog.close());
@@ -534,7 +555,8 @@ function buildRouteCards() {
       <div class="route-small">${(t.dist / 1000).toFixed(2)} km · ${t.climb.toFixed(0)} m climb · steepest ${t.steepestDeg.toFixed(0)}°${
   t.beyondMeasured > 0
     ? `<span class="route-flag" title="${t.beyondMeasured.toFixed(0)} m of this route is steeper than any walking study has measured (over ${steepLimit}°). The energy there is an extrapolation.">${t.beyondMeasured.toFixed(0)} m beyond tested slope</span>`
-    : ''}</div>${contactLine(def.id)}`;
+    : ''}</div>
+      <div class="route-small need">To walk it with no rest the suit must remove <b>${t.coolingNeededW} W</b> (this model's suit: ${MODEL.coolingW} W)</div>${contactLine(def.id)}`;
     btn.addEventListener('click', () => selectRoute(def.id, true));
     return btn;
   };
@@ -583,6 +605,7 @@ function setLoad(loadKg, ease = true) {
   }
   computeContact();
   buildRouteCards();
+  $('ledger-note').innerHTML = `An ${MODEL.bodyMassKg} kg walker in a ${MODEL.suitMassKg} kg suit${loadKg ? `, carrying ${loadKg} kg` : ''}. On flat ground at ${MODEL.paceMs.toFixed(1)} m/s the walker makes <b>${Math.round(levelWorkW(loadKg))} W</b> of heat; the suit removes <b>${MODEL.coolingW} W</b>. Heat stops building only below ${heatNeutralPace(loadKg).toFixed(2)} m/s.`;
   state.view3d?.setRoutes(state.routes);
   if (state.lines[state.active]) selectRoute(state.active, ease);
 }
@@ -1200,7 +1223,6 @@ async function start() {
   buildStartTimes();
   setLoad(0, false);
   buildWalkControls();
-  $('ledger-note').innerHTML = `An ${MODEL.bodyMassKg} kg walker in a ${MODEL.suitMassKg} kg suit. Pace ${MODEL.paceMs.toFixed(1)} m/s, slower on climbs to stay under ${MODEL.workLimitW} W. The suit removes ${MODEL.coolingW} W of heat.`;
 
   // Fly to the walk, then let the two routes draw themselves.
   const all = L.latLngBounds(ROUTES.flatMap((def) => state.routes[def.id].points.map((p) => [p.lat, p.lon])));

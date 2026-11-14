@@ -151,8 +151,8 @@ export function buildBrief({ route, routeName, loadKg, comms = null, contact = n
     title: `${routeName} · ${loadKg ? `carrying ${loadKg} kg` : 'no load'}${comms ? ` · start ${comms.localTime(startMinute)} local time` : ''}`,
     verdict: [
       overLimit
-        ? { level: 'warn', text: `Without rest this route stores ${t.peakHeatNoRest.toFixed(1)} kJ/kg of body heat, over NASA's limit of ${limit.toFixed(1)}. The plan adds ${t.restCount} rest${t.restCount === 1 ? '' : 's'} (${minutes(t.restSeconds)} min) to stay under it.` }
-        : { level: 'ok', text: `Stored body heat peaks at ${t.peakHeatNoRest.toFixed(1)} kJ/kg, under NASA's limit of ${limit.toFixed(1)}. No rest is forced.` },
+        ? { level: 'warn', text: `Without rest this route stores ${t.peakHeatNoRest.toFixed(1)} kJ/kg of body heat (${t.peakHeatRange.map((v) => v.toFixed(1)).join(' to ')} across the spread measured on people), over NASA's limit of ${limit.toFixed(1)}. The plan adds ${t.restCount} rest${t.restCount === 1 ? '' : 's'} (${minutes(t.restSeconds)} min) to stay under it.` }
+        : { level: 'ok', text: `Stored body heat peaks at ${t.peakHeatNoRest.toFixed(1)} kJ/kg (${t.peakHeatRange.map((v) => v.toFixed(1)).join(' to ')} across the spread measured on people), under NASA's limit of ${limit.toFixed(1)}. No rest is forced.` },
       share === null ? null
         : share === 100
           ? { level: 'ok', text: 'A relay orbiter is in view for the whole walk.' }
@@ -164,6 +164,7 @@ export function buildBrief({ route, routeName, loadKg, comms = null, contact = n
     before: [
       `Distance ${km(t.dist)} km, climb ${t.climb.toFixed(0)} m, steepest ground ${t.steepestDeg.toFixed(0)}°.`,
       `Expected time ${minutes(t.seconds)} min${t.restCount ? `, of which ${minutes(t.restSeconds)} min is forced rest` : ''}.`,
+      `To walk it with no rest the suit would have to remove ${t.coolingNeededW} W of heat; the suit in this model removes ${MODEL.coolingW} W.`,
       `Expected energy ${t.kcal.toFixed(0)} kcal, ${((t.kcal / MODEL.energyBudgetKcal) * 100).toFixed(0)}% of the ${MODEL.energyBudgetKcal} kcal backpack budget.`,
       `Lowest energy margin on the route, after the cheapest way home: ${t.lowestLeft.toFixed(0)}%.`,
       lightMinutes === null ? null : `Earth is ${lightMinutes.toFixed(1)} light-minutes away: a question and its answer take at least ${Math.ceil(lightMinutes * 2)} min. The crew decides alone.`,
