@@ -601,7 +601,7 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
     tex.generateMipmaps = mips;
     tex.minFilter = mips ? THREE.LinearMipmapLinearFilter : THREE.LinearFilter;
     tex.magFilter = THREE.LinearFilter;
-    tex.anisotropy = Math.min(4, caps.getMaxAnisotropy());
+    tex.anisotropy = Math.min(8, caps.getMaxAnisotropy()); // keeps the ground sharp toward the horizon in the follow view
     return { canvas, ctx: canvas.getContext('2d'), tex };
   };
   const plain = makeShown();

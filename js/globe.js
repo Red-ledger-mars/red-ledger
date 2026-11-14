@@ -7,6 +7,10 @@ const $ = (id) => document.getElementById(id);
 // screen and copied into CREDITS.md. Tiles are NASA Mars Trek, saved under
 // tiles/global by tools/fetch_global.py.
 const ZOOM = 2; // 8 x 4 tiles of 256 px = 2048 x 1024 px
+// Around Gale the colour layer is also stored one zoom level sharper
+// (tiles/global/viking/3, 90 to 180 E, 45 N to 45 S), so the dive into the
+// crater stays sharp. The rest of the globe stays at ZOOM.
+const DETAIL = { layer: 'viking', z: 3, rows: [2, 5], cols: [12, 15] };
 const LAYERS = [
   { id: 'viking', label: 'Colour', full: 'Viking colour', ext: 'jpg', credit: 'Viking Orbiter mosaic, NASA/JPL-Caltech/USGS' },
   { id: 'mola', label: 'Elevation', full: 'Elevation (MOLA)', ext: 'jpg', credit: 'MOLA, Mars Global Surveyor, NASA/GSFC' },
@@ -221,9 +225,13 @@ function loadImage(src) {
 async function textureFor(layer) {
   if (state.textures[layer.id]) return state.textures[layer.id];
   const cols = 2 << ZOOM, rows = 1 << ZOOM;
+  // With the sharper patch the texture is twice as wide, and the whole-globe
+  // tiles are drawn at twice their size under it.
+  const detail = layer.id === DETAIL.layer && renderer.capabilities.maxTextureSize >= (2 << DETAIL.z) * 256;
+  const px = detail ? 256 * 2 ** (DETAIL.z - ZOOM) : 256;
   const canvas = document.createElement('canvas');
-  canvas.width = cols * 256;
-  canvas.height = rows * 256;
+  canvas.width = cols * px;
+  canvas.height = rows * px;
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#17100d';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -231,7 +239,7 @@ async function textureFor(layer) {
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
       jobs.push(loadImage(`tiles/global/${layer.id}/${ZOOM}/${row}/${col}.${layer.ext}`)
-        .then((img) => { if (img) ctx.drawImage(img, col * 256, row * 256); }));
+        .then((img) => { if (img) ctx.drawImage(img, col * px, row * px, px, px); }));
     }
   }
   await Promise.all(jobs);
@@ -239,7 +247,22 @@ async function textureFor(layer) {
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 2;
   state.textures[layer.id] = tex;
+  if (detail) addDetail(ctx, tex); // after the globe is shown, so it does not wait
   return tex;
+}
+
+// Draws the sharper tiles around Gale over the texture once they arrive.
+async function addDetail(ctx, tex) {
+  const jobs = [];
+  for (let row = DETAIL.rows[0]; row <= DETAIL.rows[1]; row++) {
+    for (let col = DETAIL.cols[0]; col <= DETAIL.cols[1]; col++) {
+      jobs.push(loadImage(`tiles/global/${DETAIL.layer}/${DETAIL.z}/${row}/${col}.jpg`)
+        .then((img) => { if (img) ctx.drawImage(img, col * 256, row * 256); }));
+    }
+  }
+  await Promise.all(jobs);
+  tex.needsUpdate = true;
+  requestRender();
 }
 
 async function showLayer(layer) {
