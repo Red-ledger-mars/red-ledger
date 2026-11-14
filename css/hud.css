@@ -578,6 +578,16 @@ body.booting::before { opacity: 1; animation: cover-lift 450ms var(--ease-out) 6
    its edges stay where the grid puts them. */
 .reach-layer { image-rendering: pixelated; }
 
+/* The walk now shown, and what it is for. */
+.walk-goal { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0 0 8px; font-size: 13px; color: var(--text); }
+.walk-goal[hidden] { display: none; }
+.walk-goal label { display: flex; align-items: center; gap: 6px; flex: none; color: var(--dim); white-space: nowrap; }
+.walk-goal select { padding: 7px 8px; font: 13px/1 var(--mono); color: var(--text); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--line); border-radius: 3px; }
+.walk-goal option { color: #111; }
+.walk-goal span { flex: 1 1 260px; }
+.free .walk-goal { display: none; }
+.rec .walk-goal select { appearance: none; border: 0; background: none; padding: 0; }
+
 /* Your own walk: the viewer places the stops on the map. */
 .own .leaflet-container { cursor: crosshair; }
 .stop-own { background: var(--bg); color: var(--text); border: 2px solid var(--text); cursor: pointer; }

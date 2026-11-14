@@ -53,6 +53,7 @@ const state = {
   checks: null,     // the crew doctor's own checks, from data/brief_checks.json
   free: null,       // the free walk in progress, or null
   own: null,        // the walk the viewer is placing, or null
+  walks: null,      // the ready-made walks, from data/walks.json
   reach: null,      // the body-reach grid, loaded when its layer is first shown
   overlay: 'none',  // the overlay now shown
   sequence: false,  // true while the recorded sequence is playing
@@ -1223,13 +1224,18 @@ function ownSay(text) {
 function drawOwnStops() {
   const own = state.own;
   own.markers.forEach((marker) => marker.remove());
+  // A stop of a ready-made walk is a real place: a click shows what
+  // Curiosity did there. A stop the viewer placed is removed by a click.
   own.markers = own.stops.map((stop, i) => L.marker([stop.lat, stop.lon], {
-    icon: L.divIcon({ className: 'stop stop-own', html: String(i + 1), iconSize: [28, 28] }),
-    title: `${stop.name}. Click to remove it.`,
+    icon: L.divIcon({ className: stop.own === false ? 'stop' : 'stop stop-own', html: String(i + 1), iconSize: [28, 28] }),
+    title: stop.own === false ? stop.name : `${stop.name}. Click to remove it.`,
     zIndexOffset: 500,
   }).on('click', () => {
+    if (stop.own === false) { showPlace(stop); return; }
     own.stops.splice(own.stops.indexOf(stop), 1);
-    own.stops.forEach((s, k) => { s.name = `Your stop ${k + 1}`; });
+    own.stops.forEach((s, k) => { if (s.own !== false) s.name = `Your stop ${k + 1}`; });
+    own.preset = null;
+    showWalkGoal();
     drawOwnStops();
     planOwn();
   }).addTo(map));
@@ -1263,7 +1269,7 @@ async function planOwn() {
       return;
     }
     showRoutes({ direct: result.direct, body: result.body });
-    ownSay(own.stops.length < OWN_MAX_STOPS
+    ownSay(own.preset ? '' : own.stops.length < OWN_MAX_STOPS
       ? `Your walk has ${own.stops.length === 1 ? '1 stop' : `${own.stops.length} stops`}. Click the ground to add one, or a stop to remove it.`
       : `Your walk has ${OWN_MAX_STOPS} stops, the most a walk here can have. Click a stop to remove it.`);
   } catch (error) {
@@ -1273,7 +1279,9 @@ async function planOwn() {
   }
 }
 
-function startOwn() {
+// Starts a walk planned in the page: a ready-made one when `preset` is
+// given, else an empty walk for the viewer to place.
+function startOwn(preset = null) {
   if (state.own) return;
   endFree();
   stopSequence();
@@ -1296,7 +1304,13 @@ function startOwn() {
   document.body.classList.add('own');
   $('own').setAttribute('aria-pressed', 'true');
   $('own').textContent = 'Planned walk';
-  ownSay(OWN_HINT);
+  state.own.preset = preset;
+  showWalkGoal();
+  if (!preset) { ownSay(OWN_HINT); return; }
+  const places = { ...state.walks.places, ...Object.fromEntries(state.walk.stops.map((stop) => [stop.id, stop])) };
+  state.own.stops = preset.stops.map((id) => ({ ...places[id], own: false }));
+  drawOwnStops();
+  planOwn();
 }
 
 function endOwn() {
@@ -1314,7 +1328,38 @@ function endOwn() {
   $('target').hidden = true;
   ownSay('');
   setPlaying(false);
+  showWalkGoal();
   showRoutes(state.plans[state.loadKg]);
+}
+
+/* Ready-made walks */
+
+// Shows which walk is on screen and what it is for.
+function showWalkGoal() {
+  if (!state.walks) return;
+  const stored = state.walks.walks.find((walk) => walk.stored);
+  const shown = state.own ? (state.own.preset ?? state.walks.own) : stored;
+  $('walk-pick').value = state.own ? (state.own.preset?.id ?? 'own') : stored.id;
+  $('walk-goal-text').textContent = shown.goal;
+}
+
+// Switches to a ready-made walk, or to an empty walk of the viewer's own.
+function pickWalk(id) {
+  const walk = state.walks?.walks.find((entry) => entry.id === id);
+  if (id !== 'own' && !walk) return;
+  if (state.free || state.sequence) return;
+  endOwn();
+  if (id === 'own') startOwn();
+  else if (!walk.stored) startOwn(walk);
+}
+
+function buildWalkPick() {
+  if (!state.walks) return;
+  const options = [...state.walks.walks, { id: 'own', name: state.walks.own.name }];
+  $('walk-pick').replaceChildren(...options.map((walk) => new Option(walk.name, walk.id)));
+  $('walk-pick').addEventListener('change', (e) => pickWalk(e.target.value));
+  $('walk-goal').hidden = false;
+  showWalkGoal();
 }
 
 function buildOwnControls() {
@@ -1327,6 +1372,8 @@ function buildOwnControls() {
       ownSay(`A walk here has at most ${OWN_MAX_STOPS} stops. Click a stop to remove it.`);
       return;
     }
+    own.preset = null;
+    showWalkGoal();
     own.stops.push({
       lat: e.latlng.lat,
       lon: e.latlng.lng,
@@ -1484,6 +1531,8 @@ async function start() {
   setLoad(0, false);
   buildWalkControls();
   buildOwnControls();
+  state.walks = await fetch('data/walks.json').then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  buildWalkPick();
 
   // Fly to the walk, then let the two routes draw themselves.
   const all = L.latLngBounds(ROUTES.flatMap((def) => state.routes[def.id].points.map((p) => [p.lat, p.lon])));
@@ -1514,11 +1563,12 @@ async function start() {
   if (rec === 'auto') { await wait(1200); runSequence(); }
 
   // A link can open a part of the page directly: #proof for the tests,
-  // #brief for the walk brief, #own to place a walk of your own, #reach
-  // for the reach layer.
+  // #brief for the walk brief, #own to place a walk of your own,
+  // #walk=<id> for a ready-made walk, #reach for the reach layer.
   if (location.hash === '#proof') $('proof').showModal();
   if (location.hash === '#brief') openBrief();
   if (location.hash === '#own') startOwn();
+  if (location.hash.startsWith('#walk=')) pickWalk(location.hash.slice(6));
   if (location.hash === '#reach') setOverlay('reach');
 }
 

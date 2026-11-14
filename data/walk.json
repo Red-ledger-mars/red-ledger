@@ -20,12 +20,12 @@
     },
     {
       "id": "ridges",
-      "name": "Boxwork ridges work site",
+      "name": "Ridge and hollow drill site",
       "lat": -4.808032,
       "lon": 137.380993,
       "sol": 4752,
-      "text": "Curiosity stayed at this spot among the ridges for 37 sols (sols 4752 to 4789), its longest stop in the boxwork.",
-      "source": "https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_waypoints.json"
+      "text": "In late 2025 Curiosity drilled a hollow here (Valle de la Luna) and then the ridge about 10 m away (Nevado Sajama), to compare the two. It worked within about 20 m of this spot from sol 4687 to sol 4805.",
+      "source": "https://science.nasa.gov/blog/curiosity-blog-sols-4709-4715-drilling-high-and-low-in-the-boxwork-unit/"
     },
     {
       "id": "west",

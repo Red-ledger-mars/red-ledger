@@ -59,7 +59,7 @@ self.onmessage = async ({ data: { id, stops, loadKg = 0 } }) => {
     if (off) throw new Error('That point is outside the surveyed patch.');
     if (!backByLoad.has(loadKg)) backByLoad.set(loadKg, returnCost(terrain, habitat, loadKg));
     const back = backByLoad.get(loadKg);
-    const walk = { habitat, stops: stops.map((stop, i) => ({ id: `own-${i + 1}`, name: `Your stop ${i + 1}`, ...stop, own: true })) };
+    const walk = { habitat, stops: stops.map((stop, i) => ({ id: `own-${i + 1}`, name: `Your stop ${i + 1}`, ...stop, own: stop.own ?? true })) };
     // The direct search is about three times faster, so it goes first.
     for (const pricing of ['direct', 'body']) {
       const route = planWalk(terrain, walk, pricing, back, sky, { loadKg });
