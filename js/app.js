@@ -102,16 +102,26 @@ function clearArea() {
   const walk = document.querySelector('.walk').getBoundingClientRect();
   const top = document.querySelector('.top').getBoundingClientRect();
   const beside = ledger.width < window.innerWidth * 0.6;
-  return beside
+  const area = beside
     ? { left: ledger.right + 28, top: top.bottom + 12, right: window.innerWidth - 36, bottom: walk.top - 28 }
     : { left: 20, top: ledger.bottom + 16, right: window.innerWidth - 20, bottom: walk.top - 16 };
+  // On a short window the panels can leave almost no map. Fitting the walk
+  // into that sliver zooms far past the imagery, so use the whole window.
+  if (area.right - area.left < 160 || area.bottom - area.top < 120) {
+    return { left: 20, top: top.bottom + 12, right: window.innerWidth - 20, bottom: window.innerHeight - 20 };
+  }
+  return area;
 }
+
+// The sharpest imagery (HiRISE) stops at zoom 16. Past that the map is blank.
+const FIT_MAX_ZOOM = 16;
 
 function boundsPadding() {
   const area = clearArea();
   return {
     paddingTopLeft: [area.left, area.top],
     paddingBottomRight: [window.innerWidth - area.right, window.innerHeight - area.bottom],
+    maxZoom: FIT_MAX_ZOOM,
   };
 }
 
