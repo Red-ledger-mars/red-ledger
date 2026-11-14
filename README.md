@@ -48,6 +48,8 @@ Then open http://localhost:8765 for the walk, or http://localhost:8765/globe.htm
 - The suit is modelled as removing 370 W of heat and nothing more. That figure is a prototype evaporator rating in a Mars environment, not a flight suit value.
 - Time spent working at the stops is not counted, only walking.
 
+- The model has not been tested on people. An earlier route planner of this kind (MIT's SEXTANT) was found in a field test to predict less time and energy than explorers actually used; the same may be true here. See "Related work" in [CREDITS.md](CREDITS.md).
+
 ## How the numbers are made
 
 Every number on screen names its source. A value that is not measured or published is marked on screen as an assumption. The whole body model is in one file, [`js/body.js`](js/body.js), with each constant, its source and how far it was confirmed, so it can be checked or reused on its own.

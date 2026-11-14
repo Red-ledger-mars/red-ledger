@@ -32,6 +32,14 @@ Every dataset, paper, library, image, sound and font used in Red Ledger, with it
 | Guo J, et al. (2021). Directionality of the Martian Surface Radiation and Derivation of the Upward Albedo Radiation. Geophysical Research Letters 48(15), e2021GL093912 | Reference share of sky blocked (10%) | Abstract read 14 Nov 2026 |
 | NASA Jet Propulsion Laboratory news, "NASA's Curiosity Mars Rover Starts Unpacking Boxwork Formations", 23 June 2025. https://www.jpl.nasa.gov/news/nasas-curiosity-mars-rover-starts-unpacking-boxwork-formations/ | The Altadena drill stop | Read 14 Nov 2026 |
 
+## Related work
+
+Red Ledger is not the first tool to plan a walking route by what it costs the walker. It was written without using the code below, and it is named here so the difference is clear.
+
+| Work | What it does | How Red Ledger differs |
+|---|---|---|
+| SEXTANT, the Surface Exploration Traverse Analysis and Navigation Tool (MIT; Johnson, Hoffman, Newman and others, from 2010), and its Python version Pextant, made for NASA's BASALT field campaign (Norheim 2018; code at https://github.com/norheim/pextant, MIT licence) | Plans a traverse over an elevation model and scores it by distance, time or the explorer's metabolic energy. A 2011 field evaluation found that real traverse time and energy were higher than the tool predicted | Red Ledger adds body heat stored against the suit's cooling limit in a Mars environment and against NASA's heat-storage standard, a radiation layer checked against Curiosity's measurements, a real Mars site with the rover's own path and photos, and a source link on every number. The finding of that 2011 evaluation applies to this model too: it has not been tested on people and may read low |
+
 ## Software
 
 | Item | Use | Licence | Link |
