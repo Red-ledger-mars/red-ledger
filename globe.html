@@ -19,18 +19,23 @@
     </div>
     <div class="site">
       <span class="site-name">Mars</span>
-      <span class="site-coord" id="cursor-coord">move over the globe</span>
+      <span class="site-coord" id="cursor-coord"></span>
     </div>
-    <nav class="layers" id="layers" aria-label="Globe layers"></nav>
+    <nav class="overlays" id="layers" aria-label="Globe layers"></nav>
   </header>
 
   <section class="intro" aria-label="About this globe">
-    <h1 id="intro-title">Mars at walk scale: 1 patch surveyed</h1>
-    <p>Global maps show where things are. A walk needs more: slope, heat, radiation and the cost to the body, at the scale of a few metres. One patch has that so far.</p>
+    <h1><span class="intro-title">Mars at walk scale</span><strong id="intro-count">1 patch surveyed</strong></h1>
+    <p>Global maps show where things are. A walk needs slope, heat and radiation at the scale of a few metres.</p>
   </section>
 
-  <a class="patch-ring" id="patch-ring" href="index.html" hidden aria-label="Open the surveyed patch"></a>
-  <a class="patch-label" id="patch-label" href="index.html" hidden>Surveyed at walk scale</a>
+  <a class="patch-ring" id="patch-ring" href="index.html" hidden aria-label="Walk Gale crater" tabindex="-1"></a>
+  <a class="patch-label" id="patch-label" href="index.html" hidden>
+    <b>Walk Gale crater</b>
+    <small>Surveyed at walk scale</small>
+  </a>
+
+  <p class="hint" id="hint">Drag to turn. Scroll to zoom. Click the ring to walk.</p>
 
   <aside class="card" id="card" aria-label="Selected point" hidden>
     <button type="button" class="card-close" id="card-close" aria-label="Close">×</button>
@@ -45,7 +50,10 @@
   <footer class="foot">
     <span>Made with NASA open data.</span>
     <a href="CREDITS.md">Sources and credits</a>
+    <span class="keys">Keys: 1 2 3 layers, Enter walk</span>
   </footer>
+
+  <div class="fade" id="fade" aria-hidden="true"></div>
 
   <script type="module" src="js/globe.js"></script>
 </body>

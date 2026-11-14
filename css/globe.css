@@ -4,74 +4,117 @@
 #globe.dragging { cursor: grabbing; }
 #globe canvas { display: block; width: 100%; height: 100%; }
 
-.intro, .card, .globe-credit, .patch-label, .nogl { position: fixed; z-index: 500; }
+.intro, .card, .globe-credit, .hint, .nogl { position: fixed; z-index: 500; }
 
 .intro {
-  top: 84px; left: 20px;
-  width: 280px;
-  padding: 14px 14px 12px;
+  top: calc(var(--top) + 8px); left: 20px;
+  width: 310px;
+  padding: 16px 16px 14px;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-left: 2px solid var(--red);
-  backdrop-filter: blur(6px);
+  border-top: 3px solid var(--red);
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
 }
-.intro h1 {
-  margin: 0 0 8px;
-  font: 600 11px/1.3 var(--mono);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--text);
-}
-.intro p { margin: 0; font-size: 12px; color: var(--dim); }
+.intro h1 { margin: 0 0 10px; font: 600 22px/1.2 var(--sans); color: var(--text); }
+.intro h1 strong { display: block; margin-top: 4px; font-size: 19px; font-weight: 700; color: var(--red); }
+.intro p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--dim); }
 
-/* White ring on the surveyed patch. The patch is about 2 km wide, far too
-   small to see on a globe, so the ring has a fixed size on screen. */
+/* Ring on the surveyed patch. The patch is about 2 km wide, far too small to
+   see on a globe, so the ring has a fixed size on screen. */
 .patch-ring {
   position: fixed; z-index: 450;
-  width: 26px; height: 26px;
-  margin: -13px 0 0 -13px;
-  border: 2px solid #fff;
+  width: 30px; height: 30px;
+  margin: -15px 0 0 -15px;
+  border: 3px solid var(--red);
   border-radius: 50%;
-  box-shadow: 0 0 0 1px rgba(8, 5, 4, 0.7), 0 0 8px rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 0 1px rgba(8, 5, 4, 0.8), 0 0 12px rgba(255, 85, 51, 0.7);
+  transition: transform 1.2s cubic-bezier(0.3, 0, 0.7, 1), opacity 1.2s ease-in;
 }
+.patch-ring::after {
+  content: "";
+  position: absolute; inset: -3px;
+  border: 2px solid var(--red);
+  border-radius: 50%;
+  animation: ring-pulse 2.6s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes ring-pulse {
+  from { transform: scale(1); opacity: 0.85; }
+  to { transform: scale(3.2); opacity: 0; }
+}
+.leaving .patch-ring { transform: scale(7); opacity: 0; }
+.leaving .patch-label, .leaving .intro, .leaving .hint, .leaving .card { opacity: 0; transition: opacity 400ms ease; }
+
 .patch-label {
-  z-index: 450;
-  margin: -9px 0 0 22px;
-  padding: 3px 7px;
-  font: 600 11px/1.2 var(--mono);
-  letter-spacing: 0.06em;
+  position: fixed; z-index: 450;
+  display: flex; flex-direction: column; gap: 3px;
+  margin: -22px 0 0 28px;
+  padding: 8px 14px 8px 12px;
   white-space: nowrap;
-  color: #fff;
+  color: var(--text);
   text-decoration: none;
-  background: rgba(8, 5, 4, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: var(--panel);
+  border: 1px solid var(--red);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
 }
+.patch-label b { font: 700 14px/1.2 var(--sans); }
+.patch-label small { font: 12px/1.2 var(--sans); color: var(--dim); }
+.patch-label:hover { background: var(--red); color: var(--bg); }
+.patch-label:hover small { color: var(--bg); }
 .patch-ring[hidden], .patch-label[hidden], .card[hidden], .nogl[hidden] { display: none; }
 .patch-ring:focus-visible, .patch-label:focus-visible, .card-close:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 
+.hint {
+  left: 50%; bottom: calc(var(--foot) + 44px);
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: var(--text);
+  white-space: nowrap;
+  background: var(--panel-quiet);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  transition: opacity 600ms ease;
+  pointer-events: none;
+}
+.hint.gone { opacity: 0; }
+
+/* Same panel as .ledger in hud.css, anchored bottom left above the footer. */
 .card {
-  width: 250px;
-  padding: 10px 12px 12px;
+  left: 20px; bottom: calc(var(--foot) + 16px);
+  width: 310px;
+  padding: 14px 16px 14px;
   background: var(--panel);
   border: 1px solid var(--line);
-  backdrop-filter: blur(6px);
+  border-top: 3px solid var(--red);
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  animation: card-in 250ms ease;
 }
-.card h3 { margin: 0 24px 4px 0; font: 600 12px/1.4 var(--mono); }
-.card p { margin: 0 0 6px; font-size: 12px; color: var(--dim); }
+@keyframes card-in { from { opacity: 0; transform: translateY(10px); } }
+.card h3 { margin: 0 28px 6px 0; font: 600 15px/1.4 var(--mono); }
+.card p { margin: 0 0 6px; font-size: 13px; color: var(--dim); }
 .card .card-note { margin: 8px 0 0; color: var(--text); }
 .card-close {
-  position: absolute; top: 4px; right: 6px;
-  font: 16px/1 var(--mono);
+  position: absolute; top: 8px; right: 8px;
+  width: 28px; height: 28px;
+  font: 20px/1 var(--mono);
   color: var(--dim);
-  background: none; border: 0; cursor: pointer;
+  background: none; border: 1px solid var(--line); border-radius: 4px; cursor: pointer;
 }
+.card-close:hover { color: var(--text); border-color: var(--text); }
 
 .globe-credit {
-  left: 0; right: 0; bottom: 34px;
+  right: 20px; bottom: calc(var(--foot) + 10px);
+  max-width: 60vw;
   margin: 0;
-  text-align: center;
-  font: 10.5px/1.4 var(--mono);
+  text-align: right;
+  font: 12px/1.4 var(--mono);
   color: var(--dim);
+  text-shadow: 0 1px 3px #000;
   pointer-events: none;
 }
 
@@ -82,12 +125,28 @@
   padding: 14px 16px;
   background: var(--panel);
   border: 1px solid var(--line);
+  border-radius: 6px;
 }
 .nogl a { color: var(--text); }
 .foot a { color: var(--text); }
+.foot .keys { margin-left: auto; }
+
+/* Fades the page to the background colour before the walk page opens. */
+.fade { position: fixed; inset: 0; z-index: 900; background: var(--bg); opacity: 0; pointer-events: none; transition: opacity 450ms ease; }
+.fade.on { opacity: 1; }
 
 @media (max-width: 900px) {
-  .layers { display: flex; }
-  .top { flex-wrap: wrap; gap: 8px 16px; }
-  .intro { top: 100px; left: 10px; width: min(280px, calc(100vw - 20px)); }
+  .overlays { display: flex; }
+  .top { flex-wrap: wrap; gap: 8px 16px; height: auto; min-height: var(--top); padding-top: 8px; padding-bottom: 8px; }
+  .intro { top: 120px; left: 10px; width: min(310px, calc(100vw - 20px)); }
+  .card { left: 10px; width: min(310px, calc(100vw - 20px)); }
+  .foot .keys { display: none; }
+  .globe-credit { max-width: 90vw; bottom: calc(var(--foot) + 4px); }
+  .hint { white-space: normal; width: 90vw; text-align: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .patch-ring::after, .card { animation: none; }
+  .patch-ring { transition: none; }
+  .fade { transition: none; }
 }
