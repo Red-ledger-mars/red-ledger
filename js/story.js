@@ -331,7 +331,9 @@ function scrollForDist(dist) {
   const c = legs.find((ch) => dist <= route.stops[ch.leg + 1].dist) ?? legs.at(-1);
   const a = route.stops[c.leg].dist;
   const b = route.stops[c.leg + 1].dist;
-  return c.top + clamp01((dist - a) / (b - a)) * c.h - innerHeight * 0.5;
+  // One pixel inside each edge, so rounding of scrollY can never drop the
+  // probe line into the chapter before.
+  return c.top + 1 + clamp01((dist - a) / (b - a)) * (c.h - 2) - innerHeight * 0.5;
 }
 
 function update() {
