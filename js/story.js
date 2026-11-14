@@ -233,13 +233,14 @@ function build() {
     </section>`);
 
   // How far a body can go from the habitat and back with no rest. The
-  // sentence, the legend and its colours are the Main chat's, as agreed.
+  // sentences, the legend and its colours are the Main chat's, as agreed.
   const reachLegend = ['none', '1', '2', '3+'].map((label, i) => `<li><i class="swatch" style="background: ${REACH_LEGEND[i].color}"></i>${label}</li>`).join('');
   html.push(`
     <section class="chapter" data-kind="reach" data-play="${PLAY.reach}">
       <div class="chapter-body">
-        <h2>How far can a body go?</h2>
-        <p class="lede">With no load a walker can go 630 to 1,140 m from the habitat, depending on the ground, and come back with no rest. Carrying 30 kg: 490 to 700 m.</p>
+        <h2>How far can a body go without a rest?</h2>
+        <p class="lede">${REACH_TEXT[state.loadKg] ?? REACH_TEXT[0]}</p>
+        <p class="lede">Clear ground needs no rest. Each band of colour is one more rest the plan adds.</p>
         <div class="plan-group reach-load"><span class="label">Carried load</span>${loadButtons()}</div>
         <div class="reach-legend">
           <p class="label">Rests needed</p>
@@ -396,6 +397,13 @@ function setLoad(kg) {
   scrollTo({ top: there.top + offset, behavior: 'instant' });
   update();
 }
+
+// The reach sentence for each load, worded by the Main chat from the map.
+const REACH_TEXT = {
+  0: 'With no load a walker can go 630 to 1,140 m from the habitat, depending on the ground, and come back with no rest.',
+  15: 'Carrying 15 kg, a walker can go 550 to 870 m from the habitat, depending on the ground, and come back with no rest.',
+  30: 'Carrying 30 kg, a walker can go 490 to 700 m from the habitat, depending on the ground, and come back with no rest.',
+};
 
 // The reach map on the 3D ground for the load shown. Drawn once per load.
 const reachImages = {};
