@@ -60,6 +60,18 @@ export const SOURCES = {
     what: 'The conventional value used to turn stored heat into a mean body temperature rise. A 2022 paper notes it was never directly measured.',
     status: 'assumption',
   },
+  load: {
+    label: 'Carried load, chosen by the planner',
+    url: 'https://ntrs.nasa.gov/citations/19760005584',
+    what: 'Tools and rock samples carried by the walker. No Mars figure exists; the three settings (none, 15 kg, 30 kg) are ours.',
+    status: 'assumption',
+  },
+  rest: {
+    label: 'NASA-STD-3001 Vol 2 Rev F, [V2 11011]',
+    url: 'https://www.nasa.gov/directorates/esdmd/hhp/human-spaceflight-and-aviation-standards/',
+    what: 'A resting walker is taken to work at 147 W, the bottom of NASA\'s design range for suited work, so the suit can remove 223 W of stored heat. The rule for when to rest (stop at 90% of the limit, walk on at 50%) is ours.',
+    status: 'assumption',
+  },
   energyBudget: {
     label: 'Biomedical Results of Apollo, NASA SP-368',
     url: 'https://ntrs.nasa.gov/citations/19760005584',
@@ -94,6 +106,9 @@ export const MODEL = {
   paceMs: 1.0,
   workLimitW: 617,
   coolingW: 370,
+  restW: 147,                    // work rate while standing still
+  restAt: 0.9,                   // rest when stored heat reaches this share of the limit
+  resumeAt: 0.5,                 // walk on when it has fallen to this share
   heatLimitKJkg: 3.0,
   heatContingencyKJkg: 4.7,
   bodySpecificHeat: 3.47,        // kJ/kg/°C
@@ -108,7 +123,8 @@ export const MODEL = {
 export const MAX_MEASURED_GRADIENT = 0.45;
 export const JOULES_PER_KCAL = 4184;
 
-export const totalMassKg = () => MODEL.bodyMassKg + MODEL.suitMassKg;
+// Mass the walker moves: body, suit and whatever is carried.
+export const totalMassKg = (loadKg = 0) => MODEL.bodyMassKg + MODEL.suitMassKg + loadKg;
 
 // Energy cost of walking at Earth gravity, joules per kg per metre walked,
 // for a gradient i (rise over run). Polynomial fit from Minetti et al. 2002.
@@ -123,8 +139,8 @@ export const walkCostMars = (i) => walkCostEarth(i) * MODEL.marsWalkFactor;
 
 // One step of a walk: `run` metres on the map, rising `rise` metres.
 // Returns what it costs and how fast the walker can take it.
-export function step(run, rise) {
-  const mass = totalMassKg();
+export function step(run, rise, loadKg = 0) {
+  const mass = totalMassKg(loadKg);
   const length = Math.hypot(run, rise);
   const joules = walkCostMars(rise / run) * length * mass;
   // At the planned pace the step would need this much power; if that is over
@@ -161,6 +177,21 @@ export class Ledger {
     this.peakStoredJ = Math.max(this.peakStoredJ, this.storedJ);
     if (this.heatKJkg > MODEL.heatLimitKJkg) this.overLimitM += s.length;
   }
+
+  // Standing still until stored heat has fallen to the resume level.
+  // Returns the seconds rested. Dose and energy keep counting.
+  rest(skyPct = MODEL.skyReferencePct) {
+    const target = MODEL.resumeAt * MODEL.heatLimitKJkg * 1000 * MODEL.bodyMassKg;
+    const seconds = Math.max(0, (this.storedJ - target) / (MODEL.coolingW - MODEL.restW));
+    this.seconds += seconds;
+    this.joules += MODEL.restW * seconds;
+    this.doseUSv += seconds * MODEL.doseRateUSvPerS * doseFactor(skyPct);
+    this.storedJ -= (MODEL.coolingW - MODEL.restW) * seconds;
+    return seconds;
+  }
+
+  // True when the walker should stop and cool down before the next step.
+  get needsRest() { return this.heatKJkg >= MODEL.restAt * MODEL.heatLimitKJkg; }
 
   get kcal() { return this.joules / JOULES_PER_KCAL; }
   get heatKJkg() { return this.storedJ / 1000 / MODEL.bodyMassKg; }

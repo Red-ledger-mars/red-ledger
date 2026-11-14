@@ -22,10 +22,11 @@ Work in progress. This section is updated as parts are finished.
 - [x] Demo copy in the repo: elevation, waypoints, photos, weather and the walk-area imagery (zoom 13 to 16), so the walk still shows if NASA's servers cannot be reached
 - [x] Curiosity's measured temperature and pressure range for the site
 
+- [x] Heat decides the walk: with a 30 kg load the direct route passes NASA's stored-heat limit (3.7 against 3.0 kJ/kg), so the plan adds a 7 minute rest and the route takes 56 minutes; the body-cost route needs no rest and takes 45
 - [x] Radiation layer: how much sky the terrain blocks, computed with the method of the Curiosity RAD team and checked against the eight places where the rover measured a dose drop (6 of 8 within 1 percentage point; shown in the page under "Check vs RAD")
 - [x] A whole-Mars globe (`globe.html`): the surveyed patch is ringed and opens the walk; any other point shows its coordinates and MOLA elevation and is labelled as not yet surveyed at walk scale
 
-Keys on the walk page: Space plays or pauses the walk, D and B choose the direct or the body-cost route, 1 to 5 choose the overlay, R switches the clean screen for filming on and off, P plays a fixed sequence (Escape stops it). Opening `globe.html?rec` plays everything in one take, from the whole planet to the end of the walk.
+Keys on the walk page: Space plays or pauses the walk, D and B choose the direct or the body-cost route, 1 to 5 choose the overlay, L changes the carried load, R switches the clean screen for filming on and off, P plays a fixed sequence (Escape stops it). Opening `globe.html?rec` plays everything in one take, from the whole planet to the end of the walk.
 
 ## Run it
 
@@ -60,7 +61,8 @@ For each step of a route the model takes the slope from the elevation grid and c
 2. **Pace**: 1.0 m/s, slowed on climbs so the work rate stays at or under 617 W, the top of NASA's design range for suited work.
 3. **Heat**: metabolic power, less the part stored as height on a climb, plus the part given back on a descent. The suit removes up to 370 W. Heat above that is stored in the body and compared with NASA's 3.0 kJ/kg limit.
 4. **Radiation**: time on the route times the surface dose rate measured by Curiosity's RAD detector (about 0.7 mSv per day), reduced where the terrain blocks more of the sky.
-5. **Way back**: at every point, the energy budget (1800 kcal, the Apollo 15 to 17 backpack) less what has been used and less the cheapest way home from there. The full list of datasets, papers, libraries and licences is in [CREDITS.md](CREDITS.md).
+5. **Load and rest**: the planner can give the walker a carried load (none, 15 kg or 30 kg; our settings, marked as an assumption). When stored heat reaches 90% of NASA's limit the plan makes the walker stand still until it falls to 50%; a resting walker works at 147 W, the bottom of NASA's suited range. The page shows both the time with rests and the heat the route would cause with none.
+6. **Way back**: at every point, the energy budget (1800 kcal, the Apollo 15 to 17 backpack) less what has been used and less the cheapest way home from there. The full list of datasets, papers, libraries and licences is in [CREDITS.md](CREDITS.md).
 
 ## Use of AI
 

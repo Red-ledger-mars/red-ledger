@@ -100,9 +100,9 @@ function cheapestPath(terrain, start, goal, price) {
 // For every cell, the least walking energy (kcal) needed to get from there
 // back to `home`. Found by searching outward from home with each step
 // priced in the opposite direction, because uphill and downhill differ.
-export function returnCost(terrain, home) {
+export function returnCost(terrain, home, loadKg = 0) {
   const { best } = search(terrain, cellOf(terrain, home), -1, (run, rise) => PRICING.body(run, -rise));
-  const scale = totalMassKg() / JOULES_PER_KCAL;
+  const scale = totalMassKg(loadKg) / JOULES_PER_KCAL;
   return best.map((jPerKg) => jPerKg * scale);
 }
 
@@ -113,7 +113,10 @@ function cellOf(terrain, point) {
 
 // Plans the whole walk (habitat, each stop in order, back to the habitat)
 // under one pricing, and records every step of it.
-export function planWalk(terrain, walk, pricing, back, sky) {
+// `options.loadKg` is the mass carried. With `options.rests` the walker
+// stops to cool down whenever stored heat nears the limit; without it the
+// record shows what the heat would do if the walker never stopped.
+export function planWalk(terrain, walk, pricing, back, sky, options = {}) {
   const places = [walk.habitat, ...walk.stops, walk.habitat];
   const cells = [];
   const stopAt = []; // index into `cells` where each place is reached
@@ -125,11 +128,20 @@ export function planWalk(terrain, walk, pricing, back, sky) {
     cells.push(...leg);
     stopAt.push(cells.length - 1);
   }
-  return describe(terrain, cells, stopAt.map((index, i) => ({ index, place: places[i] })), back, sky);
+  const stops = stopAt.map((index, i) => ({ index, place: places[i] }));
+  const route = describe(terrain, cells, stops, back, sky, { loadKg: options.loadKg ?? 0, rests: options.rests ?? true });
+  if (options.rests ?? true) {
+    // The same walk with no rests, to show what the planner prevented.
+    const unrested = describe(terrain, cells, stops, back, sky, { loadKg: options.loadKg ?? 0, rests: false });
+    route.totals.peakHeatNoRest = unrested.totals.peakHeat;
+    route.totals.secondsNoRest = unrested.totals.seconds;
+    route.totals.overHeatLimitM = unrested.totals.overHeatLimitM;
+  }
+  return route;
 }
 
 // Turns a list of cells into points that carry the state of the body there.
-function describe(terrain, cells, stops, back, sky) {
+function describe(terrain, cells, stops, back, sky, { loadKg, rests }) {
   const { cols, px, z } = terrain;
   const ledger = new Ledger();
   const points = [];
@@ -139,6 +151,8 @@ function describe(terrain, cells, stops, back, sky) {
   let steepest = 0;
   let beyondMeasured = 0;
   let now = { speed: MODEL.paceMs, metabolicW: 0, heatW: 0 };
+  const restStops = []; // where the walker stood still to cool down
+  let restSeconds = 0;
   for (let k = 0; k < cells.length; k++) {
     const c = cells[k] % cols;
     const r = (cells[k] - c) / cols;
@@ -151,7 +165,12 @@ function describe(terrain, cells, stops, back, sky) {
       const run = Math.hypot(c - pc, r - pr) * px;
       const rise = z[cells[k]] - z[cells[k - 1]];
       gradient = rise / run;
-      now = step(run, rise);
+      if (rests && ledger.needsRest) {
+        const seconds = ledger.rest(skyPct);
+        restSeconds += seconds;
+        restStops.push({ dist, seconds, lat: points[k - 1].lat, lon: points[k - 1].lon });
+      }
+      now = step(run, rise, loadKg);
       ledger.add(now, skyPct);
       dist += now.length;
       if (rise > 0) climb += rise; else descent -= rise;
@@ -178,6 +197,7 @@ function describe(terrain, cells, stops, back, sky) {
   return {
     points,
     stops: stops.map((s) => ({ ...s, dist: points[s.index].dist })),
+    restStops,
     totals: {
       dist,
       climb,
@@ -185,6 +205,8 @@ function describe(terrain, cells, stops, back, sky) {
       seconds: ledger.seconds,
       kcal: ledger.kcal,
       peakHeat: ledger.peakHeatKJkg,
+      restSeconds,
+      restCount: restStops.length,
       overHeatLimitM: ledger.overLimitM,
       dose: ledger.doseUSv,
       steepestDeg: Math.atan(steepest) * 180 / Math.PI,

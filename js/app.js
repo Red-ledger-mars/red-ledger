@@ -30,7 +30,10 @@ const state = {
   sky: null,
   walk: null,
   photos: [],
-  routes: {},       // id -> described route from planWalk
+  plans: {},        // carried load in kg -> { direct, body }
+  loadKg: 0,        // the carried load now shown
+  restMarks: [],    // map marks where the plan makes the walker rest
+  routes: {},       // id -> described route for the load now shown
   lines: {},        // id -> { line, casing } on the map
   stopMarkers: [],  // one per place on the walk, habitat first
   overlays: [],     // { id, label, leaf, ramp, credit }
@@ -259,12 +262,17 @@ function renderLedger(ease = false) {
     max: MODEL.energyBudgetKcal,
     note: `${ASSUMED}of a ${fmt(MODEL.energyBudgetKcal)} kcal backpack budget`,
   }, ease);
-  const heat = live ? p.heat : t.peakHeat;
+  // Before the walk starts the bar shows what the route would do to a walker
+  // who never stops; during the walk it follows the plan, rests included.
+  const heat = live ? p.heat : t.peakHeatNoRest;
+  const rests = t.restCount
+    ? ` · the plan adds ${t.restCount === 1 ? 'a rest' : `${t.restCount} rests`} of ${(t.restSeconds / 60).toFixed(0)} min`
+    : '';
   setBar('heat', {
     value: heat,
     max: MODEL.heatContingencyKJkg,
     limit: MODEL.heatLimitKJkg,
-    note: `${ASSUMED}${live ? 'stored now' : 'peak on this route'} · body about +${tempRiseC(heat).toFixed(1)} °C · mark: NASA limit ${MODEL.heatLimitKJkg.toFixed(1)}`,
+    note: `${ASSUMED}${live ? 'stored now' : `peak if the walker never rests${rests}`} · body about +${tempRiseC(heat).toFixed(1)} °C · mark: NASA limit ${MODEL.heatLimitKJkg.toFixed(1)}`,
   }, ease);
   const dose = live ? p.dose : t.dose;
   setBar('dose', {
@@ -358,22 +366,26 @@ function arrive(index) {
 
 /* Routes */
 
+// The two route cards and the difference between them. Called again
+// whenever the carried load changes.
 function buildRouteCards() {
   const [a, b] = ROUTES.map((def) => state.routes[def.id].totals);
   const card = (def) => {
     const t = state.routes[def.id].totals;
     const steepLimit = (Math.atan(MAX_MEASURED_GRADIENT) * 180 / Math.PI).toFixed(0);
+    const over = t.peakHeatNoRest > MODEL.heatLimitKJkg;
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'route';
     btn.id = `route-${def.id}`;
     btn.style.setProperty('--route', def.color);
+    btn.setAttribute('aria-pressed', String(def.id === state.active));
     btn.innerHTML = `
       <div class="route-name">${def.name}<small>${def.hint}</small></div>
       <div class="route-big">
-        <span><b>${(t.seconds / 60).toFixed(0)} min</b>walking</span>
+        <span><b>${(t.seconds / 60).toFixed(0)} min</b>${t.restCount ? `incl. ${(t.restSeconds / 60).toFixed(0)} min rest` : 'no rest needed'}</span>
         <span><b>${t.kcal.toFixed(0)} kcal</b>energy</span>
-        <span><b>${t.peakHeat.toFixed(1)} kJ/kg</b>peak body heat</span>
+        <span${over ? ' class="over"' : ''}><b>${t.peakHeatNoRest.toFixed(1)} kJ/kg</b>${over ? 'over NASA limit unless rested' : 'peak body heat'}</span>
       </div>
       <div class="route-small">${(t.dist / 1000).toFixed(2)} km · ${t.climb.toFixed(0)} m climb · steepest ${t.steepestDeg.toFixed(0)}°${
   t.beyondMeasured > 0
@@ -386,10 +398,48 @@ function buildRouteCards() {
   delta.className = 'delta';
   delta.innerHTML = `
     <span>Body-cost against direct</span>
-    <b>${signed(b.peakHeat - a.peakHeat, 1)} kJ/kg heat</b>
-    <b>${signed(b.kcal - a.kcal)} kcal</b>
-    <span>${signed((b.dist - a.dist) / 1000, 2)} km · ${signed((b.seconds - a.seconds) / 60)} min</span>`;
-  $('routes').append(card(ROUTES[0]), delta, card(ROUTES[1]));
+    <b>${signed(b.peakHeatNoRest - a.peakHeatNoRest, 1)} kJ/kg heat</b>
+    <b>${signed((b.seconds - a.seconds) / 60)} min</b>
+    <span>${signed((b.dist - a.dist) / 1000, 2)} km · ${signed(b.kcal - a.kcal)} kcal</span>`;
+  $('routes').replaceChildren(card(ROUTES[0]), delta, card(ROUTES[1]));
+}
+
+// Small marks where the plan makes the walker stand still to shed heat.
+function drawRestMarks() {
+  state.restMarks.forEach((mark) => mark.remove());
+  state.restMarks = state.routes[state.active].restStops.map((rest) => L.marker([rest.lat, rest.lon], {
+    icon: L.divIcon({ className: 'rest-mark', html: 'II', iconSize: [22, 22] }),
+    zIndexOffset: 400,
+  }).bindTooltip(`Rest ${(rest.seconds / 60).toFixed(0)} min here to shed body heat`, { direction: 'top' }).addTo(map));
+}
+
+// Switches the carried load: the routes, the cards and the ledger all change.
+function setLoad(loadKg, ease = true) {
+  setPlaying(false);
+  state.loadKg = loadKg;
+  state.routes = state.plans[loadKg];
+  for (const btn of $('loads').children) btn.setAttribute('aria-pressed', String(Number(btn.dataset.kg) === loadKg));
+  for (const def of ROUTES) {
+    const lines = state.lines[def.id];
+    if (!lines) continue;
+    const latlngs = state.routes[def.id].points.map((p) => [p.lat, p.lon]);
+    lines.line.setLatLngs(latlngs);
+    lines.casing.setLatLngs(latlngs);
+  }
+  buildRouteCards();
+  if (state.lines[state.active]) selectRoute(state.active, ease);
+}
+
+function buildLoads() {
+  for (const kg of Object.keys(state.plans).map(Number).sort((x, y) => x - y)) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.dataset.kg = String(kg);
+    btn.textContent = kg === 0 ? 'No load' : `${kg} kg`;
+    btn.title = SOURCES.load.what;
+    btn.addEventListener('click', () => setLoad(kg));
+    $('loads').append(btn);
+  }
 }
 
 function selectRoute(id, ease = false) {
@@ -405,6 +455,7 @@ function selectRoute(id, ease = false) {
     casing.setStyle({ weight: on ? 10 : 6.5 });
     if (on) { casing.bringToFront(); line.bringToFront(); }
   }
+  drawRestMarks();
   drawProfile();
   renderWalk(ease);
 }
@@ -558,6 +609,21 @@ function tick(last, id) {
   const now = performance.now();
   const route = state.routes[state.active];
   const total = route.totals.dist;
+  // At a planned rest the walker stands still for a moment on screen while
+  // the clock and the heat bar jump to the end of the rest.
+  const rest = route.restStops.find((r) => r.dist > state.dist && r.dist <= state.dist + ((now - last) / 1000) * (total / playSeconds));
+  if (rest) {
+    state.dist = rest.dist;
+    renderWalk();
+    $('progress-text').textContent = `Resting ${(rest.seconds / 60).toFixed(0)} min to shed body heat`;
+    setTimeout(() => {
+      if (!state.playing || id !== loopId) return;
+      state.dist = Math.min(total, rest.dist + 1);
+      renderWalk(true);
+      requestAnimationFrame(() => tick(performance.now(), id));
+    }, 1600);
+    return;
+  }
   state.dist = Math.min(total, state.dist + ((now - last) / 1000) * (total / playSeconds));
   renderWalk();
   follow(now);
@@ -604,6 +670,10 @@ function buildWalkControls() {
     if (e.key === 'Escape') stopSequence();
     if (e.key === 'd' || e.key === 'D') selectRoute('direct', true);
     if (e.key === 'b' || e.key === 'B') selectRoute('body', true);
+    if (e.key === 'l' || e.key === 'L') {
+      const loads = Object.keys(state.plans).map(Number).sort((x, y) => x - y);
+      setLoad(loads[(loads.indexOf(state.loadKg) + 1) % loads.length]);
+    }
     const overlay = state.overlays[Number(e.key) - 1];
     if (overlay) setOverlay(overlay.id);
   });
@@ -642,8 +712,12 @@ async function runSequence() {
   try {
     $('target').hidden = true;
     setOverlay('none');
+    setLoad(0);
     selectRoute('direct', true);
     await hold(1800);
+    // Give the walker the heaviest load: the direct route now passes the limit.
+    setLoad(Math.max(...Object.keys(state.plans).map(Number)));
+    await hold(2200);
     setOverlay('slope');
     await hold(1500);
     await walkOnce(12);
@@ -699,14 +773,19 @@ async function start() {
   // at once. Without that file the page plans them here, which takes a few
   // seconds on a slow machine.
   const planned = await fetch('data/routes.json').then((r) => (r.ok ? r.json() : null)).catch(() => null);
-  const back = planned ? null : returnCost(terrain, walk.habitat);
-  for (const def of ROUTES) {
-    const route = planned?.routes[def.pricing] ?? planWalk(terrain, walk, def.pricing, back, sky);
-    // The tightest moment for getting home: least energy left after the way back.
-    route.totals.lowestLeft = Math.min(...route.points.map((p) => ((MODEL.energyBudgetKcal - p.kcal - p.backKcal) / MODEL.energyBudgetKcal) * 100));
-    state.routes[def.id] = route;
+  for (const loadKg of planned?.loadsKg ?? [0]) {
+    const back = planned ? null : returnCost(terrain, walk.habitat, loadKg);
+    state.plans[loadKg] = {};
+    for (const def of ROUTES) {
+      const route = planned?.loads[loadKg][def.pricing] ?? planWalk(terrain, walk, def.pricing, back, sky, { loadKg });
+      // The tightest moment for getting home: least energy left after the way back.
+      route.totals.lowestLeft = Math.min(...route.points.map((p) => ((MODEL.energyBudgetKcal - p.kcal - p.backKcal) / MODEL.energyBudgetKcal) * 100));
+      state.plans[loadKg][def.id] = route;
+    }
   }
-  buildRouteCards();
+  state.routes = state.plans[0];
+  buildLoads();
+  setLoad(0, false);
   buildWalkControls();
   $('ledger-note').innerHTML = `An ${MODEL.bodyMassKg} kg walker in a ${MODEL.suitMassKg} kg suit. Pace ${MODEL.paceMs.toFixed(1)} m/s, slower on climbs to stay under ${MODEL.workLimitW} W. The suit removes ${MODEL.coolingW} W of heat.`;
 
