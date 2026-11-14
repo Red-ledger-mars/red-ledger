@@ -10,9 +10,28 @@ Built for the NASA Space Apps Challenge 2026, challenge "Interplanetary Survival
 
 Made with NASA open data. This project is not endorsed by NASA.
 
-## Status
+## How it answers the challenge
 
-Work in progress. This section is updated as parts are finished.
+| The challenge asks for | Red Ledger |
+|---|---|
+| A hyper-local view for one walk; regional tools such as JPL Mars Trek and the USGS-NASA maps stop at region scale | One patch, 1.5 by 1.9 km, at 4 m per cell: the boxwork ridges on Mount Sharp, NASA's own example. It uses Mars Trek tiles and the USGS Gale elevation model and works at the scale of one excursion |
+| Data from several NASA missions | Five: Mars Reconnaissance Orbiter (HiRISE and CTX imagery, the elevation model), Mars Odyssey (THEMIS), Curiosity (RAD, REMS, cameras, its path), Mars Global Surveyor (MOLA) and the Viking Orbiters, with orbiter positions from NASA/JPL Horizons |
+| At least three kinds of data | Seven: optical, thermal, topographic, radiation, atmospheric, rover photos, orbit geometry |
+| A science goal | Four ready-made walks to places where Curiosity worked, each with its goal, and a walk the visitor places |
+| Safety first: radiation, and the limits a suit and a load put on mobility | Stored body heat against NASA's limit, the rests it forces, the load carried, radiation dose with terrain shielding, energy left to walk home, radio contact with relay orbiters |
+| A route that avoids major obstacles | Two routes for every walk. The body-cost route takes no ground steeper than 24 degrees, the steepest slope walking cost has been measured on. Rocks and ridges smaller than the 4 m grid are not seen |
+| Rover point-of-view images | Curiosity's Navcam and MAHLI photos at four stops |
+
+## What only Red Ledger does
+
+1. **Body heat decides the walk.** Stored body heat against NASA's limit of 3.0 kJ/kg sets the rests and the route. Carrying 30 kg on the ridge and hollow survey, the body-cost route is 100 m longer, needs one rest fewer and is home 9 minutes sooner.
+2. **The body model was tested against NASA's measurements of people, with the rule committed first.** It failed, was corrected, and every heat number shows its range (see "The test against NASA's measurements of people" below).
+3. **The suit decides more than the route.** A slider sets the suit's cooling and prices the walk again: the climb to the layer contact needs 3 rests at 370 W, 1 at 450 W and none at 550 W.
+4. **Radio contact is tied to the walk.** The terrain's comms shadow comes from real orbiter positions for one sol, and a walk slowed by its rests can outlast an orbiter pass.
+
+## What is in it
+
+This list grew as parts were finished.
 
 - [x] Page and helmet display layout
 - [x] NASA map layers: HiRISE colour, CTX, THEMIS day and night infrared, Curiosity's path
