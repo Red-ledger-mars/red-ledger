@@ -85,13 +85,26 @@ map.on('mousemove', (e) => {
 });
 map.on('mouseout', () => { $('cursor-coord').textContent = ''; });
 
+// The bars at the top and bottom grow when their contents wrap on a narrow
+// screen. The panel grid is told their real height.
+function fitBars() {
+  const root = document.documentElement.style;
+  root.setProperty('--top', `${document.querySelector('.top').offsetHeight}px`);
+  root.setProperty('--foot', `${document.querySelector('.foot').offsetHeight}px`);
+}
+window.addEventListener('resize', fitBars);
+
 // The part of the window not covered by panels, in screen pixels. The
-// camera keeps the walk inside it.
+// camera keeps the walk inside it. On a wide screen the ledger sits beside
+// the map; on a narrow one it sits above it.
 function clearArea() {
   const ledger = document.querySelector('.ledger').getBoundingClientRect();
   const walk = document.querySelector('.walk').getBoundingClientRect();
   const top = document.querySelector('.top').getBoundingClientRect();
-  return { left: ledger.right + 28, top: top.bottom + 12, right: window.innerWidth - 36, bottom: walk.top - 28 };
+  const beside = ledger.width < window.innerWidth * 0.6;
+  return beside
+    ? { left: ledger.right + 28, top: top.bottom + 12, right: window.innerWidth - 36, bottom: walk.top - 28 }
+    : { left: 20, top: ledger.bottom + 16, right: window.innerWidth - 20, bottom: walk.top - 16 };
 }
 
 function boundsPadding() {
@@ -155,6 +168,7 @@ function buildOverlays(terrain, sky, comms) {
     $('overlays').append(btn);
   });
   setOverlay('none');
+  fitBars();
 }
 
 function setOverlay(id) {
@@ -1132,6 +1146,7 @@ async function runSequence() {
 /* Start */
 
 async function start() {
+  fitBars();
   buildImagery();
   buildBars();
   buildSources();
