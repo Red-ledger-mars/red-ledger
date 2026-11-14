@@ -126,21 +126,28 @@ body:not(.loading) #loader { opacity: 0; visibility: hidden; }
   .assumed::after { content: " ◇"; font-size: 0.4em; vertical-align: super; }
 }
 
-/* ---- The story column. Every chapter's text starts at the same height, so
-   nothing jumps when the story moves on. */
+/* ---- The story column. The chapters are only scroll length; their text is
+   pinned in one place and cross-fades, so it never travels through the live
+   number or under the top links. The old text fades out before the new one
+   fades in, so two never mix. */
 
 #story { position: relative; z-index: 5; }
-.chapter {
-  position: relative;
+.chapter { position: relative; min-height: 100vh; }
+.chapter-body {
+  position: fixed; top: 17vh; left: 28px;
   width: min(600px, 44vw);
-  margin-left: 28px;
-  min-height: 100vh;
-  padding: 17vh 0 12vh;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
 }
-.chapter-body { position: sticky; top: 17vh; opacity: 0; transition: opacity 450ms ease; }
-/* Only the chapter in the middle of the screen is shown, so two never mix. */
-.chapter.is-active .chapter-body { opacity: 1; }
-.chapter.wide-text { width: min(720px, 54vw); }
+.chapter.is-active .chapter-body { opacity: 1; pointer-events: auto; transition: opacity 450ms ease 150ms; }
+.chapter.wide-text .chapter-body { width: min(720px, 54vw); }
+/* Short windows: smaller headlines so a chapter's text ends above the live
+   number. Still the same three sizes, each a little smaller. */
+@media (max-height: 760px) and (min-width: 721px) {
+  :root[data-theme] { --size-display: clamp(40px, 4.2vw, 58px); --size-text: 17px; }
+  .chapter-body { top: 15vh; width: min(660px, 50vw); }
+}
 
 .title, .chapter h2 {
   margin: 0;
@@ -205,9 +212,10 @@ body:not(.loading) #loader { opacity: 0; visibility: hidden; }
   transition: opacity 400ms ease;
 }
 #hud[hidden] { display: block; opacity: 0; pointer-events: none; }
+.hud-line { margin: 4px 0 0; }
 .hud-value {
-  display: block;
-  margin: 4px 0;
+  display: inline-block;
+  margin-right: 8px;
   font: var(--display-weight) var(--size-display)/0.9 var(--font-display);
   font-variant-numeric: tabular-nums;
 }
@@ -218,11 +226,21 @@ body:not(.loading) #loader { opacity: 0; visibility: hidden; }
 .hud-rows { display: grid; grid-template-columns: 1fr auto; gap: 2px 14px; margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--line); text-align: left; font-size: var(--size-small); }
 .hud-rows dt { color: var(--fg-3); }
 .hud-rows dd { margin: 0; text-align: right; color: var(--fg); font-weight: 600; }
+@media (max-height: 760px) and (min-width: 721px) {
+  .hud-rows { grid-template-columns: auto 1fr auto 1fr; }
+}
 
 /* ---- The end: the two routes face to face */
 
-.chapter.end { width: min(980px, calc(100vw - 56px)); }
-.chapter.end .chapter-body { position: static; }
+/* The face-off is long, so it alone scrolls like a page. The top links and
+   the mark get a dark band so it never runs visibly under them. */
+.chapter.end { padding: 17vh 28px 14vh; }
+.chapter.end .chapter-body { position: static; width: min(980px, 100%); }
+body.ending .top { background: linear-gradient(to bottom, var(--bg) 55%, transparent); }
+body.ending .foot::before {
+  content: ""; position: fixed; left: 0; right: 0; bottom: 0; height: 64px; z-index: -1;
+  background: linear-gradient(to top, var(--bg) 50%, transparent);
+}
 .faceoff { margin-top: 26px; }
 .fo-row {
   display: grid;
@@ -243,13 +261,12 @@ body:not(.loading) #loader { opacity: 0; visibility: hidden; }
 /* ---- Phones: one column over the ground, the live number at the top */
 
 @media (max-width: 720px) {
-  :root { --size-text: 16px; }
+  :root[data-theme] { --size-text: 16px; }
   .top { padding: 14px 18px; }
   .top-credits { display: none; } /* it stays one tap away in the info panel */
   .foot { left: 18px; bottom: 12px; }
-  .chapter, .chapter.wide-text { width: auto; margin: 0 18px; }
-  .chapter-body { top: 40vh; }
-  .chapter { padding-top: 40vh; }
+  .chapter-body, .chapter.wide-text .chapter-body { top: 40vh; left: 18px; width: calc(100vw - 36px); }
+  .chapter.end { padding: 40vh 18px 14vh; }
   .fade-left { background: linear-gradient(to top, var(--fade) 0, rgba(0, 0, 0, 0.55) 55%, transparent 80%); }
   #hud { top: 60px; bottom: auto; left: 18px; width: calc(100vw - 36px); }
   .hud-rows { display: none; }

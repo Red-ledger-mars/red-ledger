@@ -266,8 +266,7 @@ function faceoff() {
 function buildHud() {
   $('hud').innerHTML = `
     <p class="label">Body heat</p>
-    <span class="hud-value assumed" id="hud-heat">0.00</span>
-    <p class="label"><span class="unit">kJ/kg</span> · NASA limit ${fmt(MODEL.heatLimitKJkg, 1)}</p>
+    <p class="hud-line"><span class="hud-value assumed" id="hud-heat">0.00</span> <span class="label"><span class="unit">kJ/kg</span> · NASA limit ${fmt(MODEL.heatLimitKJkg, 1)}</span></p>
     <div class="meter"><i id="hud-fill"></i><b style="left: ${(MODEL.heatLimitKJkg / MODEL.heatContingencyKJkg) * 100}%"></b></div>
     <p class="label" id="hud-meta"></p>
     <p class="label hud-event" id="hud-event"></p>
