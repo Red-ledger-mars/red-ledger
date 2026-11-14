@@ -363,14 +363,14 @@ async function buildProof() {
   const level = people.rows.filter((row) => row.suited);
   const pct = (ratio) => `${ratio >= 1 ? '+' : '−'}${Math.abs(Math.round((ratio - 1) * 100))}%`;
   $('proof-body').innerHTML = `
-    <h3>1. The body model, tested on people</h3>
+    <h3>1. The body model, tested against NASA's measurements of people</h3>
     <p>NASA measured how hard people work when they walk in a spacesuit at low gravity. Before collecting those measurements we fixed the test in the project's history: the model's prediction, and the rule that it stands only if the measurements lie within 15% of it.</p>
     <table>
       <thead><tr><th>Level ground, suited</th><th>Measured</th><th>First model</th><th>Measured against model</th></tr></thead>
       <tbody>${level.map((row) => `<tr class="off"><td>${row.gravity_g > 0.3 ? 'Mars' : 'Moon'} gravity, ${row.speed_m_s.toFixed(2)} m/s</td><td>${Math.round(row.measured_w)} W</td><td>${row.predicted_w} W</td><td>${pct(row.ratio)}</td></tr>`).join('')}</tbody>
     </table>
     <p><b>It failed.</b> People used ${Math.round((people.suited.median_ratio - 1) * 100)}% more energy than the model said (median; from ${pct(people.suited.lowest_ratio)} to ${pct(people.suited.highest_ratio)}). By the rule set in advance, the level cost is now multiplied by ${people.correction}, and the spread is shown on the heat numbers.</p>
-    <p>The sloped measurements showed a second fault: the first model predicted up to twice the measured cost of a climb, because it scaled the whole cost by one gravity factor. Climbing is work against weight, so the slope part is now scaled by gravity itself. The revised model against sloped measurements that played no part in the correction:</p>
+    <p>The sloped measurements showed a second fault: the first model predicted up to ${Math.max(...slopes.rows.map((row) => row.first_model_w / row.measured_w)).toFixed(1)} times the measured cost of a climb, because it scaled the whole cost by one gravity factor. Climbing is work against weight, so the slope part is now scaled by gravity itself. The revised model against sloped measurements that played no part in the correction:</p>
     <table>
       <thead><tr><th>Slope, suited</th><th>Measured</th><th>First model</th><th>Revised model</th></tr></thead>
       <tbody>${slopes.rows.map((row) => `<tr><td>${row.gravity_g.toFixed(2)} g, ${row.grade_percent}% grade</td><td>${row.measured_w} W</td><td>${row.first_model_w} W</td><td>${row.revised_w.mid} W (${pct(row.revised_ratio)})</td></tr>`).join('')}</tbody>
@@ -378,7 +378,7 @@ async function buildProof() {
     <p><b>All ${slopes.revised_model.points} lie within ${Math.round((Math.max(slopes.revised_model.highest - 1, 1 - slopes.revised_model.lowest)) * 100)}% of the revised model</b> (median ${pct(slopes.revised_model.median_ratio)}). The change was made after seeing these measurements, so this shows the model is consistent with them; it is not a blind prediction. All but one value were read from the reports' plotted lines, the sloped walking speed is known only as a range, and none of the sloped tests was at Mars gravity.</p>
     <p>Sources: <a href="https://ntrs.nasa.gov/citations/20070016007" target="_blank" rel="noopener">NASA Walkback Test</a>, <a href="https://ntrs.nasa.gov/citations/20110003409" target="_blank" rel="noopener">NASA Integrated Suit Test 2, NASA/TP-2010-216125</a>.</p>
     <h3>2. The radiation layer, tested against Curiosity</h3>
-    <p>At eight places the Curiosity rover measured less radiation where terrain blocked part of the sky. We computed the share of sky blocked at the same places from NASA's elevation model and compared it with the published values.</p>
+    <p>In eight measurement periods at five places the Curiosity rover measured less radiation where terrain blocked part of the sky. We computed the share of sky blocked at the same rover positions from NASA's elevation model and compared it with the published values.</p>
     <table>
       <thead><tr><th>Place</th><th>Sky blocked, published</th><th>Sky blocked, ours</th><th>Dose drop measured</th></tr></thead>
       <tbody>${check.rows.map((row) => `<tr${Math.abs(row.difference_pct_points) > 1 ? ' class="off"' : ''}>
@@ -1182,7 +1182,7 @@ async function runSequence(long = false) {
 }
 
 // About 16 seconds: the heavy load on the direct route with its three
-// rests, the body-cost route with two, then the test on people.
+// rests, the body-cost route with two, then the test sheet.
 async function shortSequence(hold, heaviest) {
   restPauseMs = 600;
   setOverlay('slope');
