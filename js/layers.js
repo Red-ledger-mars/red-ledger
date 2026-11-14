@@ -2,8 +2,8 @@
 // because that text is shown on screen and copied into CREDITS.md.
 // Each address below was requested and returned an image on 14 Nov 2026.
 
-// The walk area: the boxwork ridges on Mount Sharp, where Curiosity worked
-// from May 2025 to March 2026 (sols 4540 to 4852).
+// The walk area: the boxwork ridges on Mount Sharp, where Curiosity has
+// worked since 2025. The weather file covers sols 4540 to 4852.
 export const SITE = {
   name: 'Gale crater, Mount Sharp',
   center: [-4.805, 137.3825], // lat, lon (east positive)

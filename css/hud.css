@@ -570,6 +570,14 @@ body.booting::before { opacity: 1; animation: cover-lift 450ms var(--ease-out) 6
 .free #progress-text { flex: 1; text-align: left; color: var(--text); font-size: 14px; }
 .free .routes { opacity: 0.45; pointer-events: none; }
 
+/* Your own walk: the viewer places the stops on the map. */
+.own .leaflet-container { cursor: crosshair; }
+.stop-own { background: var(--bg); color: var(--text); border: 2px solid var(--text); cursor: pointer; }
+.own-hint { margin: 0 0 8px; font-size: 13px; color: var(--text); }
+.routes[aria-busy="true"] { opacity: 0.55; }
+.own #free, .free #own { display: none; }
+.rec .own-hint { display: none; }
+
 /* Walk brief */
 .ledger-foot .brief-open { background: rgba(255, 85, 51, 0.16); border-color: rgba(255, 85, 51, 0.6); font-weight: 600; }
 .sheet { width: min(780px, calc(100vw - 40px)); max-height: 88vh; border-top-color: var(--red); scrollbar-color: rgba(255, 214, 190, 0.3) transparent; }

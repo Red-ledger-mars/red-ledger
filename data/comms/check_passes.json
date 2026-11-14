@@ -1,0 +1,691 @@
+{
+  "what": "A second, independent computation of the Mars relay-orbiter passes over the ridges stop on 2025-12-18, from Horizons state vectors and our own Mars-fixed rotation, compared pass by pass with data/comms/passes.json.",
+  "method": {
+    "date_of_check": "14 Nov 2026",
+    "script": "tools/check_comms_passes.py (plain Python 3 standard library). This record was written from its output.",
+    "horizons_request": "https://ssd.jpl.nasa.gov/api/horizons.api, EPHEM_TYPE=VECTORS, VEC_TABLE=1 (position), CENTER=500@499 (Mars body centre), REF_SYSTEM=ICRF, REF_PLANE=FRAME, STEP_SIZE=1 min, 2025-12-18 00:00 UT + 1479 min (1480 samples), TIME_TYPE=UT, one request per orbiter",
+    "horizons_ids": {
+      "MRO": -74,
+      "Mars Odyssey": -53,
+      "ExoMars TGO": -143,
+      "Mars Express": -41
+    },
+    "data_availability": "All four spacecraft returned all 1480 samples. Horizons did not offer an IAU_MARS body-fixed frame for vectors, so the inertial ICRF vectors were rotated into the Mars body-fixed frame by this script.",
+    "frame": "ICRF -> Mars body-fixed with the IAU 2015 Mars pole and prime meridian (alpha0, delta0, W with their periodic terms), matrix Rz(W) Rx(90deg - delta0) Rz(90deg + alpha0). Pole direction checked at J2000. Time for the rotation: TDB = Horizons UT + 69.184 s (the constant offset Horizons itself uses for this date).",
+    "observer": "East longitude +137.381, latitude -4.808, positive east, so Horizons' observer-table longitude sign convention never enters. Headline variant A: sphere of 3,396,190 m, zero height, latitude taken as planetocentric. Follow-up variants B to E are listed under summary.variants.",
+    "angles": "Local east-north-up frame at the site. Azimuth clockwise from north, elevation above the local horizontal plane, geometric (no refraction, no light-time correction in variants A to D; variant E adds Horizons' light-time correction).",
+    "pass_definition": "A pass is a continuous run of one-minute samples with elevation > 0 deg. Rise and set are the first and last whole minute of the run; interpolated values are linear zero crossings. Minute 0 is 2025-12-18 00:00 UTC. Old and new passes were paired by overlapping minute ranges; none was left unpaired and none touches the window edges.",
+    "not_tuned": "Variant A was fixed before any comparison was run. Variants B to E and the height fit were added after seeing A disagree, only to find the cause; they are not an independent confirmation by themselves.",
+    "first_computation_observer": "tools/comms_fetch.py asks Horizons for a geodetic observer at east longitude 137.381, latitude -4.808, height -3.6 km (SITE = \"-137.381,-4.808,-3.6\", COORD_TYPE GEODETIC). Variant D below (ellipsoid, -4.0 km) is the closest to it; the height fit gives -3.6 km."
+  },
+  "passes": [
+    {
+      "orbiter": "MRO",
+      "old": {
+        "rise_min": 497,
+        "set_min": 509,
+        "rise_interp_min": 496.23,
+        "set_interp_min": 509.94,
+        "peak_elev_deg": 79.37,
+        "peak_min": 503
+      },
+      "new": {
+        "rise_min": 497,
+        "set_min": 509,
+        "rise_interp_min": 496.28,
+        "set_interp_min": 509.89,
+        "peak_elev_deg": 78.53,
+        "peak_min": 503
+      },
+      "diff": {
+        "rise_min": 0,
+        "set_min": 0,
+        "rise_interp_min": 0.05,
+        "set_interp_min": -0.04,
+        "peak_elev_deg": -0.84,
+        "peak_min": 0
+      },
+      "touches_window_edge": false,
+      "same_pass_in_variant_D": {
+        "new": {
+          "rise_min": 497,
+          "set_min": 509,
+          "rise_interp_min": 496.22,
+          "set_interp_min": 509.94,
+          "peak_elev_deg": 79.38,
+          "peak_min": 503
+        },
+        "diff": {
+          "rise_min": 0,
+          "set_min": 0,
+          "rise_interp_min": -0.01,
+          "set_interp_min": 0.0,
+          "peak_elev_deg": 0.01,
+          "peak_min": 0
+        }
+      },
+      "note": "rise/set are the first and last whole minute with elevation > 0; *_interp_min are linear zero crossings. old = data/comms/passes.json, new = this check (variant A)."
+    },
+    {
+      "orbiter": "MRO",
+      "old": {
+        "rise_min": 1223,
+        "set_min": 1236,
+        "rise_interp_min": 1222.69,
+        "set_interp_min": 1236.21,
+        "peak_elev_deg": 47.08,
+        "peak_min": 1229
+      },
+      "new": {
+        "rise_min": 1223,
+        "set_min": 1236,
+        "rise_interp_min": 1222.74,
+        "set_interp_min": 1236.16,
+        "peak_elev_deg": 46.72,
+        "peak_min": 1229
+      },
+      "diff": {
+        "rise_min": 0,
+        "set_min": 0,
+        "rise_interp_min": 0.05,
+        "set_interp_min": -0.05,
+        "peak_elev_deg": -0.36,
+        "peak_min": 0
+      },
+      "touches_window_edge": false,
+      "same_pass_in_variant_D": {
+        "new": {
+          "rise_min": 1223,
+          "set_min": 1236,
+          "rise_interp_min": 1222.68,
+          "set_interp_min": 1236.22,
+          "peak_elev_deg": 47.13,
+          "peak_min": 1229
+        },
+        "diff": {
+          "rise_min": 0,
+          "set_min": 0,
+          "rise_interp_min": -0.0,
+          "set_interp_min": 0.01,
+          "peak_elev_deg": 0.05,
+          "peak_min": 0
+        }
+      }
+    },
+    {
+      "orbiter": "Mars Odyssey",
+      "old": {
+        "rise_min": 34,
+        "set_min": 44,
+        "rise_interp_min": 33.98,
+        "set_interp_min": 44.41,
+        "peak_elev_deg": 5.53,
+        "peak_min": 39
+      },
+      "new": {
+        "rise_min": 35,
+        "set_min": 44,
+        "rise_interp_min": 34.06,
+        "set_interp_min": 44.34,
+        "peak_elev_deg": 5.38,
+        "peak_min": 39
+      },
+      "diff": {
+        "rise_min": 1,
+        "set_min": 0,
+        "rise_interp_min": 0.07,
+        "set_interp_min": -0.07,
+        "peak_elev_deg": -0.15,
+        "peak_min": 0
+      },
+      "touches_window_edge": false,
+      "same_pass_in_variant_D": {
+        "new": {
+          "rise_min": 34,
+          "set_min": 44,
+          "rise_interp_min": 33.97,
+          "set_interp_min": 44.42,
+          "peak_elev_deg": 5.55,
+          "peak_min": 39
+        },
+        "diff": {
+          "rise_min": 0,
+          "set_min": 0,
+          "rise_interp_min": -0.01,
+          "set_interp_min": 0.01,
+          "peak_elev_deg": 0.02,
+          "peak_min": 0
+        }
+      }
+    },
+    {
+      "orbiter": "Mars Odyssey",
+      "old": {
+        "rise_min": 680,
+        "set_min": 697,
+        "rise_interp_min": 679.97,
+        "set_interp_min": 697.49,
+        "peak_elev_deg": 75.79,
+        "peak_min": 689
+      },
+      "new": {
+        "rise_min": 681,
+        "set_min": 697,
+        "rise_interp_min": 680.01,
+        "set_interp_min": 697.45,
+        "peak_elev_deg": 75.25,
+        "peak_min": 689
+      },
+      "diff": {
+        "rise_min": 1,
+        "set_min": 0,
+        "rise_interp_min": 0.04,
+        "set_interp_min": -0.04,
+        "peak_elev_deg": -0.54,
+        "peak_min": 0
+      },
+      "touches_window_edge": false,
+      "same_pass_in_variant_D": {
+        "new": {
+          "rise_min": 680,
+          "set_min": 697,
+          "rise_interp_min": 679.97,
+          "set_interp_min": 697.49,
+          "peak_elev_deg": 75.8,
+          "peak_min": 689
+        },
+        "diff": {
+          "rise_min": 0,
+          "set_min": 0,
+          "rise_interp_min": -0.01,
+          "set_interp_min": 0.0,
+          "peak_elev_deg": 0.01,
+          "peak_min": 0
+        }
+      }
+    },
+    {
+      "orbiter": "Mars Odyssey",
+      "old": {
+        "rise_min": 1340,
+        "set_min": 1350,
+        "rise_interp_min": 1339.61,
+        "set_interp_min": 1350.93,
+        "peak_elev_deg": 6.99,
+        "peak_min": 1345
+      },
+      "new": {
+        "rise_min": 1340,
+        "set_min": 1350,
+        "rise_interp_min": 1339.67,
+        "set_interp_min": 1350.86,
+        "peak_elev_deg": 6.83,
+        "peak_min": 1345
+      },
+      "diff": {
+        "rise_min": 0,
+        "set_min": 0,
+        "rise_interp_min": 0.07,
+        "set_interp_min": -0.07,
+        "peak_elev_deg": -0.16,
+        "peak_min": 0
+      },
+      "touches_window_edge": false,
+      "same_pass_in_variant_D": {
+        "new": {
+          "rise_min": 1340,
+          "set_min": 1350,
+          "rise_interp_min": 1339.6,
+          "set_interp_min": 1350.93,
+          "peak_elev_deg": 7.01,
+          "peak_min": 1345
+        },
+        "diff": {
+          "rise_min": 0,
+          "set_min": 0,
+          "rise_interp_min": -0.01,
+          "set_interp_min": 0.0,
+          "peak_elev_deg": 0.02,
+          "peak_min": 0
+        }
+      }
+    },
+    {
+      "orbiter": "Mars Odyssey",
+      "old": {
+        "rise_min": 1455,
+        "set_min": 1470,
+        "rise_interp_min": 1454.2,
+        "set_interp_min": 1470.89,
+        "peak_elev_deg": 34.51,
+        "peak_min": 1463
+      },
+      "new": {
+        "rise_min": 1455,
+        "set_min": 1470,
+        "rise_interp_min": 1454.24,
+        "set_interp_min": 1470.85,
+        "peak_elev_deg": 34.23,
+        "peak_min": 1463
+      },
+      "diff": {
+        "rise_min": 0,
+        "set_min": 0,
+        "rise_interp_min": 0.04,
+        "set_interp_min": -0.04,
+        "peak_elev_deg": -0.28,
+        "peak_min": 0
+      },
+      "touches_window_edge": false,
+      "same_pass_in_variant_D": {
+        "new": {
+          "rise_min": 1455,
+          "set_min": 1470,
+          "rise_interp_min": 1454.19,
+          "set_interp_min": 1470.9,
+          "peak_elev_deg": 34.54,
+          "peak_min": 1463
+        },
+        "diff": {
+          "rise_min": 0,
+          "set_min": 0,
+          "rise_interp_min": -0.0,
+          "set_interp_min": 0.01,
+          "peak_elev_deg": 0.03,
+          "peak_min": 0
+        }
+      }
+    },
+    {
+      "orbiter": "ExoMars TGO",
+      "old": {
+        "rise_min": 135,
+        "set_min": 143,
+        "rise_interp_min": 134.93,
+        "set_interp_min": 143.06,
+        "peak_elev_deg": 2.97,
+        "peak_min": 139
+      },
+      "new": {
+        "rise_min": 136,
+        "set_min": 142,
+        "rise_interp_min": 135.03,
+        "set_interp_min": 142.96,
+        "peak_elev_deg": 2.83,
+        "peak_min": 139
+      },
+      "diff": {
+        "rise_min": 1,
+        "set_min": -1,
+        "rise_interp_min": 0.1,
+        "set_interp_min": -0.09,
+        "peak_elev_deg": -0.14,
+        "peak_min": 0
+      },
+      "touches_window_edge": false,
+      "same_pass_in_variant_D": {
+        "new": {
+          "rise_min": 135,
+          "set_min": 143,
+          "rise_interp_min": 134.93,
+          "set_interp_min": 143.07,
+          "peak_elev_deg": 2.99,
+          "peak_min": 139
+        },
+        "diff": {
+          "rise_min": 0,
+          "set_min": 0,
+          "rise_interp_min": -0.01,
+          "set_interp_min": 0.01,
+          "peak_elev_deg": 0.02,
+          "peak_min": 0
+        }
+      }
+    },
+    {
+      "orbiter": "ExoMars TGO",
+      "old": {
+        "rise_min": 250,
+        "set_min": 267,
+        "rise_interp_min": 249.88,
+        "set_interp_min": 267.11,
+        "peak_elev_deg": 48.54,
+        "peak_min": 259
+      },
+      "new": {
+        "rise_min": 250,
+        "set_min": 267,
+        "rise_interp_min": 249.92,
+        "set_interp_min": 267.06,
+        "peak_elev_deg": 48.36,
+        "peak_min": 259
+      },
+      "diff": {
+        "rise_min": 0,
+        "set_min": 0,
+        "rise_interp_min": 0.05,
+        "set_interp_min": -0.05,
+        "peak_elev_deg": -0.18,
+        "peak_min": 0
+      },
+      "touches_window_edge": false,
+      "same_pass_in_variant_D": {
+        "new": {
+          "rise_min": 250,
+          "set_min": 267,
+          "rise_interp_min": 249.87,
+          "set_interp_min": 267.11,
+          "peak_elev_deg": 48.57,
+          "peak_min": 259
+        },
+        "diff": {
+          "rise_min": 0,
+          "set_min": 0,
+          "rise_interp_min": -0.0,
+          "set_interp_min": 0.0,
+          "peak_elev_deg": 0.03,
+          "peak_min": 0
+        }
+      }
+    },
+    {
+      "orbiter": "ExoMars TGO",
+      "old": {
+        "rise_min": 895,
+        "set_min": 909,
+        "rise_interp_min": 894.82,
+        "set_interp_min": 909.76,
+        "peak_elev_deg": 16.72,
+        "peak_min": 902
+      },
+      "new": {
+        "rise_min": 895,
+        "set_min": 909,
+        "rise_interp_min": 894.87,
+        "set_interp_min": 909.71,
+        "peak_elev_deg": 16.51,
+        "peak_min": 902
+      },
+      "diff": {
+        "rise_min": 0,
+        "set_min": 0,
+        "rise_interp_min": 0.05,
+        "set_interp_min": -0.05,
+        "peak_elev_deg": -0.21,
+        "peak_min": 0
+      },
+      "touches_window_edge": false,
+      "same_pass_in_variant_D": {
+        "new": {
+          "rise_min": 895,
+          "set_min": 909,
+          "rise_interp_min": 894.81,
+          "set_interp_min": 909.77,
+          "peak_elev_deg": 16.74,
+          "peak_min": 902
+        },
+        "diff": {
+          "rise_min": 0,
+          "set_min": 0,
+          "rise_interp_min": -0.01,
+          "set_interp_min": 0.0,
+          "peak_elev_deg": 0.02,
+          "peak_min": 0
+        }
+      }
+    },
+    {
+      "orbiter": "ExoMars TGO",
+      "old": {
+        "rise_min": 1015,
+        "set_min": 1029,
+        "rise_interp_min": 1014.51,
+        "set_interp_min": 1029.33,
+        "peak_elev_deg": 16.28,
+        "peak_min": 1022
+      },
+      "new": {
+        "rise_min": 1015,
+        "set_min": 1029,
+        "rise_interp_min": 1014.56,
+        "set_interp_min": 1029.28,
+        "peak_elev_deg": 16.06,
+        "peak_min": 1022
+      },
+      "diff": {
+        "rise_min": 0,
+        "set_min": 0,
+        "rise_interp_min": 0.05,
+        "set_interp_min": -0.05,
+        "peak_elev_deg": -0.22,
+        "peak_min": 0
+      },
+      "touches_window_edge": false,
+      "same_pass_in_variant_D": {
+        "new": {
+          "rise_min": 1015,
+          "set_min": 1029,
+          "rise_interp_min": 1014.51,
+          "set_interp_min": 1029.33,
+          "peak_elev_deg": 16.3,
+          "peak_min": 1022
+        },
+        "diff": {
+          "rise_min": 0,
+          "set_min": 0,
+          "rise_interp_min": -0.0,
+          "set_interp_min": 0.01,
+          "peak_elev_deg": 0.02,
+          "peak_min": 0
+        }
+      }
+    },
+    {
+      "orbiter": "Mars Express",
+      "old": {
+        "rise_min": 89,
+        "set_min": 93,
+        "rise_interp_min": 88.86,
+        "set_interp_min": 93.86,
+        "peak_elev_deg": 0.09,
+        "peak_min": 91
+      },
+      "new": {
+        "rise_min": 90,
+        "set_min": 93,
+        "rise_interp_min": 89.55,
+        "set_interp_min": 93.19,
+        "peak_elev_deg": 0.05,
+        "peak_min": 91
+      },
+      "diff": {
+        "rise_min": 1,
+        "set_min": 0,
+        "rise_interp_min": 0.69,
+        "set_interp_min": -0.67,
+        "peak_elev_deg": -0.04,
+        "peak_min": 0
+      },
+      "touches_window_edge": false,
+      "same_pass_in_variant_D": {
+        "new": {
+          "rise_min": 89,
+          "set_min": 93,
+          "rise_interp_min": 88.79,
+          "set_interp_min": 93.89,
+          "peak_elev_deg": 0.1,
+          "peak_min": 91
+        },
+        "diff": {
+          "rise_min": 0,
+          "set_min": 0,
+          "rise_interp_min": -0.07,
+          "set_interp_min": 0.03,
+          "peak_elev_deg": 0.01,
+          "peak_min": 0
+        }
+      }
+    },
+    {
+      "orbiter": "Mars Express",
+      "old": {
+        "rise_min": 469,
+        "set_min": 517,
+        "rise_interp_min": 468.3,
+        "set_interp_min": 517.25,
+        "peak_elev_deg": 4.06,
+        "peak_min": 499
+      },
+      "new": {
+        "rise_min": 469,
+        "set_min": 517,
+        "rise_interp_min": 468.41,
+        "set_interp_min": 517.17,
+        "peak_elev_deg": 4.02,
+        "peak_min": 500
+      },
+      "diff": {
+        "rise_min": 0,
+        "set_min": 0,
+        "rise_interp_min": 0.11,
+        "set_interp_min": -0.08,
+        "peak_elev_deg": -0.04,
+        "peak_min": 1
+      },
+      "touches_window_edge": false,
+      "same_pass_in_variant_D": {
+        "new": {
+          "rise_min": 469,
+          "set_min": 517,
+          "rise_interp_min": 468.28,
+          "set_interp_min": 517.26,
+          "peak_elev_deg": 4.07,
+          "peak_min": 500
+        },
+        "diff": {
+          "rise_min": 0,
+          "set_min": 0,
+          "rise_interp_min": -0.02,
+          "set_interp_min": 0.02,
+          "peak_elev_deg": 0.01,
+          "peak_min": 1
+        }
+      }
+    },
+    {
+      "orbiter": "Mars Express",
+      "old": {
+        "rise_min": 982,
+        "set_min": 1151,
+        "rise_interp_min": 981.16,
+        "set_interp_min": 1151.52,
+        "peak_elev_deg": 67.96,
+        "peak_min": 1005
+      },
+      "new": {
+        "rise_min": 982,
+        "set_min": 1151,
+        "rise_interp_min": 981.18,
+        "set_interp_min": 1151.47,
+        "peak_elev_deg": 67.92,
+        "peak_min": 1005
+      },
+      "diff": {
+        "rise_min": 0,
+        "set_min": 0,
+        "rise_interp_min": 0.02,
+        "set_interp_min": -0.05,
+        "peak_elev_deg": -0.04,
+        "peak_min": 0
+      },
+      "touches_window_edge": false,
+      "same_pass_in_variant_D": {
+        "new": {
+          "rise_min": 982,
+          "set_min": 1151,
+          "rise_interp_min": 981.16,
+          "set_interp_min": 1151.53,
+          "peak_elev_deg": 67.96,
+          "peak_min": 1005
+        },
+        "diff": {
+          "rise_min": 0,
+          "set_min": 0,
+          "rise_interp_min": -0.0,
+          "set_interp_min": 0.01,
+          "peak_elev_deg": 0.0,
+          "peak_min": 0
+        }
+      }
+    }
+  ],
+  "summary": {
+    "passes_compared": 13,
+    "largest_rise_set_difference_min_whole_minutes": 1,
+    "largest_rise_set_difference_min_interpolated": 0.69,
+    "largest_peak_elevation_difference_deg": 0.84,
+    "largest_elevation_difference_deg_samples_above_5deg": 0.84,
+    "largest_azimuth_difference_deg_samples_above_5deg": 0.83,
+    "samples_compared_above_5deg": 244,
+    "variant_used_for_headline": "A_sphere_h0",
+    "variants": {
+      "A_sphere_h0": {
+        "description": "Headline. Sphere R = 3396.19 km, observer at zero height, planetocentric latitude, geometric (no light time).",
+        "passes_compared": 13,
+        "largest_rise_set_difference_min_whole_minutes": 1,
+        "largest_rise_set_difference_min_interpolated": 0.69,
+        "largest_peak_elevation_difference_deg": 0.84,
+        "largest_elevation_difference_deg_samples_above_5deg": 0.84,
+        "largest_azimuth_difference_deg_samples_above_5deg": 0.83,
+        "samples_compared_above_5deg": 244
+      },
+      "B_sphere_h-4": {
+        "description": "Sphere R = 3396.19 km, observer 4.0 km below it.",
+        "passes_compared": 13,
+        "largest_rise_set_difference_min_whole_minutes": 0,
+        "largest_rise_set_difference_min_interpolated": 0.05,
+        "largest_peak_elevation_difference_deg": 0.67,
+        "largest_elevation_difference_deg_samples_above_5deg": 0.675,
+        "largest_azimuth_difference_deg_samples_above_5deg": 0.83,
+        "samples_compared_above_5deg": 245
+      },
+      "C_ellipsoid_h0": {
+        "description": "IAU ellipsoid 3396.19 x 3376.2 km, latitude read as planetodetic, height 0.",
+        "passes_compared": 13,
+        "largest_rise_set_difference_min_whole_minutes": 1,
+        "largest_rise_set_difference_min_interpolated": 0.66,
+        "largest_peak_elevation_difference_deg": 0.39,
+        "largest_elevation_difference_deg_samples_above_5deg": 0.398,
+        "largest_azimuth_difference_deg_samples_above_5deg": 0.005,
+        "samples_compared_above_5deg": 244
+      },
+      "D_ellipsoid_h-4": {
+        "description": "IAU ellipsoid, planetodetic latitude, height -4.0 km (the 'about 4 km below datum' from the brief).",
+        "passes_compared": 13,
+        "largest_rise_set_difference_min_whole_minutes": 0,
+        "largest_rise_set_difference_min_interpolated": 0.07,
+        "largest_peak_elevation_difference_deg": 0.05,
+        "largest_elevation_difference_deg_samples_above_5deg": 0.049,
+        "largest_azimuth_difference_deg_samples_above_5deg": 0.005,
+        "samples_compared_above_5deg": 245
+      },
+      "E_ellipsoid_h-4_lighttime": {
+        "description": "Same as D, Horizons light-time corrected vectors (VEC_CORR=LT).",
+        "passes_compared": 13,
+        "largest_rise_set_difference_min_whole_minutes": 0,
+        "largest_rise_set_difference_min_interpolated": 0.12,
+        "largest_peak_elevation_difference_deg": 0.05,
+        "largest_elevation_difference_deg_samples_above_5deg": 0.063,
+        "largest_azimuth_difference_deg_samples_above_5deg": 0.207,
+        "samples_compared_above_5deg": 245
+      }
+    },
+    "post_hoc_height_fit": {
+      "what": "Ellipsoid height (-8 to +2 km, 0.1 km steps) that minimises the largest elevation difference against passes.json. A diagnostic of what the first computation seems to have used, not a result to rely on.",
+      "best_height_km": -3.6,
+      "largest_elevation_difference_deg_at_that_height": 0.006
+    },
+    "orbiter_range_difference_variant_A_km": "new minus old range, about -5 to +4 km over all samples"
+  },
+  "verdict": "No, not under the observer model fixed in advance: with a 3,396,190 m sphere at zero height the two computations differ by up to 0.84 deg in elevation (peak of the MRO pass at 79 deg), 0.83 deg in azimuth, and by 1 whole minute (0.69 min interpolated) in rise or set; the cause is where the observer sits, not the orbiter positions, because reading latitude as planetodetic on the IAU ellipsoid removes the azimuth difference (0.005 deg) and a site height of about -4 km brings elevation to 0.05 deg and rise/set to 0 whole minutes (13 of 13 passes), which is within 1 minute and 0.1 deg only for that observer model."
+}
