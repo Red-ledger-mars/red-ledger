@@ -2,10 +2,13 @@
    container the page gives it. The variables match css/hud.css; the fallbacks
    let this file work on its own. */
 
+/* The 3D view fades in over the map when it opens, so the flat map seems
+   to tilt into the ground instead of cutting to it. */
 .v3d-root {
   position: absolute;
   inset: 0;
   overflow: hidden;
+  transition: opacity 350ms var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
   background: var(--bg, #0c0908);
   color: var(--text, #f3ebe0);
   font: 12px/1.4 var(--sans, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif);
@@ -122,3 +125,7 @@
   pointer-events: none;
   z-index: 5;
 }
+
+@starting-style { .v3d-root { opacity: 0; } }
+/* Opened with the V key: no fade. */
+.v3d-instant .v3d-root { transition: none; }

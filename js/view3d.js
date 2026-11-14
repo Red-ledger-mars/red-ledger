@@ -18,6 +18,8 @@ const TILE = 256;
 const MAX_TEXTURE_PX = 2048;
 const MESH_STEP = 2; // every second elevation cell
 const BASE_GROUND = '#9a6445'; // flat warm colour shown until imagery arrives
+// With less motion asked for, the camera jumps to a new view instead of gliding.
+const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ---------------------------------------------------------------- pure maths
 
@@ -1284,7 +1286,8 @@ export async function createView3D(container, { terrain, routes, colors = {} }) 
         const t = targetHeading();
         if (t !== null) heading = t;
       }
-      transition = 1.1;
+      transition = REDUCED ? 0 : 1.1;
+      if (REDUCED) stepCamera(0, true);
       updateHint();
       invalidate();
     },

@@ -792,7 +792,9 @@ function drawProfileCursor() {
 
 // The 3D view is made the first time it is opened, because it has to load
 // and stitch the imagery for the terrain.
-async function setView3D(on) {
+// `instant` skips the fade, for the V key.
+async function setView3D(on, instant = false) {
+  $('view3d').classList.toggle('v3d-instant', instant);
   $('view-map').setAttribute('aria-pressed', String(!on));
   $('view-3d').setAttribute('aria-pressed', String(on));
   for (const id of ['view-follow', 'view-height']) $(id).hidden = !on;
@@ -935,7 +937,7 @@ function buildWalkControls() {
     if (e.target.closest?.('input, button, summary, dialog, select') && e.key !== ' ') return;
     if (e.key === ' ') { e.preventDefault(); if (state.playing) setPlaying(false); else startWalk(); }
     if (e.key === 'r' || e.key === 'R') document.body.classList.toggle('rec');
-    if (e.key === 'v' || e.key === 'V') setView3D($('view3d').hidden);
+    if (e.key === 'v' || e.key === 'V') setView3D($('view3d').hidden, true);
     if (e.key === 'p' || e.key === 'P') runSequence();
     if (e.key === 'Escape') stopSequence();
     if (e.key === 'd' || e.key === 'D') selectRoute('direct', true);
@@ -1229,7 +1231,14 @@ async function start() {
 
   // Fly to the walk, then let the two routes draw themselves.
   const all = L.latLngBounds(ROUTES.flatMap((def) => state.routes[def.id].points.map((p) => [p.lat, p.lon])));
-  map.flyToBounds(all, { ...boundsPadding(), duration: 1.4, animate: !calm });
+  // flyTo divides by the map's size, which can be stale or zero if the page
+  // opened in a hidden tab. Without this the routes would never be drawn.
+  map.invalidateSize(false);
+  try {
+    map.flyToBounds(all, { ...boundsPadding(), duration: 1.4, animate: !calm });
+  } catch {
+    map.fitBounds(all, { ...boundsPadding(), animate: false });
+  }
   await wait(1500);
   state.stopMarkers = [stopMarker(walk.habitat, 0), ...walk.stops.map((s, i) => stopMarker(s, i + 1))];
   for (const def of ROUTES) await drawIn(def, 900);
