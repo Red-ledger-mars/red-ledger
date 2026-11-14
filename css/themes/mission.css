@@ -1,27 +1,53 @@
-/* Mission theme. A theme only sets these properties; css/story.css never
-   names a colour or a font itself, so a new theme cannot break the layout.
+/* Mission theme. A theme only sets fonts and these properties; css/story.css
+   never names a colour or a font itself, so a new theme cannot break the
+   layout. Two fonts carry the page and a third is kept for the RED LEDGER
+   mark. The fonts are stored in fonts/ so they stay sharp offline (OFL
+   licences beside them).
+
    The heat colours are the only colours on the page: white when the body
    is cool, amber at three quarters of NASA's limit, red at the limit. The
    thresholds themselves come from MODEL in js/body.js. */
+@font-face {
+  font-family: "Barlow Condensed";
+  font-weight: 700;
+  font-display: swap;
+  src: url("../../fonts/barlow-condensed-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../../fonts/inter-var.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Michroma";
+  font-weight: 400;
+  font-display: swap;
+  src: url("../../fonts/michroma-400.woff2") format("woff2");
+}
+
 :root[data-theme="mission"] {
   --bg: #000;
   --fg: #fff;
-  --fg-2: rgba(255, 255, 255, 0.62);
-  --fg-3: rgba(255, 255, 255, 0.38);
-  --line: rgba(255, 255, 255, 0.16);
-  --fade: rgba(0, 0, 0, 0.82);
+  --fg-2: rgba(255, 255, 255, 0.7);
+  --fg-3: rgba(255, 255, 255, 0.5);
+  --line: rgba(255, 255, 255, 0.18);
+  --fade: rgba(0, 0, 0, 0.84);
 
   --heat-cool: #f4f4f4;
   --heat-warm: #ffb000;
   --heat-hot: #ff3b1f;
 
-  --font-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
   --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace;
+  --font-logo: "Michroma", "Inter", sans-serif;
+
+  /* The only three type sizes on the page, plus the mark. */
+  --size-display: clamp(46px, 5vw, 76px);
+  --size-text: 18px;
+  --size-small: 13px;
+  --size-logo: 21px;
 
   --display-weight: 700;
   --display-case: uppercase;
-  --display-tracking: -0.01em;
-  --label-tracking: 0.18em;
-  --radius: 0;
 }
