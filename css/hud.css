@@ -41,7 +41,7 @@ html, body {
   box-shadow: inset 0 0 0 1px var(--line);
 }
 
-.top, .ledger, .target, .walk, .foot { position: fixed; z-index: 500; }
+.top, .ledger, .target, .walk, .foot, .legend { position: fixed; z-index: 500; }
 
 .top {
   top: 0; left: 0; right: 0;
@@ -178,6 +178,22 @@ html, body {
 .scrub button:disabled { opacity: 0.35; cursor: default; }
 .scrub input { flex: 1; accent-color: var(--red); }
 #profile { display: block; width: 100%; height: 70px; margin-top: 6px; }
+
+.legend {
+  left: 20px; bottom: 34px;
+  width: 248px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  padding: 8px 10px;
+  font: 10.5px/1.4 var(--mono);
+  color: var(--dim);
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+.legend[hidden] { display: none; }
+.legend b { width: 100%; color: var(--text); font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
+.legend i { display: inline-block; width: 10px; height: 10px; margin-right: 4px; vertical-align: -1px; border: 1px solid var(--line); }
 
 .foot {
   left: 0; right: 0; bottom: 0;

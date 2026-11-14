@@ -14,6 +14,7 @@ Work in progress. This section is updated as parts are finished.
 
 - [x] Page and helmet display layout
 - [x] NASA map layers: HiRISE colour, CTX, THEMIS day and night infrared, Curiosity's path
+- [x] Elevation crop of the walk area (4 m) and a slope layer computed from it
 - [ ] Routes and science targets
 - [ ] Body-cost model
 - [ ] Demo walk stored in the repo
@@ -27,6 +28,10 @@ python3 -m http.server 8765
 ```
 
 Then open http://localhost:8765.
+
+## Known limits
+
+- The elevation used is the 4 m level of the 1 m terrain model. It agrees with Curiosity's own waypoint heights (median difference 0.16 m, largest 1.2 m over 140 waypoints), but it smooths features smaller than a few metres, so single boxwork ridges (1 to 2 m tall) read gentler than they are.
 
 ## How the numbers are made
 

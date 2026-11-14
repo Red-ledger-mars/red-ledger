@@ -1,4 +1,5 @@
 import { SITE, LAYERS } from './layers.js';
+import { loadTerrain, slopeImage, SLOPE_STEPS } from './terrain.js';
 
 const L = window.L;
 
@@ -31,31 +32,62 @@ L.control.zoom({ position: 'bottomright' }).addTo(map);
 map.attributionControl.setPrefix(false);
 
 const coordEl = document.getElementById('cursor-coord');
+let terrain = null;
 map.on('mousemove', (e) => {
   const { lat, lng } = e.latlng;
-  coordEl.textContent = `${Math.abs(lat).toFixed(4)}°${lat < 0 ? 'S' : 'N'}  ${lng.toFixed(4)}°E`;
+  let text = `${Math.abs(lat).toFixed(4)}°${lat < 0 ? 'S' : 'N'}  ${lng.toFixed(4)}°E`;
+  const elev = terrain?.elevAt(lat, lng);
+  if (elev != null && !Number.isNaN(elev)) {
+    text += `  ·  ${elev.toFixed(0)} m  ·  slope ${terrain.slopeAt(lat, lng).toFixed(0)}°`;
+  }
+  coordEl.textContent = text;
 });
 
+function addLayerButton({ label, credit, on }, leaf) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = label;
+  btn.title = credit;
+  btn.setAttribute('aria-pressed', String(Boolean(on)));
+  if (on) leaf.addTo(map);
+  btn.addEventListener('click', () => {
+    const show = !map.hasLayer(leaf);
+    if (show) leaf.addTo(map); else leaf.remove();
+    btn.setAttribute('aria-pressed', String(show));
+  });
+  document.getElementById('layers').append(btn);
+  return btn;
+}
+
 function buildLayers() {
-  const nav = document.getElementById('layers');
   for (const layer of LAYERS) {
     const options = { ...layer.options, attribution: layer.credit };
     const leaf = layer.kind === 'image'
       ? L.imageOverlay(layer.url, layer.bounds, options)
       : L.tileLayer(layer.url, options);
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = layer.label;
-    btn.title = layer.credit;
-    btn.setAttribute('aria-pressed', String(Boolean(layer.on)));
-    if (layer.on) leaf.addTo(map);
-    btn.addEventListener('click', () => {
-      const on = !map.hasLayer(leaf);
-      if (on) leaf.addTo(map); else leaf.remove();
-      btn.setAttribute('aria-pressed', String(on));
-    });
-    nav.append(btn);
+    addLayerButton(layer, leaf);
   }
+}
+
+// Slope is computed in the page from the stored elevation crop, then laid
+// over the imagery. The legend is shown only while the layer is on.
+function buildSlopeLayer(terrain) {
+  const credit = `Slope from ${terrain.meta.source}. ${terrain.meta.credit}`;
+  const leaf = L.imageOverlay(slopeImage(terrain), terrain.bounds, { opacity: 0.75, attribution: credit });
+  const legend = document.getElementById('legend');
+  let from = 0;
+  for (const step of SLOPE_STEPS) {
+    const [r, g, b, a] = step.color;
+    const item = document.createElement('span');
+    item.innerHTML = `<i style="background: rgba(${r}, ${g}, ${b}, ${Math.max(a / 255, 0.12)})"></i>${
+      step.upTo === Infinity ? `over ${from}°` : `${from}–${step.upTo}°`}`;
+    legend.append(item);
+    from = step.upTo;
+  }
+  leaf.on('add', () => { legend.hidden = false; });
+  leaf.on('remove', () => { legend.hidden = true; });
+  addLayerButton({ label: 'Slope 4 m', credit, on: true }, leaf);
+  L.rectangle(terrain.bounds, { color: '#efe6da', weight: 1, opacity: 0.5, fill: false, dashArray: '6 6', interactive: false }).addTo(map);
 }
 
 // Curiosity's own path: where a wheeled rover has already crossed this ground.
@@ -115,3 +147,7 @@ buildLayers();
 buildBars();
 renderBars();
 buildRoverPath();
+loadTerrain().then((t) => {
+  terrain = t;
+  buildSlopeLayer(t);
+});
