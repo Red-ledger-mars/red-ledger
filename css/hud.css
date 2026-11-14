@@ -250,10 +250,13 @@ body.booting::before { opacity: 1; animation: cover-lift 450ms var(--ease-out) 6
   border: 1px solid var(--line);
   border-radius: 6px;
   overflow: hidden;
-  animation: slide-in 250ms ease;
+  animation: slide-in 250ms var(--ease-out);
 }
 @keyframes slide-in { from { opacity: 0; transform: translateX(16px); } }
 .target figure { position: relative; margin: 0; }
+/* A new photo fades in once it has loaded instead of appearing in pieces. */
+#target-img { transition: opacity 200ms var(--ease-out); }
+#target-img.loading { opacity: 0; transition: none; }
 .target img { display: block; width: 100%; height: clamp(150px, 22vh, 220px); object-fit: cover; }
 .target figcaption { padding: 8px 14px 0; font-size: 12px; color: var(--dim); }
 #target-swap {
@@ -328,6 +331,9 @@ body.booting::before { opacity: 1; animation: cover-lift 450ms var(--ease-out) 6
   cursor: pointer;
 }
 .scrub button:disabled { opacity: 0.35; cursor: default; }
+/* A small press on the main controls, so a click is felt. */
+.scrub button, .route { transition: transform 120ms var(--ease-out); }
+.scrub button:not(:disabled):active, .route:active { transform: scale(0.97); }
 .scrub input { flex: 1; accent-color: var(--red); }
 #progress-text { min-width: 300px; font-size: 13px; color: var(--dim); text-align: right; white-space: nowrap; }
 #profile { display: block; width: 100%; height: clamp(44px, 7vh, 72px); margin-top: 8px; }
@@ -514,6 +520,7 @@ body.booting::before { opacity: 1; animation: cover-lift 450ms var(--ease-out) 6
   body::before { transition-duration: 200ms; }
   .proof { transform: none; }
   @starting-style { .proof[open] { transform: none; } }
+  .scrub button:active, .route:active { transform: none; }
 }
 
 /* Recording mode (key R, or index.html?rec): the screen keeps only what a

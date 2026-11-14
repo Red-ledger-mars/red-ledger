@@ -44,7 +44,7 @@
   to { transform: scale(3.2); opacity: 0; }
 }
 .leaving .patch-ring { transform: scale(7); opacity: 0; }
-.leaving .patch-label, .leaving .intro, .leaving .hint, .leaving .card { opacity: 0; transition: opacity 400ms ease; }
+.leaving .patch-label, .leaving .intro, .leaving .hint, .leaving .card { opacity: 0; transition: opacity 400ms var(--ease-out); }
 
 .patch-label {
   position: fixed; z-index: 450;
@@ -80,7 +80,7 @@
   background: var(--panel-quiet);
   border: 1px solid var(--line);
   border-radius: 999px;
-  transition: opacity 600ms ease;
+  transition: opacity 600ms var(--ease-out);
   pointer-events: none;
 }
 .hint.gone { opacity: 0; }
@@ -95,7 +95,7 @@
   border-top: 3px solid var(--red);
   border-radius: 6px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-  animation: card-in 250ms ease;
+  animation: card-in 250ms var(--ease-out);
 }
 @keyframes card-in { from { opacity: 0; transform: translateY(10px); } }
 .card h3 { margin: 0 28px 6px 0; font: 600 15px/1.4 var(--mono); }
@@ -137,7 +137,7 @@
 .foot .keys { margin-left: auto; }
 
 /* Fades the page to the background colour before the walk page opens. */
-.fade { position: fixed; inset: 0; z-index: 900; background: var(--bg); opacity: 0; pointer-events: none; transition: opacity 450ms ease; }
+.fade { position: fixed; inset: 0; z-index: 900; background: var(--bg); opacity: 0; pointer-events: none; transition: opacity 450ms var(--ease-out); }
 .fade.on { opacity: 1; }
 
 @media (max-width: 900px) {

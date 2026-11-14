@@ -476,8 +476,13 @@ function showPlace(place, kind = 'wide') {
   $('target-photo').hidden = !photo;
   if (!photo) return;
   const other = photos.find((ph) => ph !== photo);
-  $('target-img').src = photo.file;
-  $('target-img').alt = photo.caption;
+  const img = $('target-img');
+  if (img.getAttribute('src') !== photo.file) {
+    img.classList.add('loading');
+    img.onload = img.onerror = () => img.classList.remove('loading');
+    img.src = photo.file;
+  }
+  img.alt = photo.caption;
   $('target-caption').innerHTML = `${photo.caption} <a href="${photo.source_url}" target="_blank" rel="noopener">Curiosity ${photo.instrument}, sol ${photo.sol}</a>. ${photo.credit}`;
   $('target-swap').hidden = !other;
   if (other) {
