@@ -164,7 +164,7 @@ export function walkCostEarth(i) {
 //    before the data was collected, the level cost is multiplied by 1.364
 //    and that spread is carried as the uncertainty.
 // 2. On slopes the first model applied one gravity factor to the whole
-//    cost and predicted up to twice what was measured. The extra cost of a
+//    cost and predicted up to 2.2 times what was measured. The extra cost of a
 //    slope is mostly work against weight, and weight scales with gravity.
 //    So the slope part of the cost is now scaled by gravity itself.
 export const SUIT_FACTOR = 1.364;
