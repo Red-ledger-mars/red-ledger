@@ -62,7 +62,13 @@ Red Ledger is not the first tool to plan a walking route by what it costs the wa
 
 ## Fonts
 
-System fonts only. No font files are shipped.
+Three typefaces are shipped in `fonts/`, each under the SIL Open Font License 1.1, with a copy of its licence beside it. They were downloaded from Google Fonts; the pages load nothing from Google when they run. The classic map page uses system fonts.
+
+| Typeface | Use | Copyright | Licence |
+|---|---|---|---|
+| Barlow Condensed 700 | Headings and large numbers in the story | Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow) | SIL OFL 1.1, `fonts/OFL-barlowcondensed.txt` |
+| Inter (variable) | Body text and small labels in the story | Copyright 2020 The Inter Project Authors (https://github.com/rsms/inter) | SIL OFL 1.1, `fonts/OFL-inter.txt` |
+| Michroma 400 | The RED LEDGER mark only | Copyright 2011 The Michroma Project Authors (https://github.com/googlefonts/Michroma-font) | SIL OFL 1.1, `fonts/OFL-michroma.txt` |
 
 ## AI use
 
