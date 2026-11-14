@@ -273,12 +273,14 @@ function buildBars() {
 function paintBar(bar, value, max, limit) {
   const el = $(`bar-${bar.id}`);
   el.querySelector('[data-value]').textContent = fmt(value, bar.digits);
-  el.querySelector('.bar-fill').style.width = `${Math.max(0, Math.min(100, (value / max) * 100))}%`;
+  el.querySelector('.bar-fill').style.transform = `scaleX(${Math.max(0, Math.min(1, value / max))})`;
   if (limit !== null) el.dataset.state = value > limit ? 'over' : value > 0.75 * limit ? 'warn' : 'ok';
 }
 
 // Sets one ledger line. With `ease`, the number glides from what is shown
-// to the new value, so a change of route can be followed by eye.
+// to the new value, so a change of route can be followed by eye. A number
+// for `ease` is a duration in ms at a steady rate, to keep in step with a
+// route being drawn.
 function setBar(id, { value, max, limit = null, note = '' }, ease = false) {
   const bar = BARS.find((b) => b.id === id);
   const el = $(`bar-${id}`);
@@ -293,8 +295,9 @@ function setBar(id, { value, max, limit = null, note = '' }, ease = false) {
   const start = performance.now();
   const frame = (now) => {
     if (shown[id] !== value) return; // a newer value took over
-    const t = Math.min(1, (now - start) / 500);
-    paintBar(bar, from + (value - from) * (1 - (1 - t) ** 3), max, limit);
+    const steady = typeof ease === 'number';
+    const t = Math.min(1, (now - start) / (steady ? ease : 500));
+    paintBar(bar, from + (value - from) * (steady ? t : 1 - (1 - t) ** 3), max, limit);
     if (t < 1) requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
@@ -1241,6 +1244,12 @@ async function start() {
   }
   await wait(1500);
   state.stopMarkers = [stopMarker(walk.habitat, 0), ...walk.stops.map((s, i) => stopMarker(s, i + 1))];
+  // The ledger fills while the direct route draws: the first thing seen is
+  // the cost adding up along the path.
+  if (!calm) {
+    for (const bar of BARS) shown[bar.id] = 0;
+    renderLedger(900);
+  }
   for (const def of ROUTES) await drawIn(def, 900);
   walker.addTo(map);
   selectRoute('direct');

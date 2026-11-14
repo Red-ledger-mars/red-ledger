@@ -192,7 +192,8 @@ body.booting::before { opacity: 1; animation: cover-lift 450ms var(--ease-out) 6
 .bar-value { font: 600 28px/1 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .bar-value small { margin-left: 5px; font-size: 13px; font-weight: 400; color: var(--dim); }
 .bar-track { position: relative; height: 12px; margin: 8px 0 6px; background: rgba(255, 255, 255, 0.1); border-radius: 2px; }
-.bar-fill { height: 100%; width: 0; background: var(--hue); border-radius: 2px; }
+/* Drawn with scaleX, not width, so a moving bar does not lay out the page again. */
+.bar-fill { height: 100%; width: 100%; transform: scaleX(0); transform-origin: left; background: var(--hue); border-radius: 2px; }
 .bar-limit { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--text); }
 /* Near the limit: amber, so the warning still shows when motion is off. */
 .bar[data-state="warn"] .bar-fill { background: var(--amber); }
