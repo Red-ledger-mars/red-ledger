@@ -1,6 +1,6 @@
 // Route finding on the elevation grid, and the per-step record of a route.
 
-import { walkCostMars, MAX_MEASURED_GRADIENT, JOULES_PER_KCAL, totalMassKg } from './body.js';
+import { walkCostMars, step, Ledger, MODEL, MAX_MEASURED_GRADIENT, JOULES_PER_KCAL, totalMassKg } from './body.js';
 
 // Steps to the 16 nearest cells, so a path can head in 16 directions.
 const MOVES = [
@@ -55,9 +55,9 @@ class MinHeap {
   }
 }
 
-// Cheapest path between two cells under a pricing function (Dijkstra).
-// Returns a list of cell indexes from start to goal, or null if none exists.
-function cheapestPath(terrain, start, goal, price) {
+// Cheapest cost from one cell to every other under a pricing function
+// (Dijkstra). With a `goal` the search stops as soon as it is reached.
+function search(terrain, start, goal, price) {
   const { cols, rows, px, z } = terrain;
   const best = new Float64Array(cols * rows).fill(Infinity);
   const prev = new Int32Array(cols * rows).fill(-1);
@@ -84,10 +84,26 @@ function cheapestPath(terrain, start, goal, price) {
       }
     }
   }
+  return { best, prev };
+}
+
+// Cheapest path between two cells: a list of cell indexes from start to
+// goal, or null if there is none.
+function cheapestPath(terrain, start, goal, price) {
+  const { best, prev } = search(terrain, start, goal, price);
   if (best[goal] === Infinity) return null;
   const path = [];
   for (let u = goal; u !== -1; u = prev[u]) path.push(u);
   return path.reverse();
+}
+
+// For every cell, the least walking energy (kcal) needed to get from there
+// back to `home`. Found by searching outward from home with each step
+// priced in the opposite direction, because uphill and downhill differ.
+export function returnCost(terrain, home) {
+  const { best } = search(terrain, cellOf(terrain, home), -1, (run, rise) => PRICING.body(run, -rise));
+  const scale = totalMassKg() / JOULES_PER_KCAL;
+  return best.map((jPerKg) => jPerKg * scale);
 }
 
 function cellOf(terrain, point) {
@@ -97,7 +113,7 @@ function cellOf(terrain, point) {
 
 // Plans the whole walk (habitat, each stop in order, back to the habitat)
 // under one pricing, and records every step of it.
-export function planWalk(terrain, walk, pricing) {
+export function planWalk(terrain, walk, pricing, back) {
   const places = [walk.habitat, ...walk.stops, walk.habitat];
   const cells = [];
   const stopAt = []; // index into `cells` where each place is reached
@@ -109,20 +125,20 @@ export function planWalk(terrain, walk, pricing) {
     cells.push(...leg);
     stopAt.push(cells.length - 1);
   }
-  return describe(terrain, cells, stopAt.map((index, i) => ({ index, place: places[i] })));
+  return describe(terrain, cells, stopAt.map((index, i) => ({ index, place: places[i] })), back);
 }
 
-// Turns a list of cells into points with running totals.
-function describe(terrain, cells, stops) {
+// Turns a list of cells into points that carry the state of the body there.
+function describe(terrain, cells, stops, back) {
   const { cols, px, z } = terrain;
-  const mass = totalMassKg();
+  const ledger = new Ledger();
   const points = [];
   let dist = 0;
   let climb = 0;
   let descent = 0;
-  let joules = 0;
   let steepest = 0;
   let beyondMeasured = 0;
+  let now = { speed: MODEL.paceMs, metabolicW: 0, heatW: 0 };
   for (let k = 0; k < cells.length; k++) {
     const c = cells[k] % cols;
     const r = (cells[k] - c) / cols;
@@ -133,15 +149,29 @@ function describe(terrain, cells, stops) {
       const run = Math.hypot(c - pc, r - pr) * px;
       const rise = z[cells[k]] - z[cells[k - 1]];
       gradient = rise / run;
-      dist += Math.hypot(run, rise);
+      now = step(run, rise);
+      ledger.add(now);
+      dist += now.length;
       if (rise > 0) climb += rise; else descent -= rise;
-      // The measured cost is per metre walked along the slope, not per metre on the map.
-      joules += walkCostMars(gradient) * Math.hypot(run, rise) * mass;
       steepest = Math.max(steepest, Math.abs(gradient));
       if (Math.abs(gradient) > MAX_MEASURED_GRADIENT) beyondMeasured += run;
     }
     const { lat, lon } = terrain.toLatLon(c, r);
-    points.push({ lat, lon, elev: z[cells[k]], gradient, dist, kcal: joules / JOULES_PER_KCAL });
+    points.push({
+      lat,
+      lon,
+      elev: z[cells[k]],
+      gradient,
+      dist,
+      seconds: ledger.seconds,
+      kcal: ledger.kcal,
+      heat: ledger.heatKJkg,
+      dose: ledger.doseUSv,
+      speed: now.speed,
+      metabolicW: now.metabolicW,
+      // Energy still needed to walk home from here by the cheapest way.
+      backKcal: back[cells[k]],
+    });
   }
   return {
     points,
@@ -150,7 +180,11 @@ function describe(terrain, cells, stops) {
       dist,
       climb,
       descent,
-      kcal: joules / JOULES_PER_KCAL,
+      seconds: ledger.seconds,
+      kcal: ledger.kcal,
+      peakHeat: ledger.peakHeatKJkg,
+      overHeatLimitM: ledger.overLimitM,
+      dose: ledger.doseUSv,
       steepestDeg: Math.atan(steepest) * 180 / Math.PI,
       // Metres walked on ground steeper than any walking measurement covers.
       beyondMeasured,

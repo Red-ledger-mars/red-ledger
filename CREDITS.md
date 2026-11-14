@@ -18,8 +18,13 @@ Every dataset, paper, library, image, sound and font used in Red Ledger, with it
 
 | Source | Used for | Status |
 |---|---|---|
-| Minetti AE, Moia C, Roi GS, Susta D, Ferretti G (2002). Energy cost of walking and running at extreme uphill and downhill slopes. J Appl Physiol 93:1039-1046. https://europepmc.org/article/MED/12183501 | Walking energy as a function of slope | In use; values are being re-checked against the paper and are marked as assumptions on screen until then |
-| Farley CT, McMahon TA (1992). Energetics of walking and running: insights from simulated reduced-gravity experiments. J Appl Physiol 73:2709-2712. https://europepmc.org/article/MED/1490989 | Scaling walking energy to Mars gravity | In use; same status |
+| Minetti AE, Moia C, Roi GS, Susta D, Ferretti G (2002). Energy cost of walking and running at extreme uphill and downhill slopes. J Appl Physiol 93:1039-1046. https://europepmc.org/article/MED/12183501 | Walking energy as a function of slope | Measured values confirmed from the abstract; the polynomial fit is taken from a paper that quotes it, because the full text could not be opened |
+| Farley CT, McMahon TA (1992). Energetics of walking and running: insights from simulated reduced-gravity experiments. J Appl Physiol 73:2709-2712. https://europepmc.org/article/MED/1490989 | Scaling walking energy to Mars gravity | The 33% figure at 0.25 g confirmed from the abstract; the value for Mars (0.38 g) is our straight-line reading and is marked as an assumption |
+| NASA (2020). Innovative Offloading of Astronauts for More Effective Exploration. https://www.nasa.gov/general/innovative-offloading-of-astronauts-for-more-effective-exploration/ | Apollo A7L-B suit and backpack mass, 212 lb | Read 14 Nov 2026 |
+| NASA-STD-3001, NASA Spaceflight Human-System Standard, Volume 1 Rev C (crew health) and Volume 2 Rev F (human factors, habitability and environmental health) | Stored body heat limits [V2 11011], [V2 6014]; suited work range; career radiation limit [V1 4030]; 80 kg reference crew member | Read 14 Nov 2026 |
+| Bue GC et al. (2013). Hollow fiber spacesuit water membrane evaporator development. NASA NTRS 20130014146. https://ntrs.nasa.gov/citations/20130014146 | Suit cooling: 810 W in vacuum, 370 W in a Mars environment (prototype rating) | Read 14 Nov 2026 |
+| Waligora JM, Horrigan DJ (1975). Metabolism and heat dissipation during Apollo EVA periods. In Biomedical Results of Apollo, NASA SP-368. NTRS 19760005584. https://ntrs.nasa.gov/citations/19760005584 | Backpack energy budget, 1800 kcal (Apollo 15 to 17) | Read 14 Nov 2026 |
+| Guo J et al. (2015). Modeling the variations of dose rate measured by RAD during the first MSL Martian year: 2012-2014. arXiv:1507.03473. https://arxiv.org/abs/1507.03473 | Surface dose equivalent rate at Gale crater, about 0.7 mSv per day | Read 14 Nov 2026 |
 | NASA Jet Propulsion Laboratory news, "NASA's Curiosity Mars Rover Starts Unpacking Boxwork Formations", 23 June 2025. https://www.jpl.nasa.gov/news/nasas-curiosity-mars-rover-starts-unpacking-boxwork-formations/ | The Altadena drill stop | Read 14 Nov 2026 |
 
 ## Software

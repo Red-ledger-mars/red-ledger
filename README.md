@@ -17,7 +17,7 @@ Work in progress. This section is updated as parts are finished.
 - [x] Elevation crop of the walk area (4 m) and a slope layer computed from it
 - [x] A walk with a habitat and three stops, and two routes for it: the shortest, and the one with the least walking energy
 - [x] Elevation profile and a walk control that moves along the route
-- [ ] Body-cost model: walking energy is in (source check pending); heat, radiation dose and the way back are not built yet
+- [x] Body-cost model: energy burned, body heat stored against NASA's limit, radiation dose, and energy left to walk home, all updating along the route
 - [x] Curiosity's own photos at the two stops it visited
 - [x] Demo copy in the repo: elevation, waypoints, photos, weather and the walk-area imagery (zoom 13 to 16), so the walk still shows if NASA's servers cannot be reached
 - [x] Curiosity's measured temperature and pressure range for the site
@@ -38,10 +38,21 @@ Then open http://localhost:8765.
 
 - The habitat position and the third stop are assumptions, marked on the map with a dashed amber ring. No landing site has been chosen in this area.
 - Walking cost on slopes has only been measured at Earth gravity. The page applies one Mars-gravity factor at every slope and says so on screen.
+- Radiation dose assumes open sky everywhere; shielding by terrain is not applied yet.
+- The suit is modelled as removing 370 W of heat and nothing more. That figure is a prototype evaporator rating in a Mars environment, not a flight suit value.
+- Time spent working at the stops is not counted, only walking.
 
 ## How the numbers are made
 
-Every number on screen names its source. A value that is not measured or published is marked on screen as an assumption. The full list of datasets, papers, libraries and licences is in [CREDITS.md](CREDITS.md).
+Every number on screen names its source. A value that is not measured or published is marked on screen as an assumption. The whole body model is in one file, [`js/body.js`](js/body.js), with each constant, its source and how far it was confirmed, so it can be checked or reused on its own.
+
+For each step of a route the model takes the slope from the elevation grid and computes:
+
+1. **Energy**: the cost of walking at that slope (Minetti et al. 2002), scaled to Mars gravity (Farley and McMahon 1992), for an 80 kg walker in a 96 kg suit (the Apollo A7L-B suit and backpack).
+2. **Pace**: 1.0 m/s, slowed on climbs so the work rate stays at or under 617 W, the top of NASA's design range for suited work.
+3. **Heat**: metabolic power, less the part stored as height on a climb, plus the part given back on a descent. The suit removes up to 370 W. Heat above that is stored in the body and compared with NASA's 3.0 kJ/kg limit.
+4. **Radiation**: time on the route times the surface dose rate measured by Curiosity's RAD detector (about 0.7 mSv per day).
+5. **Way back**: at every point, the energy budget (1800 kcal, the Apollo 15 to 17 backpack) less what has been used and less the cheapest way home from there. The full list of datasets, papers, libraries and licences is in [CREDITS.md](CREDITS.md).
 
 ## Use of AI
 

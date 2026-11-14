@@ -1,7 +1,7 @@
 import { SITE, LAYERS } from './layers.js';
 import { loadTerrain, slopeImage, SLOPE_STEPS } from './terrain.js';
-import { planWalk, pointAt } from './route.js';
-import { SOURCES, MAX_MEASURED_GRADIENT } from './body.js';
+import { planWalk, pointAt, returnCost } from './route.js';
+import { SOURCES, MODEL, MAX_MEASURED_GRADIENT, tempRiseC } from './body.js';
 
 const L = window.L;
 const $ = (id) => document.getElementById(id);
@@ -10,9 +10,9 @@ const $ = (id) => document.getElementById(id);
 // behind it exists; a missing value is never drawn as a zero.
 const BARS = [
   { id: 'energy', name: 'Energy burned', unit: 'kcal' },
-  { id: 'heat', name: 'Heat load', unit: 'W' },
+  { id: 'heat', name: 'Body heat stored', unit: 'kJ/kg' },
   { id: 'dose', name: 'Radiation dose', unit: 'µSv' },
-  { id: 'return', name: 'Way back', unit: '% left' },
+  { id: 'return', name: 'Energy left to walk home', unit: '%' },
 ];
 
 // The two routes for the same walk. `pricing` names a rule in route.js.
@@ -147,21 +147,21 @@ function buildBars() {
   }
 }
 
-// Draws one ledger line. `source` is an entry from SOURCES in body.js;
-// until its `checked` flag is set the line carries the assumption mark.
-function setBar(id, { value, max, limit = null, source = null }) {
+// Draws one ledger line. `sources` are entries from SOURCES in body.js; any
+// that is an assumption carries the assumption mark. `note` is a short
+// reading of the number in plain words.
+function setBar(id, { value, max, limit = null, digits = 0, sources = [], note = '' }) {
   const el = $(`bar-${id}`);
-  el.querySelector('[data-value]').textContent = Math.round(value).toLocaleString('en');
-  el.querySelector('.bar-fill').style.width = `${Math.min(100, (value / max) * 100)}%`;
+  el.querySelector('[data-value]').textContent = value.toLocaleString('en', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  el.querySelector('.bar-fill').style.width = `${Math.max(0, Math.min(100, (value / max) * 100))}%`;
   const tick = el.querySelector('.bar-limit');
   tick.hidden = limit === null;
   if (limit !== null) {
     tick.style.left = `${Math.min(100, (limit / max) * 100)}%`;
-    el.dataset.state = value > limit ? 'over' : value > 0.8 * limit ? 'warn' : 'ok';
+    el.dataset.state = value > limit ? 'over' : value > 0.75 * limit ? 'warn' : 'ok';
   }
-  if (source) {
-    el.querySelector('[data-src]').innerHTML = `${source.checked ? '' : '<i class="assume"></i>'}<a href="${source.url}" target="_blank" rel="noopener">${source.label}</a>`;
-  }
+  const links = sources.map((src) => `${src.status === 'assumption' ? '<i class="assume"></i>' : ''}<a href="${src.url}" target="_blank" rel="noopener" title="${src.what}">${src.label}</a>`);
+  el.querySelector('[data-src]').innerHTML = `${note ? `<span class="bar-note">${note}</span>` : ''}${links.join(' · ')}`;
 }
 
 /* The walk */
@@ -218,7 +218,9 @@ function buildRouteCards() {
         <span><b>${(t.dist / 1000).toFixed(2)}</b> km</span>
         <span><b>${t.climb.toFixed(0)}</b> m climb</span>
         <span><b>${t.steepestDeg.toFixed(0)}°</b> steepest</span>
+        <span><b>${(t.seconds / 60).toFixed(0)}</b> min</span>
         <span><b>${t.kcal.toFixed(0)}</b> kcal</span>
+        <span>heat peak <b>${t.peakHeat.toFixed(1)}</b> kJ/kg</span>
       </div>
       ${t.beyondMeasured > 0
     ? `<div class="route-flag">${t.beyondMeasured.toFixed(0)} m steeper than any walking measurement (over ${(Math.atan(MAX_MEASURED_GRADIENT) * 180 / Math.PI).toFixed(0)}°)</div>`
@@ -249,9 +251,36 @@ function renderWalk() {
   const p = pointAt(route, state.dist);
   walker.setLatLng([p.lat, p.lon]);
   $('progress').value = String(Math.round((state.dist / route.totals.dist) * 1000));
-  $('progress-text').textContent = `${Math.round(state.dist).toLocaleString('en')} m · ${Math.abs(Math.atan(p.gradient) * 180 / Math.PI).toFixed(0)}° ${p.gradient >= 0 ? 'up' : 'down'}`;
-  const max = Math.max(...ROUTES.map((d) => state.routes[d.id].totals.kcal));
-  setBar('energy', { value: p.kcal, max, source: SOURCES.walkCost });
+  $('progress-text').textContent = `${Math.round(state.dist).toLocaleString('en')} m · ${(p.seconds / 60).toFixed(0)} min · ${
+    Math.abs(Math.atan(p.gradient) * 180 / Math.PI).toFixed(0)}° ${p.gradient >= 0 ? 'up' : 'down'} · ${p.speed.toFixed(1)} m/s · ${Math.round(p.metabolicW)} W`;
+
+  setBar('energy', {
+    value: p.kcal,
+    max: MODEL.energyBudgetKcal,
+    note: `of a ${MODEL.energyBudgetKcal.toLocaleString('en')} kcal backpack budget.`,
+    sources: [SOURCES.walkCost, SOURCES.gravity, SOURCES.suitMass, SOURCES.energyBudget],
+  });
+  setBar('heat', {
+    value: p.heat,
+    max: MODEL.heatContingencyKJkg,
+    limit: MODEL.heatLimitKJkg,
+    digits: 2,
+    note: `NASA limit ${MODEL.heatLimitKJkg.toFixed(1)}. Body about +${tempRiseC(p.heat).toFixed(1)} °C.`,
+    sources: [SOURCES.cooling, SOURCES.heatLimit, SOURCES.workRange, SOURCES.coreTemp],
+  });
+  setBar('dose', {
+    value: p.dose,
+    max: Math.max(...ROUTES.map((d) => state.routes[d.id].totals.dose)),
+    digits: 1,
+    note: `${((p.dose / MODEL.careerLimitUSv) * 100).toFixed(4)}% of the NASA career limit. Open sky assumed.`,
+    sources: [SOURCES.dose, SOURCES.doseLimit],
+  });
+  setBar('return', {
+    value: ((MODEL.energyBudgetKcal - p.kcal - p.backKcal) / MODEL.energyBudgetKcal) * 100,
+    max: 100,
+    note: `after the ${Math.round(p.backKcal)} kcal cheapest way back from here.`,
+    sources: [SOURCES.energyBudget],
+  });
   drawProfileCursor();
 }
 
@@ -367,8 +396,9 @@ async function buildWalk(terrain) {
   $('ledger-note').textContent = 'Finding routes…';
   await new Promise((done) => setTimeout(done, 30)); // let the map paint first
 
+  const back = returnCost(terrain, state.walk.habitat);
   for (const def of ROUTES) {
-    const route = planWalk(terrain, state.walk, def.pricing);
+    const route = planWalk(terrain, state.walk, def.pricing, back);
     state.routes[def.id] = route;
     state.lines[def.id] = L.polyline(route.points.map((p) => [p.lat, p.lon]), { color: def.color, lineJoin: 'round' }).addTo(map);
   }
@@ -380,7 +410,7 @@ async function buildWalk(terrain) {
   buildWalkControls();
   selectRoute('direct');
   map.fitBounds(L.latLngBounds(state.routes.body.points.map((p) => [p.lat, p.lon])), { paddingTopLeft: [290, 90], paddingBottomRight: [40, 200] });
-  $('ledger-note').innerHTML = `Energy uses ${SOURCES.walkCost.label} scaled to Mars gravity. <i class="assume"></i>marks numbers not yet checked against the source.`;
+  $('ledger-note').innerHTML = `An ${MODEL.bodyMassKg} kg walker in a ${MODEL.suitMassKg} kg suit, pace ${MODEL.paceMs.toFixed(1)} m/s, slowing to stay under ${MODEL.workLimitW} W. The suit removes ${MODEL.coolingW} W of heat. <i class="assume"></i>marks an assumption. Hover a source to see what it gives.`;
 }
 
 buildLayers();

@@ -263,3 +263,9 @@ html, body {
 .brand-mark { white-space: nowrap; }
 .site { min-width: 0; }
 .layers { flex: none; max-width: 46%; }
+
+.bar-note { display: block; color: var(--text); opacity: 0.85; }
+.bar-src .assume { margin-left: 1px; }
+.ledger { width: 268px; max-height: calc(100vh - 150px); overflow-y: auto; }
+.legend { width: 268px; }
+.walk { left: 308px; }

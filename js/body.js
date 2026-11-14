@@ -1,50 +1,161 @@
-// What walking costs a body. Every constant here carries its source and a
-// `checked` flag. A value with `checked: false` has not yet been confirmed
-// against the primary source and is shown on screen as an assumption.
+// What a walk costs a body. This file holds the whole model, so it can be
+// read, checked and reused on its own. Every constant names its source.
+// `status` says how far the value was confirmed:
+//   'primary'    read in the source document itself
+//   'abstract'   read in the paper's abstract or a paper that quotes it
+//   'assumption' chosen by us; shown on screen with the assumption mark
 
 export const SOURCES = {
   walkCost: {
     label: 'Minetti et al. 2002, J Appl Physiol 93:1039',
     url: 'https://europepmc.org/article/MED/12183501',
-    what: 'Energy cost of walking by slope, measured at Earth gravity for gradients from -0.45 to +0.45',
-    checked: false,
+    what: 'Energy cost of walking by slope at Earth gravity, gradients -0.45 to +0.45. Abstract values: 1.64 J/kg/m on the level, 17.33 at +0.45. The polynomial fit is taken from a paper that quotes it.',
+    status: 'abstract',
   },
   gravity: {
     label: 'Farley and McMahon 1992, J Appl Physiol 73:2709',
     url: 'https://europepmc.org/article/MED/1490989',
-    what: 'Walking at a quarter of Earth gravity cost about 33% less energy',
-    checked: false,
+    what: 'Walking at 0.25 of Earth gravity cost 33% less energy. Mars is 0.38: a straight line between the two measured points gives 27% less. Slope cost has never been measured at Mars gravity; the same factor is applied at every slope.',
+    status: 'assumption',
+  },
+  suitMass: {
+    label: 'NASA, Apollo A7L-B suit and backpack',
+    url: 'https://www.nasa.gov/general/innovative-offloading-of-astronauts-for-more-effective-exploration/',
+    what: 'Earth weight 212 lb (96 kg): 77 lb garment and 135 lb life-support backpack. No mass has been published for a Mars suit.',
+    status: 'primary',
+  },
+  bodyMass: {
+    label: 'NASA-STD-3001 Vol 1 Rev C, 4.1.1',
+    url: 'https://www.nasa.gov/directorates/esdmd/hhp/human-spaceflight-and-aviation-standards/',
+    what: 'An 80 kg crew member, the value NASA assumes in its spacewalk workload figures.',
+    status: 'assumption',
+  },
+  workRange: {
+    label: 'NASA-STD-3001 Vol 2 Rev F, [V2 11011]',
+    url: 'https://www.nasa.gov/directorates/esdmd/hhp/human-spaceflight-and-aviation-standards/',
+    what: 'Suited work is designed for 528 to 2220 kJ/h (147 to 617 W). The walker slows down on climbs to stay at or under 617 W.',
+    status: 'primary',
+  },
+  pace: {
+    label: 'Level walking speed in Minetti et al. 2002',
+    url: 'https://europepmc.org/article/MED/12183501',
+    what: 'The walker moves at 1.0 m/s unless the work limit forces a slower pace.',
+    status: 'assumption',
+  },
+  cooling: {
+    label: 'NASA NTRS 20130014146',
+    url: 'https://ntrs.nasa.gov/citations/20130014146',
+    what: 'A prototype spacesuit evaporator rated to reject 810 W in vacuum and 370 W in a Mars environment. It is a prototype rating, not a flight suit figure. The model lets the suit remove 370 W and nothing more.',
+    status: 'primary',
+  },
+  heatLimit: {
+    label: 'NASA-STD-3001 Vol 2 Rev F, [V2 11011] and [V2 6014]',
+    url: 'https://www.nasa.gov/directorates/esdmd/hhp/human-spaceflight-and-aviation-standards/',
+    what: 'Stored body heat must stay under 3.0 kJ/kg in suited work. 4.7 kJ/kg is the contingency limit, where thinking starts to be impaired.',
+    status: 'primary',
+  },
+  coreTemp: {
+    label: 'Specific heat of the body, 3.47 kJ/kg/°C',
+    url: 'https://pubmed.ncbi.nlm.nih.gov/35389752/',
+    what: 'The conventional value used to turn stored heat into a mean body temperature rise. A 2022 paper notes it was never directly measured.',
+    status: 'assumption',
+  },
+  energyBudget: {
+    label: 'Biomedical Results of Apollo, NASA SP-368',
+    url: 'https://ntrs.nasa.gov/citations/19760005584',
+    what: 'The Apollo 15 to 17 life-support backpack was budgeted for 7530 kJ (1800 kcal) of metabolic heat.',
+    status: 'primary',
+  },
+  dose: {
+    label: 'Guo et al. 2015, Curiosity RAD, arXiv:1507.03473',
+    url: 'https://arxiv.org/abs/1507.03473',
+    what: 'Dose equivalent on the surface at Gale crater about 0.7 mSv per day. The model assumes open sky everywhere; terrain shielding is not applied yet.',
+    status: 'primary',
+  },
+  doseLimit: {
+    label: 'NASA-STD-3001 Vol 1 Rev C, [V1 4030]',
+    url: 'https://www.nasa.gov/directorates/esdmd/hhp/human-spaceflight-and-aviation-standards/',
+    what: 'Career limit for an astronaut: under 600 mSv.',
+    status: 'primary',
   },
 };
 
-export const ASSUMPTIONS = {
-  // Mars gravity is 0.38 of Earth's. The saving is read off a straight line
-  // between the two measured points (Earth gravity: none; 0.25 g: 33%).
-  marsWalkFactor: 1 - 0.33 * (1 - 0.38) / (1 - 0.25),
-  // Slope cost has only been measured at Earth gravity. The same Mars factor
-  // is applied at every slope.
-  slopeAtMarsGravity: 'same factor at every slope',
-  bodyMassKg: 75,
-  suitMassKg: 80,
+export const MODEL = {
+  marsGravity: 3.71,             // m/s2
+  marsWalkFactor: 1 - 0.33 * (1 - 0.38) / (1 - 0.25), // Farley point, read off a straight line
+  bodyMassKg: 80,
+  suitMassKg: 96,
+  paceMs: 1.0,
+  workLimitW: 617,
+  coolingW: 370,
+  heatLimitKJkg: 3.0,
+  heatContingencyKJkg: 4.7,
+  bodySpecificHeat: 3.47,        // kJ/kg/°C
+  energyBudgetKcal: 1800,
+  doseRateUSvPerS: 700 / 86400,  // 0.7 mSv per day
+  careerLimitUSv: 600000,
 };
 
 // Steepest gradient (rise over run) in the walking measurements.
 export const MAX_MEASURED_GRADIENT = 0.45;
+export const JOULES_PER_KCAL = 4184;
 
-// Energy cost of walking at Earth gravity, joules per kg per metre, for a
-// gradient i (rise over run). Polynomial fit from Minetti et al. 2002.
+export const totalMassKg = () => MODEL.bodyMassKg + MODEL.suitMassKg;
+
+// Energy cost of walking at Earth gravity, joules per kg per metre walked,
+// for a gradient i (rise over run). Polynomial fit from Minetti et al. 2002.
+// It gives 2.5 on the level; the value measured on the level was 1.64.
 export function walkCostEarth(i) {
   const g = Math.max(-MAX_MEASURED_GRADIENT, Math.min(MAX_MEASURED_GRADIENT, i));
   return 280.5 * g ** 5 - 58.7 * g ** 4 - 76.8 * g ** 3 + 51.9 * g ** 2 + 19.6 * g + 2.5;
 }
 
-// The same cost at Mars gravity, joules per kg per metre.
-export function walkCostMars(i) {
-  return walkCostEarth(i) * ASSUMPTIONS.marsWalkFactor;
+// The same cost at Mars gravity.
+export const walkCostMars = (i) => walkCostEarth(i) * MODEL.marsWalkFactor;
+
+// One step of a walk: `run` metres on the map, rising `rise` metres.
+// Returns what it costs and how fast the walker can take it.
+export function step(run, rise) {
+  const mass = totalMassKg();
+  const length = Math.hypot(run, rise);
+  const joules = walkCostMars(rise / run) * length * mass;
+  // At the planned pace the step would need this much power; if that is over
+  // the work limit, the walker slows until it is not.
+  const speed = Math.min(MODEL.paceMs, MODEL.workLimitW / (joules / length));
+  const seconds = length / speed;
+  const metabolicW = joules / seconds;
+  // Climbing stores part of the effort as height. Descending gives that
+  // energy back, and the muscles that brake the descent turn it into heat.
+  const heatW = metabolicW - (mass * MODEL.marsGravity * rise) / seconds;
+  return { length, joules, seconds, speed, metabolicW, heatW };
 }
 
-export const JOULES_PER_KCAL = 4184;
+// A running record of the body along a walk. Call `add` for each step in
+// order and read the totals after each call.
+export class Ledger {
+  constructor() {
+    this.seconds = 0;
+    this.joules = 0;
+    this.storedJ = 0;      // body heat the suit has not removed
+    this.peakStoredJ = 0;
+    this.overLimitM = 0;   // metres walked while over the 3.0 kJ/kg limit
+  }
 
-export function totalMassKg() {
-  return ASSUMPTIONS.bodyMassKg + ASSUMPTIONS.suitMassKg;
+  add(s) {
+    this.seconds += s.seconds;
+    this.joules += s.joules;
+    // The suit removes up to its limit. Heat above that stays in the body;
+    // spare cooling on easier ground takes stored heat back out.
+    this.storedJ = Math.max(0, this.storedJ + (s.heatW - MODEL.coolingW) * s.seconds);
+    this.peakStoredJ = Math.max(this.peakStoredJ, this.storedJ);
+    if (this.heatKJkg > MODEL.heatLimitKJkg) this.overLimitM += s.length;
+  }
+
+  get kcal() { return this.joules / JOULES_PER_KCAL; }
+  get heatKJkg() { return this.storedJ / 1000 / MODEL.bodyMassKg; }
+  get peakHeatKJkg() { return this.peakStoredJ / 1000 / MODEL.bodyMassKg; }
+  get doseUSv() { return this.seconds * MODEL.doseRateUSvPerS; }
 }
+
+// Mean body temperature rise for a given stored heat.
+export const tempRiseC = (heatKJkg) => heatKJkg / MODEL.bodySpecificHeat;
