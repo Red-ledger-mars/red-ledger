@@ -1306,6 +1306,11 @@ async function start() {
   const rec = new URLSearchParams(location.search).get('rec');
   if (rec !== null) document.body.classList.add('rec');
   if (rec === 'auto') { await wait(1200); runSequence(); }
+
+  // A link can open a sheet directly: #proof for the tests, #brief for the
+  // walk brief.
+  if (location.hash === '#proof') $('proof').showModal();
+  if (location.hash === '#brief') openBrief();
 }
 
 start();
