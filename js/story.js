@@ -208,7 +208,8 @@ function build() {
         <div class="actions">
           <button class="act mono" type="button" id="replay">→ Replay</button>
           <a class="act mono" href="classic.html">→ Walk it yourself</a>
-          <a class="act mono full-only" href="classic.html">→ Walk brief and check vs Curiosity</a>
+          <a class="act mono full-only" href="classic.html#brief">→ Walk brief</a>
+          <a class="act mono full-only" href="classic.html#proof">→ Check vs Curiosity</a>
         </div>
         ${sourcesBlock()}
       </div>
