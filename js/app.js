@@ -38,6 +38,8 @@ const state = {
   dist: 0,          // metres walked along the active route
   playing: false,
   nextStop: 1,      // index of the next stop the walker will reach
+  sequence: false,  // true while the recorded sequence is playing
+  onWalkEnd: null,  // called when a played walk reaches its end
 };
 
 /* Map */
@@ -531,8 +533,9 @@ function drawProfileCursor() {
 
 /* Walk control */
 
-// A full walk plays in about 40 seconds whatever its length.
-const PLAY_SECONDS = 40;
+// A full walk plays in about 40 seconds whatever its length. The recorded
+// sequence shortens this.
+let playSeconds = 40;
 
 // Each press of Walk starts a new loop with its own number, so a frame left
 // over from an earlier loop stops instead of running alongside the new one.
@@ -555,14 +558,14 @@ function tick(last, id) {
   const now = performance.now();
   const route = state.routes[state.active];
   const total = route.totals.dist;
-  state.dist = Math.min(total, state.dist + ((now - last) / 1000) * (total / PLAY_SECONDS));
+  state.dist = Math.min(total, state.dist + ((now - last) / 1000) * (total / playSeconds));
   renderWalk();
   follow(now);
   if (state.nextStop < route.stops.length && state.dist >= route.stops[state.nextStop].dist) {
     arrive(state.nextStop);
     state.nextStop++;
   }
-  if (state.dist >= total) { setPlaying(false); return; }
+  if (state.dist >= total) { setPlaying(false); state.onWalkEnd?.(); return; }
   requestAnimationFrame(() => tick(now, id));
 }
 
@@ -596,11 +599,77 @@ function buildWalkControls() {
   window.addEventListener('keydown', (e) => {
     if (e.target.closest('input, button, summary, dialog') && e.key !== ' ') return;
     if (e.key === ' ') { e.preventDefault(); setPlaying(!state.playing); }
+    if (e.key === 'r' || e.key === 'R') document.body.classList.toggle('rec');
+    if (e.key === 'p' || e.key === 'P') runSequence();
+    if (e.key === 'Escape') stopSequence();
     if (e.key === 'd' || e.key === 'D') selectRoute('direct', true);
     if (e.key === 'b' || e.key === 'B') selectRoute('body', true);
     const overlay = state.overlays[Number(e.key) - 1];
     if (overlay) setOverlay(overlay.id);
   });
+}
+
+/* Recording mode */
+
+// One walk from start to end in a given number of seconds.
+function walkOnce(seconds) {
+  return new Promise((done) => {
+    playSeconds = seconds;
+    state.dist = 0;
+    state.nextStop = 1;
+    state.onWalkEnd = done;
+    setPlaying(true);
+  });
+}
+
+function stopSequence() {
+  if (!state.sequence) return;
+  state.sequence = false;
+  setPlaying(false);
+  state.onWalkEnd?.();
+}
+
+// The fixed sequence for a screen recording: the direct route with the
+// slope layer, then the body-cost route, then the check against Curiosity.
+// It plays the same way every time. Escape stops it.
+async function runSequence() {
+  if (state.sequence) return;
+  state.sequence = true;
+  const hold = async (ms) => {
+    await wait(ms);
+    if (!state.sequence) throw new Error('stopped');
+  };
+  try {
+    $('target').hidden = true;
+    setOverlay('none');
+    selectRoute('direct', true);
+    await hold(1800);
+    setOverlay('slope');
+    await hold(1500);
+    await walkOnce(12);
+    await hold(1800);
+    $('target').hidden = true;
+    selectRoute('body', true);
+    await hold(2200);
+    await walkOnce(10);
+    await hold(1800);
+    $('target').hidden = true;
+    setOverlay('sky');
+    await hold(2500);
+    $('proof').showModal();
+    await hold(4500);
+    $('proof').close();
+    setOverlay('none');
+    selectRoute('direct', true);
+    await hold(1500);
+    selectRoute('body', true);
+  } catch {
+    // stopped with Escape
+  } finally {
+    state.sequence = false;
+    state.onWalkEnd = null;
+    playSeconds = 40;
+  }
 }
 
 /* Start */
@@ -649,6 +718,12 @@ async function start() {
   for (const def of ROUTES) await drawIn(def, 900);
   walker.addTo(map);
   selectRoute('direct');
+
+  // index.html?rec opens with a clean screen for filming; ?rec=auto also
+  // plays the sequence once the page has settled.
+  const rec = new URLSearchParams(location.search).get('rec');
+  if (rec !== null) document.body.classList.add('rec');
+  if (rec === 'auto') { await wait(1200); runSequence(); }
 }
 
 start();

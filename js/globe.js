@@ -32,6 +32,9 @@ const state = {
 };
 state.idle = !state.reduced;
 const GALE = { lat: -4.6, lon: 137.4 };
+// Recording mode: open the page as globe.html?rec. The hint and the pointer
+// are hidden and the walk starts by itself a moment after the globe settles.
+const RECORDING = new URLSearchParams(location.search).has('rec');
 const SETTLE_MS = 3600, GO_MS = 1200, SWAY_MS = 44000, SWAY_AMP = 0.16;
 // Sun direction in view space: upper left, toward the viewer, so Gale starts in daylight.
 const SUN = new THREE.Vector3(-0.85, 0.25, 0.5).normalize();
@@ -305,7 +308,9 @@ function walk() {
   state.idle = false;
   state.settle = null;
   hideHint();
-  const href = state.patches[0] ? state.patches[0].href : 'index.html';
+  // In recording mode the walk page is told to play its own sequence, so a
+  // single take runs from the whole planet to the end of the walk.
+  const href = (state.patches[0] ? state.patches[0].href : 'index.html') + (RECORDING ? '?rec=auto' : '');
   if (state.reduced) { location.href = href; return; }
   const t = facing(state.patches[0] ? state.patches[0].centre.lat : GALE.lat,
     state.patches[0] ? state.patches[0].centre.lon : GALE.lon);
@@ -463,6 +468,12 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) requ
 addEventListener('resize', resize);
 
 /* Start */
+
+if (RECORDING) {
+  document.body.classList.add('rec');
+  hideHint();
+  setTimeout(walk, SETTLE_MS + 2500);
+}
 
 buildLayerButtons();
 resize();

@@ -377,3 +377,9 @@ button { font: inherit; color: inherit; }
   .walker::before, .bar[data-state="warn"] .bar-limit, .stop.arrived, .target { animation: none; }
   .top, .ledger, .walk { transition: none; }
 }
+
+/* Recording mode (key R, or index.html?rec): the screen keeps only what a
+   viewer of a video can use. Sources stay one key press away. */
+.rec, .rec * { cursor: none !important; }
+.rec .site-coord, .rec #weather, .rec .ledger-foot, .rec .ledger-note, .rec .foot a, .rec .foot .chip-pop, .rec .close { display: none; }
+.rec .scrub button { visibility: hidden; }

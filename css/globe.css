@@ -150,3 +150,7 @@
   .patch-ring { transition: none; }
   .fade { transition: none; }
 }
+
+/* Recording mode: nothing on screen that a viewer cannot use. */
+.rec, .rec * { cursor: none !important; }
+.rec .site-coord { visibility: hidden; }
