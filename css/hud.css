@@ -269,3 +269,5 @@ html, body {
 .ledger { width: 268px; max-height: calc(100vh - 150px); overflow-y: auto; }
 .legend { width: 268px; }
 .walk { left: 308px; }
+
+.brand-sub a { color: var(--text); }

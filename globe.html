@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Red Ledger: Mars at walk scale</title>
+  <meta name="description" content="A globe of Mars. One patch at Gale crater is surveyed at walk scale and opens the Marswalk cost display. Made with NASA open data.">
+  <link rel="stylesheet" href="css/hud.css">
+  <link rel="stylesheet" href="css/globe.css">
+</head>
+<body>
+  <div id="globe" aria-label="Globe of Mars. Drag to turn it, scroll to zoom."></div>
+  <div class="visor" aria-hidden="true"></div>
+
+  <header class="top">
+    <div class="brand">
+      <span class="brand-mark">RED LEDGER</span>
+      <span class="brand-sub">Marswalk cost display</span>
+    </div>
+    <div class="site">
+      <span class="site-name">Mars</span>
+      <span class="site-coord" id="cursor-coord">move over the globe</span>
+    </div>
+    <nav class="layers" id="layers" aria-label="Globe layers"></nav>
+  </header>
+
+  <section class="intro" aria-label="About this globe">
+    <h1 id="intro-title">Mars at walk scale: 1 patch surveyed</h1>
+    <p>Global maps show where things are. A walk needs more: slope, heat, radiation and the cost to the body, at the scale of a few metres. One patch has that so far.</p>
+  </section>
+
+  <a class="patch-ring" id="patch-ring" href="index.html" hidden aria-label="Open the surveyed patch"></a>
+  <a class="patch-label" id="patch-label" href="index.html" hidden>Surveyed at walk scale</a>
+
+  <aside class="card" id="card" aria-label="Selected point" hidden>
+    <button type="button" class="card-close" id="card-close" aria-label="Close">×</button>
+    <h3 id="card-coord"></h3>
+    <p id="card-elev"></p>
+    <p class="card-note">Not yet surveyed at walk scale. Global data only.</p>
+  </aside>
+
+  <p class="globe-credit" id="globe-credit"></p>
+  <p class="nogl" id="nogl" hidden>This page needs WebGL to draw the globe. <a href="index.html">Open the walk page</a> instead.</p>
+
+  <footer class="foot">
+    <span>Made with NASA open data.</span>
+    <a href="CREDITS.md">Sources and credits</a>
+  </footer>
+
+  <script type="module" src="js/globe.js"></script>
+</body>
+</html>

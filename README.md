@@ -22,6 +22,8 @@ Work in progress. This section is updated as parts are finished.
 - [x] Demo copy in the repo: elevation, waypoints, photos, weather and the walk-area imagery (zoom 13 to 16), so the walk still shows if NASA's servers cannot be reached
 - [x] Curiosity's measured temperature and pressure range for the site
 
+- [x] A whole-Mars globe (`globe.html`): the surveyed patch is ringed and opens the walk; any other point shows its coordinates and MOLA elevation and is labelled as not yet surveyed at walk scale
+
 ## Run it
 
 It is a static page with no build step. Serve the folder with any web server:
@@ -30,7 +32,7 @@ It is a static page with no build step. Serve the folder with any web server:
 python3 -m http.server 8765
 ```
 
-Then open http://localhost:8765.
+Then open http://localhost:8765 for the walk, or http://localhost:8765/globe.html for the globe.
 
 ## Known limits
 

@@ -1,0 +1,14 @@
+{
+  "file": "mola_4ppd.bin",
+  "width": 1440,
+  "height": 720,
+  "format": "int16 little-endian",
+  "unit": "metres relative to the areoid",
+  "pixelsPerDegree": 4,
+  "firstSample": "centre of the top-left cell: lat 89.875 N, lon 0.125 E",
+  "longitude": "east positive, 0 to 360, column 0 starts at 0 E",
+  "latitude": "row 0 starts at 90 N",
+  "source": "MOLA MEGDR gridded topography, megt90n000cb, NASA PDS Geosciences Node",
+  "sourceUrl": "https://pds-geosciences.wustl.edu/mgs/mgs-m-mola-5-megdr-l3-v1/mgsl_300x/meg004/megt90n000cb.img",
+  "credit": "MOLA, Mars Global Surveyor, NASA/GSFC"
+}
