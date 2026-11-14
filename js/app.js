@@ -6,7 +6,7 @@ import { buildBrief, doctorChecks, forecastFile, forecastCsv, NOT_MODELLED } fro
 import { planWalk, pointAt, returnCost } from './route.js';
 import { createPlanner } from './planner.js';
 import { loadReach, REACH_LEGEND } from './reach.js';
-import { SOURCES, MODEL, MAX_MEASURED_GRADIENT, tempRiseC, step, Ledger, heatNeutralPace, levelWorkW } from './body.js';
+import { SOURCES, MODEL, MAX_MEASURED_GRADIENT, SUIT_FACTOR_RANGE, tempRiseC, step, Ledger, heatNeutralPace, levelWorkW } from './body.js';
 
 const L = window.L;
 const $ = (id) => document.getElementById(id);
@@ -26,7 +26,7 @@ const BARS = [
 // The two routes for the same walk. `pricing` names a rule in route.js.
 const ROUTES = [
   { id: 'direct', pricing: 'direct', name: 'Direct route', hint: 'shortest over the ground', color: '#ffb547' },
-  { id: 'body', pricing: 'body', name: 'Body-cost route', hint: 'least walking energy', color: '#63d6c1' },
+  { id: 'body', pricing: 'body', name: 'Body-cost route', hint: 'least walking energy, nothing steeper than 24°', color: '#63d6c1' },
 ];
 
 const state = {
@@ -256,7 +256,7 @@ function showLegend(ramp) {
     $('legend').hidden = false;
     return;
   }
-  $('legend-note').textContent = '';
+  $('legend-note').textContent = ramp.note ?? '';
   for (let x = 0; x < strip.width; x++) {
     const [r, g, b, a] = ramp.color(ramp.min + ((ramp.max - ramp.min) * x) / (strip.width - 1));
     ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
@@ -417,14 +417,19 @@ async function buildProof() {
   const within = check.rows.filter((row) => Math.abs(row.difference_pct_points) <= 1).length;
   const level = people.rows.filter((row) => row.suited);
   const pct = (ratio) => `${ratio >= 1 ? '+' : '−'}${Math.abs(Math.round((ratio - 1) * 100))}%`;
+  // The suited level measurements by speed, and those nearest walking pace.
+  const bySpeed = [...level].sort((x, y) => x.speed_m_s - y.speed_m_s);
+  const slow = bySpeed.filter((row) => row.speed_m_s <= 1.35).map((row) => row.ratio).sort((x, y) => x - y);
+  const slowMedian = (slow[Math.floor((slow.length - 1) / 2)] + slow[Math.ceil((slow.length - 1) / 2)]) / 2;
   $('proof-body').innerHTML = `
     <h3>1. The body model, tested against NASA's measurements of people</h3>
-    <p>NASA measured how hard people work when they walk in a spacesuit at low gravity. Before collecting those measurements we fixed the test in the project's history: the model's prediction, and the rule that it stands only if the measurements lie within 15% of it.</p>
+    <p>NASA measured how hard people work when they walk in a spacesuit at low gravity. Before collecting those measurements we fixed the test in the project's history: the model's prediction, and the rule that it stands only if the measurements lie within 15% of it. The rule is in <a href="https://github.com/Red-ledger-mars/red-ledger/commit/ea6f315" target="_blank" rel="noopener">this commit</a> of the public code; the measurements and the result came 20 minutes later, in <a href="https://github.com/Red-ledger-mars/red-ledger/commit/b6f9b1d" target="_blank" rel="noopener">this one</a>.</p>
     <table>
-      <thead><tr><th>Level ground, suited</th><th>Measured</th><th>First model</th><th>Measured against model</th></tr></thead>
-      <tbody>${level.map((row) => `<tr class="off"><td>${row.gravity_g > 0.3 ? 'Mars' : 'Moon'} gravity, ${row.speed_m_s.toFixed(2)} m/s</td><td>${Math.round(row.measured_w)} W</td><td>${row.predicted_w} W</td><td>${pct(row.ratio)}</td></tr>`).join('')}</tbody>
+      <thead><tr><th>Level ground, suited</th><th>Measured</th><th>First model</th><th>Measured against model</th><th>After the correction</th></tr></thead>
+      <tbody>${level.map((row) => `<tr class="off"><td>${row.gravity_g > 0.3 ? 'Mars' : 'Moon'} gravity, ${row.speed_m_s.toFixed(2)} m/s</td><td>${Math.round(row.measured_w)} W</td><td>${row.predicted_w} W</td><td>${pct(row.ratio)}</td><td>${pct(row.ratio / people.correction)}</td></tr>`).join('')}</tbody>
     </table>
     <p><b>It failed.</b> People used ${Math.round((people.suited.median_ratio - 1) * 100)}% more energy than the model said (median; from ${pct(people.suited.lowest_ratio)} to ${pct(people.suited.highest_ratio)}). By the rule set in advance, the level cost is now multiplied by ${people.correction}, and the spread is shown on the heat numbers.</p>
+    <p>One limit of this correction: it is a single number for all speeds, but the measured excess falls with speed, from ${pct(bySpeed[0].ratio)} at ${bySpeed[0].speed_m_s.toFixed(2)} m/s to ${pct(bySpeed.at(-1).ratio)} at ${bySpeed.at(-1).speed_m_s.toFixed(2)} m/s. The ${slow.length} measurements at 1.34 m/s or slower, the nearest to the walker's ${MODEL.paceMs.toFixed(1)} m/s, have a median of ${slowMedian.toFixed(2)}. That lies inside the spread carried on every heat number (up to ${SUIT_FACTOR_RANGE[1]}), so at walking pace the true value may sit in the upper half of each range.</p>
     <p>The sloped measurements showed a second fault: the first model predicted up to ${Math.max(...slopes.rows.map((row) => row.first_model_w / row.measured_w)).toFixed(1)} times the measured cost of a climb, because it scaled the whole cost by one gravity factor. Climbing is work against weight, so the slope part is now scaled by gravity itself. The revised model against sloped measurements that played no part in the correction:</p>
     <table>
       <thead><tr><th>Slope, suited</th><th>Measured</th><th>First model</th><th>Revised model</th></tr></thead>
@@ -631,11 +636,18 @@ function buildRouteCards() {
   };
   const delta = document.createElement('div');
   delta.className = 'delta';
-  delta.innerHTML = `
-    <span>Body-cost against direct</span>
-    <b>${signed(b.peakHeatNoRest - a.peakHeatNoRest, 1)} kJ/kg heat</b>
-    <b>${signed((b.seconds - a.seconds) / 60)} min</b>
-    <span>${signed((b.dist - a.dist) / 1000, 2)} km · ${signed(b.kcal - a.kcal)} kcal</span>`;
+  // What the choice of route changes, said in one sentence.
+  const longer = Math.round((b.dist - a.dist) / 10) * 10;
+  const fewer = a.restCount - b.restCount;
+  const sooner = Math.round((a.seconds - b.seconds) / 60);
+  const count = (n) => (n === 1 ? 'one rest' : `${n} rests`);
+  delta.innerHTML = fewer === 0 && Math.abs(sooner) < 2
+    ? `<b>Here the shortest way is already close to the cheapest.</b>
+    <span>No detour saves a rest. The two routes split where the straight line crosses steep ground, as on the ridge and hollow survey.</span>`
+    : `<b>The body-cost route is ${Math.abs(longer)} m ${longer >= 0 ? 'longer' : 'shorter'}${
+      fewer > 0 ? `, needs ${count(fewer)} fewer` : fewer < 0 ? `, needs ${count(-fewer)} more` : ''}${
+      sooner > 0 ? ` and is home ${sooner} min sooner` : sooner < 0 ? ` and takes ${-sooner} min longer` : ''}.</b>
+    <span>${signed(b.peakHeatNoRest - a.peakHeatNoRest, 1)} kJ/kg peak heat · ${signed(b.kcal - a.kcal)} kcal</span>`;
   $('routes').replaceChildren(card(ROUTES[0]), delta, card(ROUTES[1]));
 }
 
@@ -1525,10 +1537,15 @@ async function start() {
       state.plans[loadKg][def.id] = route;
     }
   }
-  state.routes = state.plans[0];
+  // The page opens on the heaviest load, the case where the choice of route
+  // matters most. A link can ask for another: #load=0.
+  const loads = Object.keys(state.plans).map(Number);
+  const asked = Number(location.hash.match(/^#load=(\d+)$/)?.[1]);
+  const firstLoad = loads.includes(asked) ? asked : Math.max(...loads);
+  state.routes = state.plans[firstLoad];
   buildLoads();
   buildStartTimes();
-  setLoad(0, false);
+  setLoad(firstLoad, false);
   buildWalkControls();
   buildOwnControls();
   state.walks = await fetch('data/walks.json').then((r) => (r.ok ? r.json() : null)).catch(() => null);

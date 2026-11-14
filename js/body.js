@@ -87,7 +87,7 @@ export const SOURCES = {
   dose: {
     label: 'Guo et al. 2015, Curiosity RAD, arXiv:1507.03473',
     url: 'https://arxiv.org/abs/1507.03473',
-    what: 'Dose equivalent on the surface at Gale crater about 0.7 mSv per day.',
+    what: 'Dose equivalent on the surface at Gale crater about 0.7 mSv per day, the average Curiosity measured in 2012 to 2014 with no solar particle event. NASA\'s career limit is set in effective dose, so the share of the limit shown is approximate.',
     status: 'primary',
   },
   shielding: {

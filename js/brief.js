@@ -20,7 +20,7 @@ export const NOT_MODELLED = [
   'Water lost and dehydration: the suit, not sweat, is taken to remove the heat',
   'Falls and injuries on rough ground: the 4 m elevation grid hides rocks and single ridges',
   'Dust and what it carries',
-  'A solar storm: the dose uses a quiet-Sun rate',
+  'A solar particle event: the dose uses the average rate Curiosity measured, with no event',
 ];
 
 // Stretches of consecutive points that pass `test`, at least `minLength`
@@ -175,7 +175,7 @@ export function buildBrief({ route, routeName, loadKg, comms = null, contact = n
       endHeat > 0.05
         ? `Heat still stored on return: ${endHeat.toFixed(1)} kJ/kg. At rest the suit sheds it in about ${Math.ceil((endHeat * 1000 * MODEL.bodyMassKg) / (MODEL.coolingW - MODEL.restW) / 60)} min.`
         : 'No heat is still stored on return.',
-      `Radiation dose added: ${t.dose.toFixed(1)} µSv, ${((t.dose / MODEL.careerLimitUSv) * 100).toFixed(3)}% of NASA's career limit of ${MODEL.careerLimitUSv / 1000} mSv.`,
+      `Radiation dose added: ${t.dose.toFixed(1)} µSv, about ${((t.dose / MODEL.careerLimitUSv) * 100).toFixed(3)}% of NASA's career limit of ${MODEL.careerLimitUSv / 1000} mSv. One walk adds little; over a mission every hour outside counts.`,
     ],
   };
 }
