@@ -122,7 +122,7 @@ function routeDetail() {
         <dt>Climb</dt><dd>${fmt(t.climb)} m</dd>
         <dt>Steepest</dt><dd>${fmt(t.steepestDeg)}° · ${fmt(t.beyondMeasured)} m beyond tested slope</dd>
         <dt>Planned rests</dt><dd>${t.restCount} · ${minutes(t.restSeconds)} min</dd>
-        <dt>Range from the test on people</dt><dd>${t.peakHeatRange.map((v) => fmt(v, 1)).join(' to ')} kJ/kg</dd>
+        <dt>Range from NASA's measurements of people</dt><dd>${t.peakHeatRange.map((v) => fmt(v, 1)).join(' to ')} kJ/kg</dd>
       </dl>
     </div>`;
 }
@@ -193,9 +193,9 @@ function build() {
   html.push(`
     <section class="chapter centred" data-kind="test" data-play="${PLAY.test}">
       <div class="chapter-body">
-        <p class="kicker mono">The test on people</p>
-        <h2 class="long">We tested the model on people. It failed.</h2>
-        <p class="lede">We fixed the test and the pass mark before we had the data. Against 40 NASA measurements of people walking in a spacesuit, the model predicted too little energy on level ground (people used 36% more) and too much on climbs (up to 2 times). We corrected it by the rule we had set. The revised model is within 14% of 12 sloped measurements, a fix made after seeing them.</p>
+        <p class="kicker mono">The test</p>
+        <h2 class="long">We tested the model against NASA's measurements of people. It failed.</h2>
+        <p class="lede">The test and its pass mark were fixed in the repository before any measurement was collected. NASA has measured how hard people work when they walk on a treadmill at Moon and Mars gravity: we used 40 of those measurements, 19 of them in a spacesuit. On level ground people in the suit used 36% more energy than the model predicted. On climbs the model predicted up to 2.2 times too much. We corrected it by the rule we had set. The revised model is within 14% of all 12 sloped measurements, a fix made after seeing them.</p>
         <p class="actions"><a class="act mono" href="classic.html#proof">→ How we tested it</a></p>
       </div>
     </section>`);
