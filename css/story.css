@@ -122,7 +122,9 @@ body:not(.loading) #loader { opacity: 0; visibility: hidden; }
    number or under the top links. The old text fades out before the new one
    fades in, so two never mix. */
 
-#story { position: relative; z-index: 5; }
+/* The chapters are only scroll length. They let pointers through, so the
+   walker on the 3D ground can be grabbed; only the shown text takes clicks. */
+#story { position: relative; z-index: 5; pointer-events: none; }
 .chapter { position: relative; min-height: 100vh; }
 .chapter-body {
   position: fixed; top: 17vh; left: 28px;
@@ -222,6 +224,7 @@ body:not(.loading) #loader { opacity: 0; visibility: hidden; }
 .meter i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--hud-colour, var(--fg)); }
 .meter b { position: absolute; top: -4px; bottom: -4px; width: 1px; background: var(--fg); }
 .hud-event { min-height: 1.4em; color: var(--hud-colour, var(--fg)); }
+.hud-hint { color: var(--fg-3); }
 .hud-rows { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--line); text-align: left; font-size: var(--size-small); }
 .hud-rows dt { color: var(--fg-3); }
 .hud-rows dd { margin: 0; text-align: right; color: var(--fg); font-weight: 600; }

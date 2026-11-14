@@ -86,6 +86,12 @@ async function boot() {
     // view's own update and are skipped until then.
     state.view.setMarks?.({ pins: false, ring: false });
     shiftView();
+    // Dragging the walker along the route moves the page to that moment, so
+    // the scroll position stays the one clock everything else follows.
+    state.view.setWalkerDrag?.((dist) => {
+      if (auto.on) setAuto(false);
+      scrollTo({ top: scrollForDist(dist), behavior: 'instant' });
+    });
   } else {
     document.body.classList.add('no3d');
   }
@@ -278,6 +284,7 @@ function buildHud() {
     <div class="meter"><i id="hud-fill"></i><b style="left: ${(MODEL.heatLimitKJkg / MODEL.heatContingencyKJkg) * 100}%"></b></div>
     <p class="label" id="hud-meta"></p>
     <p class="label hud-event" id="hud-event"></p>
+    ${state.view.setWalkerDrag ? '<p class="label hud-hint">Drag the walker to move along the route</p>' : ''}
     <dl class="hud-rows full-only" id="hud-rows"></dl>`;
 }
 
@@ -316,6 +323,16 @@ function measure() {
 }
 
 const chapterAt = (y) => state.chapters.findLast((c) => c.top <= y) ?? state.chapters[0];
+
+// The scroll position that puts the walker at `dist`: update() run backwards.
+function scrollForDist(dist) {
+  const route = state.routes[state.active];
+  const legs = state.chapters.filter((c) => c.kind === 'leg');
+  const c = legs.find((ch) => dist <= route.stops[ch.leg + 1].dist) ?? legs.at(-1);
+  const a = route.stops[c.leg].dist;
+  const b = route.stops[c.leg + 1].dist;
+  return c.top + clamp01((dist - a) / (b - a)) * c.h - innerHeight * 0.5;
+}
 
 function update() {
   if (!state.chapters.length) return;
