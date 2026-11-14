@@ -7,3 +7,4 @@ __pycache__/
 *.tiff
 data/raw/
 CLAUDE.md
+.claude/
