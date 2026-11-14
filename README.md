@@ -48,7 +48,7 @@ Then open http://localhost:8765 for the walk, or http://localhost:8765/globe.htm
 
 The body model predicts how hard a suited walker works from the slope, the gravity, the mass moved and the speed. NASA has measured exactly that on people: the Walkback Test and the Integrated Suit Tests put subjects in the Mark III suit on a treadmill, partly lifted to simulate lunar and Mars gravity, on the level and on slopes up to 30%.
 
-1. **The rule came first.** Commit `99d4875` fixed the prediction formula and the pass mark (measurements within 15% of the model) before any measurement was collected. Commit `71c8934` holds the result.
+1. **The rule came first.** Commit `ea6f315` fixed the prediction formula and the pass mark (measurements within 15% of the model) before any measurement was collected. Commit `b6f9b1d` holds the result.
 2. **The data.** One agent transcribed 40 measurements from five NASA reports into [`data/validation/human_walking.json`](data/validation/human_walking.json), with page and figure for each. A second agent reopened the reports and checked all 40; it found no mismatch. Only one value comes from a table; the rest were read from the reports' plotted lines.
 3. **The model failed on level ground.** Suited people used 36% more energy than predicted (median of seven; from +8% to +66%). By the rule, the level cost is now multiplied by 1.364, and the spread (1.155 to 1.637) is carried as the uncertainty of every heat number.
 4. **It failed on slopes in the other direction.** The first model scaled the whole cost by one gravity factor and predicted up to twice the measured cost of a climb. Climbing is work against weight, so the slope part of the cost is now scaled by gravity itself.
