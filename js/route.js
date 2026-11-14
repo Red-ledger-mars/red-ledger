@@ -57,7 +57,8 @@ class MinHeap {
 
 // Cheapest cost from one cell to every other under a pricing function
 // (Dijkstra). With a `goal` the search stops as soon as it is reached.
-function search(terrain, start, goal, price) {
+// Exported for tools/reach.mjs, which reads the whole tree of paths.
+export function search(terrain, start, goal, price) {
   const { cols, rows, px, z } = terrain;
   const best = new Float64Array(cols * rows).fill(Infinity);
   const prev = new Int32Array(cols * rows).fill(-1);
@@ -106,7 +107,7 @@ export function returnCost(terrain, home, loadKg = 0) {
   return best.map((jPerKg) => jPerKg * scale);
 }
 
-function cellOf(terrain, point) {
+export function cellOf(terrain, point) {
   const { col, row } = terrain.toCell(point.lat, point.lon);
   return Math.floor(row) * terrain.cols + Math.floor(col);
 }
