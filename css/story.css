@@ -98,7 +98,7 @@ body:not(.loading) #loader { opacity: 0; visibility: hidden; }
 .info-panel a { color: var(--fg); }
 .key-mark { font: var(--display-weight) var(--size-text)/1 var(--font-display); }
 .auto {
-  margin-left: auto;
+  margin-top: -7px;
   padding: 7px 14px;
   background: none;
   border: 1px solid var(--line);
@@ -195,12 +195,12 @@ body:not(.loading) #loader { opacity: 0; visibility: hidden; }
   cursor: pointer;
 }
 
-/* ---- Live number, bottom right */
+/* ---- Live number, bottom left above the mark: all text stays on the left */
 
 #hud {
-  position: fixed; right: 28px; bottom: 52px; z-index: 6;
-  width: min(320px, 30vw);
-  text-align: right;
+  position: fixed; left: 28px; bottom: 56px; z-index: 6;
+  width: min(340px, 36vw);
+  text-align: left;
   color: var(--fg-2);
   transition: opacity 400ms ease;
 }
@@ -251,7 +251,7 @@ body:not(.loading) #loader { opacity: 0; visibility: hidden; }
   .chapter-body { top: 40vh; }
   .chapter { padding-top: 40vh; }
   .fade-left { background: linear-gradient(to top, var(--fade) 0, rgba(0, 0, 0, 0.55) 55%, transparent 80%); }
-  #hud { top: 60px; bottom: auto; right: 18px; width: 56vw; }
+  #hud { top: 60px; bottom: auto; left: 18px; width: calc(100vw - 36px); }
   .hud-rows { display: none; }
   .fo-row { grid-template-columns: 1fr 1fr; }
   .fo-row > .label:first-child { grid-column: 1 / -1; padding-bottom: 0; }

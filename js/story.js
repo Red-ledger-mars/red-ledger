@@ -334,10 +334,12 @@ function setChapter(c) {
   state.chapter = c.el;
   const walking = c.kind === 'leg';
   state.view.setMode(walking ? 'chase' : 'orbit');
-  $('hud').hidden = !(walking || c.kind === 'verdict');
+  // The live number shows only during the walk, so it never sits under
+  // the verdict text in the same left column.
+  $('hud').hidden = !walking;
   // Long reading and the face-off dim the ground behind the text.
   document.body.classList.toggle('ending', c.kind === 'end' || c.kind === 'test');
-  if (!walking && c.kind !== 'verdict') $('glow').style.setProperty('--glow', 0);
+  if (!walking) $('glow').style.setProperty('--glow', 0);
 }
 
 function setDist(dist) {
@@ -349,7 +351,7 @@ function setDist(dist) {
   // the 3D view supports it), so wheel steps glide instead of jump.
   state.view.setWalker(dist, { ease: true });
   const kind = state.chapter?.dataset.kind;
-  if (dist > 0 && (kind === 'leg' || kind === 'verdict')) renderHud(p, route);
+  if (dist > 0 && kind === 'leg') renderHud(p, route);
 }
 
 function setActive(id) {
