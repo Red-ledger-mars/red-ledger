@@ -78,6 +78,12 @@ export const SOURCES = {
     what: 'A resting walker is taken to work at 147 W, the bottom of NASA\'s design range for suited work, so the suit can remove 223 W of stored heat. The rule for when to rest (stop at 90% of the limit, walk on at 50%) is ours.',
     status: 'assumption',
   },
+  steadyPace: {
+    label: 'NASA suited walking at Mars gravity: Norcross et al. 2008, NTRS 20080014853, slide 12',
+    url: 'https://ntrs.nasa.gov/citations/20080014853',
+    what: 'The line "Or walk slower" on a route card: one steady pace, slow enough that the plan never has to rest. It assumes a metre costs the same energy at any pace. NASA measured suited walking at Mars gravity at 1.12 and 1.34 m/s only, and there the measurements read 10% and 22% higher than the model, so the cost of a slower pace is not tested. The card gives how much more a metre at the slower pace may cost before the plan with rests is as fast. The slowest pace tried, 0.5 m/s, is ours.',
+    status: 'assumption',
+  },
   energyBudget: {
     label: 'Biomedical Results of Apollo, NASA SP-368',
     url: 'https://ntrs.nasa.gov/citations/19760005584',
@@ -139,6 +145,12 @@ export const MODEL = {
   dosePerSkyPoint: 0.01,         // share of dose lost per extra point of sky blocked
   careerLimitUSv: 600000,
 };
+
+// The slowest steady pace the planner tries when it looks for a walk with
+// no rest, m/s. Ours. NASA's suited measurements at Mars gravity start at
+// 1.12 m/s (SOURCES.steadyPace), so every pace below the planned one is
+// outside the test of the model.
+export const SLOWEST_PACE_MS = 0.5;
 
 // Steepest gradient (rise over run) in the walking measurements.
 export const MAX_MEASURED_GRADIENT = 0.45;

@@ -390,7 +390,7 @@ kbd {
 .route-big .over, .route-big .over b { color: var(--red); }
 .route-small { margin-top: 4px; font-size: 12px; line-height: 16px; color: var(--dim); }
 .route-big + .route-small { margin-top: 8px; }
-.route-small.need b { color: var(--text); }
+.route-small.need b, .route-small.pace b { color: var(--text); }
 .route-flag { display: inline-block; margin-left: 8px; padding: 0 6px; color: var(--red); border: 1px solid rgba(255, 85, 51, 0.5); border-radius: 4px; }
 /* The contact line carries a dot in the blue of the profile's contact strip. */
 .route-small.contact::before { content: ""; display: inline-block; width: 6px; height: 6px; margin: 0 6px 1px 0; background: var(--contact); border-radius: 50%; }

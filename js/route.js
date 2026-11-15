@@ -1,6 +1,6 @@
 // Route finding on the elevation grid, and the per-step record of a route.
 
-import { walkCostMars, step, Ledger, MODEL, MAX_MEASURED_GRADIENT, JOULES_PER_KCAL, totalMassKg, SUIT_FACTOR_RANGE } from './body.js';
+import { walkCostMars, step, Ledger, MODEL, MAX_MEASURED_GRADIENT, JOULES_PER_KCAL, totalMassKg, SUIT_FACTOR_RANGE, SLOWEST_PACE_MS } from './body.js';
 
 // Steps to the 16 nearest cells, so a path can head in 16 directions.
 const MOVES = [
@@ -280,6 +280,99 @@ export function reprice(route, { loadKg = 0, coolingW = MODEL.coolingW, suitFact
       secondsNoRest: unrested.ledger.seconds,
       overHeatLimitM: unrested.ledger.overLimitM,
       peakHeatRange: SUIT_FACTOR_RANGE.map((factor) => walk({ coolingW, suitFactor: factor, rests: false }).ledger.peakHeatKJkg),
+    },
+  };
+}
+
+// The other way to keep heat down: the same route at one steady pace, slow
+// enough that stored heat never reaches the level where the plan rests.
+// `route` is a route as planned or as priced again, for the same load and
+// suit. Returns null when the plan has no rest to avoid; `pace: null` when
+// no pace from SLOWEST_PACE_MS up avoids every rest; otherwise the fastest
+// such pace (rounded down to 0.01 m/s) and the walk at that pace.
+//
+// The model's cost of a metre does not depend on pace, and that is not
+// tested below 1.12 m/s (SOURCES.steadyPace). So the result also carries
+// `evenAt`: how many times dearer a metre of the slower walk may be before
+// the steady pace takes as long as the plan with rests (Infinity when even
+// twice the cost leaves it faster).
+export function steadyPlan(route, { loadKg = 0, coolingW = MODEL.coolingW, suitFactor } = {}) {
+  if (!route.totals.restCount) return null;
+  const mass = totalMassKg(loadKg);
+  // Each step at the planned pace, worked out once.
+  const steps = route.points.map((p, k) => {
+    if (k === 0) return null;
+    const length = p.dist - route.points[k - 1].dist;
+    const run = length / Math.hypot(1, p.gradient);
+    const rise = p.gradient * run;
+    return { length, rise, joules: step(run, rise, loadKg, suitFactor).joules };
+  });
+  // One walk at `pace`, with every metre costing `dearer` times the model's
+  // cost. On a climb the work limit can force a slower pace still.
+  const walk = (pace, dearer = 1, keep = false) => {
+    const ledger = new Ledger(coolingW);
+    const points = [];
+    let now = { speed: pace, metabolicW: 0 };
+    let rests = false;
+    route.points.forEach((p, k) => {
+      if (k > 0) {
+        // The rest rule of describe(): checked before each step.
+        if (ledger.needsRest) rests = true;
+        const { length, rise } = steps[k];
+        const joules = steps[k].joules * dearer;
+        const speed = Math.min(pace, MODEL.workLimitW / (joules / length));
+        const seconds = length / speed;
+        const metabolicW = joules / seconds;
+        now = { length, joules, seconds, speed, metabolicW, heatW: metabolicW - (mass * MODEL.marsGravity * rise) / seconds };
+        ledger.add(now, p.skyPct);
+      }
+      if (keep) points.push({ ...p, seconds: ledger.seconds, kcal: ledger.kcal, heat: ledger.heatKJkg, dose: ledger.doseUSv, speed: now.speed, metabolicW: now.metabolicW });
+    });
+    return { ledger, points, rests };
+  };
+  // The fastest pace with no rest, found by halving the interval. A slower
+  // pace stores less heat on every step, so there is one crossing.
+  const fastest = (dearer) => {
+    if (walk(SLOWEST_PACE_MS, dearer).rests) return null;
+    if (!walk(MODEL.paceMs, dearer).rests) return MODEL.paceMs;
+    let low = SLOWEST_PACE_MS;
+    let high = MODEL.paceMs;
+    for (let i = 0; i < 12; i++) {
+      const mid = (low + high) / 2;
+      if (walk(mid, dearer).rests) high = mid; else low = mid;
+    }
+    return Math.floor(low * 100) / 100;
+  };
+  const pace = fastest(1);
+  if (pace === null) return { pace: null };
+  const steady = walk(pace, 1, true);
+  // True when the steady pace, at that cost, is no faster than the rests.
+  const noGain = (dearer) => {
+    const slower = fastest(dearer);
+    return slower === null || walk(slower, dearer).ledger.seconds >= route.totals.seconds;
+  };
+  let evenAt = 1;
+  if (!noGain(1)) {
+    let low = 1;
+    let high = 2;
+    if (!noGain(high)) evenAt = Infinity;
+    else {
+      for (let i = 0; i < 10; i++) {
+        const mid = (low + high) / 2;
+        if (noGain(mid)) high = mid; else low = mid;
+      }
+      evenAt = high;
+    }
+  }
+  return {
+    pace,
+    evenAt,
+    points: steady.points,
+    totals: {
+      seconds: steady.ledger.seconds,
+      kcal: steady.ledger.kcal,
+      peakHeat: steady.ledger.peakHeatKJkg,
+      dose: steady.ledger.doseUSv,
     },
   };
 }
