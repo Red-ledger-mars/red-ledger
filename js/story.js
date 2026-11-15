@@ -448,7 +448,7 @@ function buildHud() {
     <div class="meter"><i id="hud-fill"></i><b style="left: ${(MODEL.heatLimitKJkg / MODEL.heatContingencyKJkg) * 100}%"></b></div>
     <p class="label" id="hud-meta"></p>
     <p class="label hud-event" id="hud-event"></p>
-    ${state.view.setWalkerDrag ? '<p class="label hud-hint">Drag the walker to move along the route</p>' : ''}
+    ${state.view.available ? '<p class="label hud-hint">Drag the walker to move along the route</p>' : ''}
     <dl class="hud-rows full-only" id="hud-rows"></dl>`;
 }
 

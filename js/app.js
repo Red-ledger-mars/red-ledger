@@ -883,6 +883,10 @@ function loadView3D() {
       routes: state.routes,
       colors: Object.fromEntries(ROUTES.map((def) => [def.id, def.color])),
     });
+    // The walking astronaut instead of the dot; the dot stays if it cannot load.
+    state.view3d.setWalkerFigure?.('img/walker.png');
+    // Height x2 may have been pressed while the view was loading.
+    if ($('view-height').getAttribute('aria-pressed') === 'true') state.view3d.setExaggeration(2);
   })();
   return view3dLoading;
 }

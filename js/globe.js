@@ -53,13 +53,41 @@ try {
 } catch (err) {
   renderer = null;
 }
-if (!renderer) {
+// Without 3D the page shows a flat map of Mars instead, with Gale marked and
+// the doors beside it, so the way in still works. Also used if the graphics
+// context is lost and does not come back.
+function showFlatMars() {
+  if (document.body.classList.contains('flat')) return;
+  document.body.classList.add('flat');
+  const flat = document.createElement('div');
+  flat.className = 'flat-mars';
+  const img = document.createElement('img');
+  img.src = 'img/mars-flat.jpg';
+  img.alt = 'Map of Mars, Viking colour mosaic';
+  flat.append(img);
+  // Gale in the picture: east longitude from -180, latitude from 90 north.
+  for (const el of [$('patch-ring'), $('patch-label')]) {
+    el.style.left = `${((GALE.lon + 180) / 360) * 100}%`;
+    el.style.top = `${((90 - GALE.lat) / 180) * 100}%`;
+    el.hidden = false;
+    flat.append(el);
+  }
+  host.append(flat);
   $('nogl').hidden = false;
+}
+
+if (!renderer) {
+  showFlatMars();
   throw new Error('WebGL is not available');
 }
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 renderer.setClearColor(0x0c0908);
 host.append(renderer.domElement);
+// A context the browser drops and does not give back within 2.5 s: flat map.
+renderer.domElement.addEventListener('webglcontextlost', (e) => {
+  e.preventDefault();
+  setTimeout(() => { if (renderer.getContext().isContextLost()) showFlatMars(); }, 2500);
+});
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 20);
