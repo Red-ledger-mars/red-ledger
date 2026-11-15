@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Red Ledger: Mars is costly</title>
+  <meta name="description" content="One walk at Gale crater, Mars, and what it costs the body, step by step. Made with NASA open data.">
+  <meta name="theme-color" content="#0b3954">
+  <link rel="icon" href="data:,">
+  <link rel="preload" href="fonts/barlow-condensed-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/view3d.css">
+  <link rel="stylesheet" href="css/present-a.css">
+</head>
+<body class="loading">
+  <header class="top">
+    <a class="mark" href="index.html">RED LEDGER</a>
+    <a class="toplink" href="classic.html">Walk tool</a>
+  </header>
+
+  <!-- The cinema frame: the 3D ground and the layers that sit on it. -->
+  <div id="stage" class="frame" aria-hidden="true"></div>
+  <div id="flat" class="frame" aria-hidden="true">
+    <div class="flat-box">
+      <img src="img/ground-flat.jpg" alt="">
+      <img id="flat-reach" alt="" hidden>
+    </div>
+  </div>
+  <div id="glow" class="frame" aria-hidden="true"><i></i><i></i></div>
+  <div id="haze" aria-hidden="true"></div>
+  <div id="curtain" class="frame" aria-hidden="true"></div>
+
+  <div id="heatline" aria-hidden="true">
+    <i id="heat-fill"></i>
+    <b class="tick" id="heat-tick"><span class="s">NASA limit <span id="limit-a">3.0</span> <span class="unit">kJ/kg</span></span></b>
+  </div>
+
+  <div id="shutters" class="frame">
+    <i class="sh sh-top"></i>
+    <i class="sh sh-bottom"></i>
+    <b class="seam" aria-hidden="true"></b>
+    <p class="loader s" role="status"><span id="loader-step">Terrain</span> <span id="loader-pct">0</span>%</p>
+  </div>
+
+  <!-- The lower third: every sentence on the page sits here. -->
+  <div id="lower">
+    <div class="blk title-blk on" id="blk-title">
+      <h1 class="d title">Mars is costly</h1>
+      <div class="words"><p class="t verdict" id="verdict-title"></p></div>
+      <div class="nums">
+        <p><button class="btn primary" type="button" id="start" disabled>Start the walk</button></p>
+        <p class="s">A planning forecast, not a diagnosis.</p>
+        <p class="s">Made with NASA open data</p>
+      </div>
+    </div>
+    <div class="blk live" id="live">
+      <div class="nums">
+        <p class="liveline"><span class="s about">about</span><span class="d hollow num" id="live-heat">0.0</span><span class="t t7 unit">kJ/kg</span></p>
+        <p class="t t7 rest" id="live-rest" aria-live="polite"></p>
+        <p class="s key key-inline"><b class="hollow keymark">00</b> Hollow numbers rest on an assumption</p>
+      </div>
+    </div>
+    <div id="blocks"></div>
+  </div>
+
+  <main id="chapters"></main>
+
+  <footer id="transport">
+    <div class="row">
+      <button id="play" class="play" type="button" aria-label="Play">
+        <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
+        <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>
+      </button>
+      <div id="scrub" role="group" aria-label="Chapters">
+        <div id="track"></div>
+        <i id="playhead" aria-hidden="true"></i>
+      </div>
+    </div>
+    <div class="fine s">
+      <span id="credit"></span>
+      <span class="key"><b class="hollow keymark">00</b> Hollow numbers rest on an assumption</span>
+    </div>
+  </footer>
+
+  <script type="module" src="js/present-a.js"></script>
+</body>
+</html>
