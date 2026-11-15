@@ -48,7 +48,7 @@
     </div>
     <div class="loads suit">
       <label for="cooling"><i class="assume"></i>Suit cooling</label>
-      <input id="cooling" type="range" min="300" max="600" step="10" value="370" title="The heat the suit can remove. 370 W is the rating of a NASA prototype in a Mars environment. Drag to see the walk in another suit.">
+      <input id="cooling" type="range" min="300" max="600" step="10" value="370" autocomplete="off" title="The heat the suit can remove. 370 W is the rating of a NASA prototype in a Mars environment. Drag to see the walk in another suit.">
       <output id="cooling-value" for="cooling">370 W</output>
     </div>
     <div class="bars" id="bars"></div>
@@ -85,7 +85,7 @@
 
   <section class="walk" aria-label="Route comparison and walk control">
     <div class="walk-goal" id="walk-goal" hidden>
-      <label>Walk <select id="walk-pick" title="Ready-made walks to places where Curiosity worked, or a walk of your own"></select></label>
+      <label>Walk <select id="walk-pick" title="Ready-made walks with a science goal, or a walk of your own"></select></label>
       <span id="walk-goal-text"></span>
     </div>
     <p class="own-hint" id="own-hint" hidden><b id="own-verdict"></b><span id="own-hint-text"></span></p>

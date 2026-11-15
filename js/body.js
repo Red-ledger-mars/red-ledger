@@ -276,3 +276,13 @@ export const tempRiseC = (heatKJkg) => heatKJkg / MODEL.bodySpecificHeat;
 // after the energy used so far and the cheapest way home from that point.
 export const energyLeftPct = (kcal, backKcal) =>
   ((MODEL.energyBudgetKcal - kcal - backKcal) / MODEL.energyBudgetKcal) * 100;
+
+// Stored body heat as text. One decimal, but two when the value is within
+// 0.05 of NASA's limit, rounded away from the limit, so that the number shown
+// is never on the other side of the limit from the words beside it.
+export function heatText(heatKJkg) {
+  const limit = MODEL.heatLimitKJkg;
+  if (Math.abs(heatKJkg - limit) >= 0.05) return heatKJkg.toFixed(1);
+  const shown = heatKJkg > limit ? Math.ceil(heatKJkg * 100) / 100 : Math.floor(heatKJkg * 100) / 100;
+  return shown.toFixed(2);
+}

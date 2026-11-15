@@ -48,10 +48,16 @@ const out = {
   factors: FACTORS,
   walks: [],
 };
+// The stored walk is priced from the same file the page reads, so that the
+// sheet and the route cards give the same minutes.
+const planned = readJson('routes.json');
 for (const walk of ready.walks) {
   const stops = walk.stored ? stored.stops : walk.stops.map((id) => places[id]);
-  const route = planWalk(terrain, { habitat: stored.habitat, stops }, 'body', back, sky, { loadKg: LOAD_KG });
-  const direct = planWalk(terrain, { habitat: stored.habitat, stops }, 'direct', back, sky, { loadKg: LOAD_KG });
+  const plan = (pricing) => (walk.stored
+    ? planned.loads[LOAD_KG][pricing]
+    : planWalk(terrain, { habitat: stored.habitat, stops }, pricing, back, sky, { loadKg: LOAD_KG }));
+  const route = plan('body');
+  const direct = plan('direct');
   const cell = (priced) => ({ rests: priced.totals.restCount, minutes: Math.round(priced.totals.seconds / 60) });
   const rows = FACTORS.map(({ id, factor }) => ({
     factor: id,

@@ -6,7 +6,7 @@
 // Everything here is read from a planned route (js/route.js) and the comms
 // data (js/comms.js). Nothing is measured on a person.
 
-import { MODEL, MAX_MEASURED_GRADIENT, tempRiseC } from './body.js';
+import { MODEL, MAX_MEASURED_GRADIENT, tempRiseC, heatText } from './body.js';
 
 const degrees = (gradient) => Math.atan(Math.abs(gradient)) * 180 / Math.PI;
 const km = (metres) => (metres / 1000).toFixed(2);
@@ -151,8 +151,10 @@ export function buildBrief({ route, routeName, loadKg, comms = null, contact = n
     title: `${routeName} · ${loadKg ? `carrying ${loadKg} kg` : 'no load'}${comms ? ` · start ${comms.localTime(startMinute)} local time` : ''}`,
     verdict: [
       overLimit
-        ? { level: 'warn', text: `Without rest this route stores ${t.peakHeatNoRest.toFixed(1)} kJ/kg of body heat (${t.peakHeatRange.map((v) => v.toFixed(1)).join(' to ')} across the spread measured on people), over NASA's limit of ${limit.toFixed(1)}. The plan adds ${t.restCount} rest${t.restCount === 1 ? '' : 's'} (${minutes(t.restSeconds)} min) to stay under it.` }
-        : { level: 'ok', text: `Stored body heat peaks at ${t.peakHeatNoRest.toFixed(1)} kJ/kg (${t.peakHeatRange.map((v) => v.toFixed(1)).join(' to ')} across the spread measured on people), under NASA's limit of ${limit.toFixed(1)}. No rest is forced.` },
+        ? { level: 'warn', text: `Without rest this route stores ${heatText(t.peakHeatNoRest)} kJ/kg of body heat (${t.peakHeatRange.map((v) => v.toFixed(1)).join(' to ')} across the spread measured on people), over NASA's limit of ${limit.toFixed(1)}. The plan adds ${t.restCount} rest${t.restCount === 1 ? '' : 's'} (${minutes(t.restSeconds)} min) to stay under it.` }
+        : { level: 'ok', text: `Stored body heat peaks at ${heatText(t.peakHeatNoRest)} kJ/kg (${t.peakHeatRange.map((v) => v.toFixed(1)).join(' to ')} across the spread measured on people), under NASA's limit of ${limit.toFixed(1)}. ${t.restCount
+          ? `The plan still adds ${t.restCount} rest${t.restCount === 1 ? '' : 's'} (${minutes(t.restSeconds)} min): it rests at ${MODEL.restAt * 100}% of the limit, before the limit is reached.`
+          : 'No rest is forced.'}` },
       share === null ? null
         : share === 100
           ? { level: 'ok', text: 'A relay orbiter is in view for the whole walk.' }
@@ -164,7 +166,9 @@ export function buildBrief({ route, routeName, loadKg, comms = null, contact = n
     before: [
       `Distance ${km(t.dist)} km, climb ${t.climb.toFixed(0)} m, steepest ground ${t.steepestDeg.toFixed(0)}°.`,
       `Expected time ${minutes(t.seconds)} min${t.restCount ? `, of which ${minutes(t.restSeconds)} min is forced rest` : ''}.`,
-      `To walk it with no rest the suit would have to remove ${t.coolingNeededW} W of heat; the suit in this plan removes ${coolingW} W.`,
+      t.coolingNeededW <= MODEL.restW + 1
+        ? `The walk is too short to reach NASA's heat limit, even in a suit that removes only the ${MODEL.restW} W of a body at rest; the suit in this plan removes ${coolingW} W.`
+        : `To stay under NASA's heat limit with no rest the suit would have to remove ${t.coolingNeededW} W of heat; the suit in this plan removes ${coolingW} W.`,
       `Expected energy ${t.kcal.toFixed(0)} kcal, ${((t.kcal / MODEL.energyBudgetKcal) * 100).toFixed(0)}% of the ${MODEL.energyBudgetKcal} kcal backpack budget.`,
       `Lowest energy margin on the route, after the cheapest way home: ${t.lowestLeft.toFixed(0)}%.`,
       lightMinutes === null ? null : `Earth is ${lightMinutes.toFixed(1)} light-minutes away: a question and its answer take at least ${Math.ceil(lightMinutes * 2)} min. The crew decides alone.`,
@@ -204,7 +208,7 @@ const COMPARE = {
   workload: ({ t, peakW }) => `This walk: ${minutes(t.seconds)} min, ${t.kcal.toFixed(0)} kcal, work rate up to ${peakW} W.`,
   peakWork: ({ peakW }) => `Peak work rate on this route: ${peakW} W.`,
   water: ({ t }) => `This walk takes ${minutes(t.seconds)} min: at least ${Math.ceil((t.seconds / 3600) * 240)} mL.`,
-  heat: ({ t }) => `Forecast peak on this route: ${t.peakHeat.toFixed(1)} kJ/kg with the planned rests, ${t.peakHeatNoRest.toFixed(1)} with none.`,
+  heat: ({ t }) => `Forecast peak on this route: ${t.peakHeat.toFixed(1)} kJ/kg with the planned rests, ${heatText(t.peakHeatNoRest)} with none.`,
   work: ({ peakW }) => `The forecast file gives the expected work rate at every point, up to ${peakW} W, to compare with the reading.`,
   walkback: ({ route }) => `Farthest point of this route: ${km(farthestFromHabitat(route.points))} km from the habitat in a straight line. The way home costs at most ${Math.max(...route.points.map((p) => p.backKcal)).toFixed(0)} kcal.`,
   contact: ({ contact }) => (contact
@@ -269,7 +273,7 @@ export function forecastRows(route, contact = null) {
 }
 
 // The forecast as one file, with the assumptions it rests on.
-export function forecastFile({ route, routeName, loadKg, contact, comms, startMinute, sources }) {
+export function forecastFile({ route, routeName, loadKg, contact, comms, startMinute, sources, coolingW = MODEL.coolingW }) {
   return {
     what: 'Red Ledger walk forecast: the expected state of a walker along one planned Marswalk. Model output, not a measurement on a person.',
     site: 'Boxwork region, Mount Sharp, Gale crater, Mars',
@@ -277,7 +281,7 @@ export function forecastFile({ route, routeName, loadKg, contact, comms, startMi
     carried_load_kg: loadKg,
     start_local_time: comms ? comms.localTime(startMinute) : null,
     orbiter_positions_for: comms ? 'sol 4752 (18 December 2025), NASA/JPL Horizons' : null,
-    model: { ...MODEL },
+    model: { ...MODEL, coolingW },
     sources: Object.values(sources).map((s) => ({ source: s.label, url: s.url, gives: s.what, status: s.status })),
     not_modelled: NOT_MODELLED,
     columns: Object.fromEntries(FORECAST_COLUMNS),

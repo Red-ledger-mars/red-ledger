@@ -40,13 +40,12 @@ let loaded = null;
 // about a second to find, so it is kept for each load once made.
 const backByLoad = new Map();
 
-// True when a point lies on the elevation crop, on a cell with data and not
-// on its outer edge (the search looks two cells to each side).
+// True when a point lies on the elevation crop, on a cell with data.
 function onGround(terrain, { lat, lon }) {
   const { col, row } = terrain.toCell(lat, lon);
   const c = Math.floor(col);
   const r = Math.floor(row);
-  return c >= 2 && r >= 2 && c < terrain.cols - 2 && r < terrain.rows - 2 && Number.isFinite(terrain.z[r * terrain.cols + c]);
+  return c >= 0 && r >= 0 && c < terrain.cols && r < terrain.rows && Number.isFinite(terrain.z[r * terrain.cols + c]);
 }
 
 self.onmessage = async ({ data: { id, stops, loadKg = 0 } }) => {
@@ -63,7 +62,15 @@ self.onmessage = async ({ data: { id, stops, loadKg = 0 } }) => {
     // The direct search is about three times faster, so it goes first.
     for (const pricing of ['direct', 'body']) {
       const route = planWalk(terrain, walk, pricing, back, sky, { loadKg });
-      if (route) route.totals.lowestLeft = Math.min(...route.points.map((p) => energyLeftPct(p.kcal, p.backKcal)));
+      if (route) {
+        // A few steep cells have no body-cost way home of their own. A point
+        // on one takes the way-home cost of the point before it.
+        let known = 0;
+        for (const p of route.points) {
+          if (Number.isFinite(p.backKcal)) known = p.backKcal; else p.backKcal = known;
+        }
+        route.totals.lowestLeft = Math.min(...route.points.map((p) => energyLeftPct(p.kcal, p.backKcal)));
+      }
       self.postMessage({ id, kind: 'route', pricing, route });
     }
     self.postMessage({ id, kind: 'done', ms: Math.round(performance.now() - started) });

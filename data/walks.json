@@ -1,5 +1,5 @@
 {
- "note": "Ready-made walks. The first is the stored walk (data/walk.json, planned ahead in data/routes.json). The others are planned in the page by js/planner.js when chosen. Every stop is a place where Curiosity worked: the position is the rover's end-of-drive position on the sols given (NASA's waypoint file), and the text is from NASA's mission updates, read and rechecked on 14 Nov 2026. The goals are the team's.",
+ "note": "Ready-made walks. The first is the stored walk (data/walk.json, planned ahead in data/routes.json). The others are planned in the page by js/planner.js when chosen. Every stop but one is a place where Curiosity worked (the survey's west bench is ground the rover did not drive to): the position is the rover's end-of-drive position on the sols given (NASA's waypoint file), and the text is from NASA's mission updates, read and rechecked on 14 Nov 2026. The goals are the team's.",
  "own": {
   "name": "Your own walk",
   "goal": "You place the stops. The planner finds both routes there and back."

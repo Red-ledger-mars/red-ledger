@@ -24,7 +24,7 @@ Made with NASA open data. This project is not endorsed by NASA.
 
 ## What only Red Ledger does
 
-1. **Body heat decides the walk.** Stored body heat against NASA's limit of 3.0 kJ/kg sets the rests and the route. Carrying 30 kg on the ridge and hollow survey, the body-cost route is 100 m longer, needs one rest fewer and is home 9 minutes sooner.
+1. **Body heat decides the walk.** Stored body heat against NASA's limit of 3.0 kJ/kg sets the rests and the route. Carrying 30 kg on the ridge and hollow survey, the body-cost route is 100 m longer, needs one rest fewer and is home 8 minutes sooner.
 2. **The body model was tested against NASA's measurements of people, with the rule committed first.** It failed, was corrected, and every heat number shows its range (see "The test against NASA's measurements of people" below).
 3. **The suit decides more than the route.** A slider sets the suit's cooling and prices the walk again: the climb to the layer contact needs 3 rests at 370 W, 1 at 450 W and none at 550 W.
 4. **Radio contact is tied to the walk.** The terrain's comms shadow comes from real orbiter positions for one sol, and a walk slowed by its rests can outlast an orbiter pass.
@@ -39,7 +39,6 @@ This list grew as parts were finished.
 - [x] A walk with a habitat and three stops, and two routes for it: the shortest, and the one with the least walking energy
 - [x] Elevation profile and a walk control that moves along the route
 - [x] Body-cost model: energy burned, body heat stored against NASA's limit, radiation dose, and energy left to walk home, all updating along the route
-- [x] Curiosity's own photos at the two stops it visited
 - [x] Demo copy in the repo: elevation, waypoints, photos, weather and the walk-area imagery (zoom 13 to 16), so the walk still shows if NASA's servers cannot be reached
 - [x] Curiosity's measured temperature and pressure range for the site
 
@@ -50,14 +49,14 @@ This list grew as parts were finished.
 - [x] Crew doctor's checks in the walk brief: 13 checks that NASA publishes for a spacewalk (clearance, fitness, prebreathe, water, body heat, work rate, carbon dioxide, distance from shelter, loss of radio, hands and shoulders, water lost, dosimeter, dust), each with NASA's value and its source. Beside each one the page sets its own forecast for this route, or says that it has none
 - [x] Forecast file: the expected pace, work rate, stored heat, dose and orbiter contact at every point of a route, as JSON or CSV, for an onboard system to compare with what a suit measures
 - [x] Free walk: steer the walker over the terrain with the arrow keys; the same body model runs on the ground you choose, refuses slopes no walking study covers, and forces a rest when stored heat nears the limit
-- [x] Four ready-made walks to places where Curiosity worked, each with its science goal (`data/walks.json`): the ridge and hollow survey, a first sample run to Altadena, the sulfate rock above the boxwork at the Campo Marte drill site, and a climb to a contact between two rock layers. They run from 0.34 km and 6 minutes to 3.05 km, 76 minutes and three rests with a 30 kg load
+- [x] Four ready-made walks to places where Curiosity worked, each with its science goal (`data/walks.json`): the ridge and hollow survey, a first sample run to Altadena, the sulfate rock above the boxwork at the Campo Marte drill site, and a climb to a contact between two rock layers. Every stop but one is a place where the rover worked. They run from 0.34 km and 6 minutes to 3.06 km, 76 minutes and three rests with a 30 kg load
 - [x] What decides the walk: each walk priced again for suits that remove 300 to 550 W (`tools/sensitivity.mjs`, shown in the test sheet). Carrying 30 kg, the climb to the layer contact needs 6 rests at 300 W, 3 at the model's 370 W, 1 at 450 W and none at 550 W; the choice of route changes the count by one rest at most
 - [x] Suit-cooling slider: drag the heat the suit can remove from 300 to 600 W and the routes on screen are priced again at once, with their rests, times and heat. It asks the question the result points to: how many watts must a Mars suit remove?
 - [x] Curiosity's own photos at four stops: a Navcam view of the ground and a MAHLI view of the rock at each
 - [x] Plan your own walk: place up to four stops anywhere on the surveyed patch and the page plans both routes there and back, with the rests, the heat, the cooling a suit would need and the orbiter contact. The search runs in the page (about one to two seconds) with the same route code and body model as the stored walk
 - [x] Body-reach layer: for every 4 m cell of the patch and each load, the rests the plan adds to walk from the habitat to that point and back by the body-cost route (`data/reach/`, made by `tools/reach.mjs`). With no load a walker can go 630 to 1,140 m from the habitat, depending on the ground, and return with no rest; with 30 kg, 490 to 700 m. A second agent checked the layer against the route planner on 75 walks: the rests agreed on every one, and stored heat and time differ only by rounding
 - [x] 3D view of the walk on the real terrain (HiRISE imagery over the 4 m elevation model); pressing Walk switches to it and follows the walker
-- [x] Radiation layer: how much sky the terrain blocks, computed with the method of the Curiosity RAD team and checked against the eight measurement periods, at five places, where the rover measured a dose drop (6 of 8 within 1 percentage point; the other two are 3 and 9 points off; shown in the page under "Check vs RAD")
+- [x] Radiation layer: how much sky the terrain blocks, computed with the method of the Curiosity RAD team and checked against the eight measurement periods, at five places, where the rover measured a dose drop (6 of 8 within 1 percentage point; the other two are 3 and 9 points off; shown in the page under "How we tested it")
 - [x] A whole-Mars globe (`globe.html`): the surveyed patch is ringed and opens the walk; any other point shows its coordinates and MOLA elevation and is labelled as not yet surveyed at walk scale
 
 Keys on the walk page: Space plays or pauses the walk, D and B choose the direct or the body-cost route, 1 to 7 choose the overlay, L changes the carried load, V switches between the map and the 3D view, O starts or leaves a walk of your own, R switches the clean screen for filming on and off, P plays a fixed sequence of about 16 seconds and Shift+P a longer one of about 50 seconds (Escape stops either). Opening `globe.html?rec` plays everything in one take, from the whole planet to the end of the short sequence.
