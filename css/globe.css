@@ -161,3 +161,20 @@
 /* Recording mode: nothing on screen that a viewer cannot use. */
 .rec, .rec * { cursor: none !important; }
 .rec .site-coord { visibility: hidden; }
+
+/* No 3D (body.flat): a flat map of Mars with Gale marked, the doors beside it,
+   and the note moved to the bottom so it does not cover the map. */
+.flat-mars {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: min(100vw, 200vh);
+  aspect-ratio: 2 / 1;
+  transform: translate(-50%, -50%);
+}
+.flat-mars img { display: block; width: 100%; height: 100%; }
+.flat-mars .patch-ring, .flat-mars .patch-label { position: absolute; }
+.flat #globe canvas { display: none; }
+.flat .nogl { top: auto; bottom: calc(var(--foot) + 16px); transform: translateX(-50%); }
+/* Gale is far east on the map, so its label opens to the left of the ring. */
+.flat-mars .patch-label { margin: -22px 0 0 -28px; translate: -100% 0; }
+.flat .hint, .flat .foot .keys { display: none; }
