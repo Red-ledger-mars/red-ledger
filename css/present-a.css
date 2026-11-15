@@ -422,7 +422,9 @@ select {
   }
   .key-inline { display: block; }
   .fine .key { display: none; }
-  #transport { height: 56px; grid-template-rows: 40px; padding-top: 8px; }
+  #transport { left: 0; right: 0; height: 56px; grid-template-rows: 40px; padding: 8px var(--gut) 0; background: var(--field); }
+  /* Reading chapters with controls need more room under a shorter frame. */
+  body[data-kind="routes"], body[data-kind="reach"] { --frame-h: 32vh; --frame-h: 32svh; }
   #credit {
     position: fixed; top: calc(var(--frame-top) + 6px); left: 16px; max-width: 70vw;
     white-space: normal; overflow: visible;
@@ -435,7 +437,7 @@ select {
     position: static; opacity: 1; visibility: visible; transform: none; pointer-events: auto;
     justify-content: flex-start;
   }
-  .fo-row { grid-template-columns: 1fr 1fr; grid-template-areas: "label label" "l r"; row-gap: 4px; }
+  .fo-row { grid-template-columns: 1fr 1fr; grid-template-areas: "label label" "l r"; row-gap: 4px; align-items: start; }
   .fo-row > .fo-label { grid-area: label; text-align: left; padding-bottom: 0; }
   .fo-row > .fo-v.l { grid-area: l; justify-items: start; text-align: left; }
   .fo-row > .fo-v.r { grid-area: r; }

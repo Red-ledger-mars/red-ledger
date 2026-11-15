@@ -157,7 +157,14 @@ async function boot() {
 function mirrorCredit() {
   const el = $('stage').querySelector('.v3d-credit');
   if (!el) return;
-  const copy = () => { if (!body.classList.contains('flat')) $('credit').textContent = el.textContent; };
+  // The AI label goes first, so a credit cut short on a narrow screen can
+  // never hide it while the figure shows.
+  const AI = 'Walker figure made with AI';
+  const copy = () => {
+    if (body.classList.contains('flat')) return;
+    const text = el.textContent;
+    $('credit').textContent = text.includes(AI) ? `${AI} · ${text.replace(AI, '').replace(/\s*·\s*$/, '').replace(/·\s*·/, '·').trim()}` : text;
+  };
   copy();
   if (!state.creditWatch) {
     state.creditWatch = new MutationObserver(copy);
@@ -866,6 +873,9 @@ function setAuto(on) {
 
 function autoFrame(now) {
   if (!auto.on) return;
+  // Any scroll the autoplay did not make (scrollbar, a script) hands the
+  // page back to the visitor.
+  if (Math.abs(scrollY - auto.y) > 4 && scrollY < maxScroll() - 1) { setAuto(false); return; }
   const dt = Math.min(0.1, (now - auto.last) / 1000);
   auto.last = now;
   const H = innerHeight;

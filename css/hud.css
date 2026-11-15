@@ -490,6 +490,8 @@ kbd {
 .map-foot { position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .map-coord { max-width: 100%; padding: 4px 8px; font-size: 12px; line-height: 16px; color: var(--dim); white-space: pre; overflow: hidden; text-overflow: ellipsis; background: var(--panel); border: 1px solid transparent; border-radius: 6px; box-shadow: var(--ring); }
 .map-coord:empty, #view3d:not([hidden]) ~ .map-window .map-coord { display: none; }
+/* In 3D the hint would cover the view's credit line, so it rests there. */
+#view3d:not([hidden]) ~ .map-window .own-hint { display: none; }
 /* The page's opening line rests while the viewer walks or places stops. */
 .own .map-coord.opening, .free .map-coord.opening { display: none; }
 .own-hint {
