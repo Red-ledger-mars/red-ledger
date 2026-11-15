@@ -334,8 +334,13 @@ function placeMarkers() {
   if (!visible) return;
   tmp.project(camera);
   const x = (tmp.x * 0.5 + 0.5) * w, y = (-tmp.y * 0.5 + 0.5) * h;
-  ring.style.left = label.style.left = `${x}px`;
+  ring.style.left = `${x}px`;
   ring.style.top = label.style.top = `${y}px`;
+  // On a narrow screen the label does not fit beside the ring: put it below, kept inside the screen.
+  const lw = label.offsetWidth;
+  const below = x + 28 + lw + 8 > w;
+  label.classList.toggle('below', below);
+  label.style.left = `${below ? Math.min(Math.max(x, lw / 2 + 8), w - lw / 2 - 8) : x}px`;
 }
 
 async function loadPatches() {

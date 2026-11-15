@@ -59,6 +59,7 @@
   border-radius: 6px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
 }
+.patch-label.below { margin: 26px 0 0; translate: -50% 0; }
 .patch-label b { font: 700 14px/1.2 var(--sans); }
 .doors { display: flex; gap: 8px; margin-top: 8px; }
 .door { padding: 6px 10px; font: 600 13px/1.2 var(--sans); color: var(--text); text-decoration: none; border: 1px solid var(--line); border-radius: 4px; }
