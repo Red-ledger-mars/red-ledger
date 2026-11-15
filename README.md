@@ -2,7 +2,11 @@
 
 **Every Mars map shows where things are. This one shows what each step costs a human body.**
 
-**Try it:** https://red-ledger-mars.github.io/red-ledger/ opens on Mars. At Gale crater choose the story (https://red-ledger-mars.github.io/red-ledger/story.html) or the map tool (https://red-ledger-mars.github.io/red-ledger/classic.html). Every page is listed at https://red-ledger-mars.github.io/red-ledger/links.html. Nothing to install.
+**Try it:** https://red-ledger-mars.github.io/red-ledger/ opens on Mars, with three ways in. Nothing to install.
+
+- **The Bill:** one walk, cost by cost. https://red-ledger-mars.github.io/red-ledger/present-b.html
+- **Map tool:** plan a walk and see what it costs. https://red-ledger-mars.github.io/red-ledger/classic.html
+- **The story:** the two routes, how far a body can go, the test. https://red-ledger-mars.github.io/red-ledger/story.html
 
 Red Ledger is a helmet display for a single Marswalk at Gale crater (Mount Sharp), the region the Curiosity rover has explored since 2012. It layers data from several NASA missions at the scale of one excursion and prices each walking route in four things: energy burned, heat against the suit's cooling limit, radiation dose, and whether there is enough left to walk back.
 
@@ -59,7 +63,7 @@ This list grew as parts were finished.
 - [x] 3D view of the walk on the real terrain (HiRISE imagery over the 4 m elevation model); pressing Walk switches to it and follows the walker
 - [x] Radiation layer: how much sky the terrain blocks, computed with the method of the Curiosity RAD team and checked against the eight measurement periods, at five places, where the rover measured a dose drop (6 of 8 within 1 percentage point; the other two are 3 and 9 points off; shown in the page under "How we tested it")
 - [x] A story of the walk (`story.html`, and `full.html` with more detail): the two routes drawn in body heat on the 3D ground, the reach of a body, the test against NASA's measurements, and a comparison that follows the load and the start time
-- [x] A whole-Mars globe (`index.html`, the front page): the surveyed patch is ringed and opens the story or the map tool; any other point shows its coordinates and MOLA elevation and is labelled as not yet surveyed at walk scale
+- [x] A whole-Mars globe (`index.html`, the front page): three ways in stand beside it (The Bill, the map tool, the story), and the ring at the surveyed patch opens the story; any other point shows its coordinates and MOLA elevation and is labelled as not yet surveyed at walk scale
 
 Keys on the map tool (`classic.html`): Space plays or pauses the walk, D and B choose the direct or the body-cost route, 1 to 7 choose the overlay, L changes the carried load, V switches between the map and the 3D view, O starts or leaves a walk of your own, R switches the clean screen for filming on and off, P plays a fixed sequence of about 16 seconds and Shift+P a longer one of about 50 seconds (Escape stops either). Opening `index.html?rec` plays everything in one take, from the whole planet to the end of the short sequence.
 

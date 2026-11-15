@@ -381,9 +381,9 @@ function walk(to = null) {
   setTimeout(() => { location.href = href; }, GO_MS + 450);
 }
 
-// Two doors at the patch: the story, or the map tool to plan a walk of your
-// own. The ring itself opens the story.
-for (const el of [$('patch-ring'), $('door-story'), $('door-own')]) {
+// Three ways in beside the globe: The Bill, the map tool and the story. The
+// ring at the patch opens the story.
+for (const el of [$('patch-ring'), ...document.querySelectorAll('.way')]) {
   el.addEventListener('click', (e) => {
     if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
     e.preventDefault();

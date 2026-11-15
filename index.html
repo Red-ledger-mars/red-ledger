@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Red Ledger: Mars at walk scale</title>
-  <meta name="description" content="A globe of Mars. One patch at Gale crater is surveyed at walk scale and opens the Marswalk cost display. Made with NASA open data.">
+  <meta name="description" content="What one walk on Mars costs a human body. A globe of Mars with three ways in: The Bill, the map tool and the story. Made with NASA open data.">
   <link rel="stylesheet" href="css/hud.css">
   <link rel="stylesheet" href="css/globe.css">
 </head>
@@ -26,20 +26,21 @@
 
   <section class="intro" aria-label="About this globe">
     <h1><span class="intro-title">Mars at walk scale</span><strong id="intro-count">1 patch surveyed</strong></h1>
-    <p>Global maps show where things are. A walk needs slope, heat and radiation at the scale of a few metres.</p>
+    <p>Every Mars map shows where things are. This one shows what each step costs a human body.</p>
+    <nav class="ways" aria-label="Three ways in">
+      <a class="way" href="present-b.html"><b>The Bill</b><small>One walk at Gale crater, cost by cost</small></a>
+      <a class="way" href="classic.html"><b>Map tool</b><small>Plan a walk and see what it costs</small></a>
+      <a class="way" href="story.html"><b>The story</b><small>Two routes, how far a body can go, the test</small></a>
+    </nav>
   </section>
 
   <a class="patch-ring" id="patch-ring" href="story.html" hidden aria-label="Walk Gale crater" tabindex="-1"></a>
   <div class="patch-label" id="patch-label" hidden>
     <b>Gale crater</b>
     <small>Surveyed at walk scale</small>
-    <span class="doors">
-      <a class="door" id="door-story" href="story.html">Story mode</a>
-      <a class="door" id="door-own" href="classic.html#own">Walk your own</a>
-    </span>
   </div>
 
-  <p class="hint" id="hint">Drag to turn. Scroll to zoom. At Gale crater, choose story mode or walk your own.</p>
+  <p class="hint" id="hint">Drag to turn. Scroll to zoom. The ring at Gale crater opens the story.</p>
 
   <aside class="card" id="card" aria-label="Selected point" hidden>
     <button type="button" class="card-close" id="card-close" aria-label="Close">×</button>
@@ -54,7 +55,6 @@
   <footer class="foot">
     <span>Made with NASA open data.</span>
     <a href="CREDITS.md">Sources and credits</a>
-    <a href="links.html">All pages</a>
     <span class="keys">Keys: 1 2 3 layers, Enter walk</span>
   </footer>
 
