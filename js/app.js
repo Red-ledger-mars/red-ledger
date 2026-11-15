@@ -1733,7 +1733,7 @@ async function start() {
   $('own').disabled = false;
   $('walk-pick').disabled = false;
 
-  // index.html?rec opens with a clean screen for filming; ?rec=auto also
+  // classic.html?rec opens with a clean screen for filming; ?rec=auto also
   // plays the sequence once the page has settled.
   const rec = new URLSearchParams(location.search).get('rec');
   if (rec !== null) document.body.classList.add('rec');
