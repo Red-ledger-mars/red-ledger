@@ -124,6 +124,7 @@ body.booting::before { opacity: 1; animation: cover-lift 450ms var(--ease-out) 6
 .site { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; margin-right: auto; }
 .site-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .site-coord { font: 12px/1.5 var(--mono); color: var(--dim); min-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.site-coord.opening { font-family: inherit; font-size: 12.5px; color: var(--text); }
 
 .overlays { display: flex; flex: none; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; background: var(--panel); }
 .overlays button {
@@ -599,6 +600,8 @@ body.booting::before { opacity: 1; animation: cover-lift 450ms var(--ease-out) 6
 .own .leaflet-container { cursor: crosshair; }
 .stop-own { background: var(--bg); color: var(--text); border: 2px solid var(--text); cursor: pointer; }
 .own-hint { margin: 0 0 8px; font-size: 13px; color: var(--text); }
+.own-hint b { display: block; font-size: 15px; }
+.own-hint b:empty { display: none; }
 .routes[aria-busy="true"] { opacity: 0.55; }
 .own #free, .free #own { display: none; }
 .rec .own-hint { display: none; }

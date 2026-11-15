@@ -38,6 +38,7 @@ const state = {
   loadKg: 0,        // the carried load now shown
   coolingW: MODEL.coolingW, // heat the suit removes, set by the slider
   planned: null,    // the routes now shown, as planned for the model's own suit
+  opening: '',      // the sentence shown where the pointer readout rests
   restMarks: [],    // map marks where the plan makes the walker rest
   routes: {},       // id -> described route for the load now shown
   lines: {},        // id -> { line, casing } on the map
@@ -100,10 +101,10 @@ map.on('mousemove', (e) => {
       ? `Here and back: ${reach.minutes} min, ${reach.rests === 0 ? 'no rest' : reach.rests === 1 ? '1 rest' : `${reach.rests} rests`}, about ${reach.peakHeatKJkg.toFixed(1)} kJ/kg if not rested`
       : REACH_NOTE;
   }
-  $('cursor-coord').textContent = text;
+  showCoord(text);
 });
 map.on('mouseout', () => {
-  $('cursor-coord').textContent = '';
+  showCoord('');
   if (state.overlay === 'reach') $('legend-note').textContent = REACH_NOTE;
 });
 
@@ -287,6 +288,13 @@ async function buildRoverPath() {
     .addTo(map);
 }
 
+// The line under the site name: what is under the pointer, or, with the
+// pointer off the map, the one sentence the whole page is about.
+function showCoord(text) {
+  $('cursor-coord').textContent = text || state.opening;
+  $('cursor-coord').classList.toggle('opening', !text);
+}
+
 // What Curiosity's weather station measured while the rover was in this
 // area. The feed is published for outreach, so it is labelled as such.
 async function buildWeather() {
@@ -297,6 +305,8 @@ async function buildWeather() {
     <p>Ground <b>${summary.ground_min_c.min} to ${summary.ground_max_c.max} °C</b></p>
     <p>Pressure <b>${summary.pressure_pa.min} to ${summary.pressure_pa.max} Pa</b>, under 1% of Earth's at sea level</p>
     <p><a href="${source}" target="_blank" rel="noopener">Curiosity REMS weather station</a>, published for outreach.</p>`;
+  state.opening = `Air here falls to ${summary.air_min_c.min} °C. What stops a walker is body heat.`;
+  if ($('cursor-coord').textContent === '') showCoord('');
   // How far away help is, on the sol the orbiter positions are for.
   const comms = await fetch('data/comms/summary.json').then((r) => (r.ok ? r.json() : null)).catch(() => null);
   if (comms) {
@@ -660,14 +670,20 @@ function buildRouteCards() {
   const fewer = a.restCount - b.restCount;
   const sooner = Math.round((a.seconds - b.seconds) / 60);
   const count = (n) => (n === 1 ? 'one rest' : `${n} rests`);
+  const cost = `${signed(b.peakHeatNoRest - a.peakHeatNoRest, 1)} kJ/kg peak heat · ${signed(b.kcal - a.kcal)} kcal`;
+  const placed = state.own?.stops.length && !state.own.preset;
   delta.innerHTML = fewer === 0 && Math.abs(sooner) < 2
-    ? `<b>Here the shortest way is already close to the cheapest.</b>
+    ? placed
+      ? `<b>Here the shortest way is already close to the cheapest.</b>
     <span>No detour saves a rest. The two routes split where the straight line crosses steep ground, as on the ridge and hollow survey.</span>`
+      : `<b>Both routes need the same number of rests and take about the same time.</b>
+    <span>On the body-cost route: ${cost}</span>`
     : `<b>The body-cost route is ${Math.abs(longer)} m ${longer >= 0 ? 'longer' : 'shorter'}${
       fewer > 0 ? `, needs ${count(fewer)} fewer` : fewer < 0 ? `, needs ${count(-fewer)} more` : ''}${
       sooner > 0 ? ` and is home ${sooner} min sooner` : sooner < 0 ? ` and takes ${-sooner} min longer` : ''}.</b>
-    <span>${signed(b.peakHeatNoRest - a.peakHeatNoRest, 1)} kJ/kg peak heat · ${signed(b.kcal - a.kcal)} kcal</span>`;
+    <span>${cost}</span>`;
   $('routes').replaceChildren(card(ROUTES[0]), delta, card(ROUTES[1]));
+  showVerdict();
 }
 
 // One line on a route card: how much of the walk has an orbiter in view.
@@ -774,6 +790,7 @@ function selectRoute(id, ease = false) {
   }
   drawRestMarks();
   drawProfile();
+  showVerdict();
   state.view3d?.setRoute(id);
   if (state.view3d?.isShown()) setFollow(false);
   renderWalk(ease);
@@ -1268,12 +1285,30 @@ function renderFree() {
 // The search for a walk the viewer placed runs in a worker (js/planner.js),
 // with the same route code and body model as the planned walk.
 const OWN_MAX_STOPS = 4;
-const OWN_HINT = `Click the ground inside the dashed frame to place a stop (up to ${OWN_MAX_STOPS}). Click a stop to remove it.`;
+const OWN_HINT = `Click the ground inside the dashed frame to place a stop (up to ${OWN_MAX_STOPS}). Until then the routes and numbers are those of the ridge and hollow survey.`;
 let planner = null;
 
 function ownSay(text) {
-  $('own-hint').hidden = !text;
-  $('own-hint').textContent = text;
+  $('own-hint-text').textContent = text;
+  showVerdict();
+}
+
+// What a walk the viewer placed comes to, in one sentence, for the route
+// now chosen. A forecast of the plan, so it says so.
+function showVerdict() {
+  const own = state.own;
+  const t = own?.stops.length && !own.preset && state.routes ? state.routes[state.active].totals : null;
+  let verdict = '';
+  if (t) {
+    const home = `home in ${(t.seconds / 60).toFixed(0)} min`;
+    verdict = t.lowestLeft <= 0
+      ? 'Forecast: the backpack runs out of energy before you are home.'
+      : t.restCount
+        ? `Forecast: you make it there and back with ${t.restCount === 1 ? '1 rest' : `${t.restCount} rests`} to shed body heat, ${home}.`
+        : `Forecast: you make it there and back with no rest, ${home}.`;
+  }
+  $('own-verdict').textContent = verdict;
+  $('own-hint').hidden = !verdict && !$('own-hint-text').textContent;
 }
 
 // Redraws the viewer's stops with their numbers. The habitat mark stays
