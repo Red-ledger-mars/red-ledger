@@ -47,10 +47,19 @@
           <span><i class="assume"></i>Carrying</span>
           <nav id="loads" aria-label="Carried load"></nav>
         </div>
+        <div class="loads suit">
+          <label for="cooling"><i class="assume"></i>Suit cooling</label>
+          <input id="cooling" type="range" min="300" max="600" step="10" value="370" autocomplete="off" title="The heat the suit can remove. 370 W is the rating of a NASA prototype in a Mars environment. Drag to see the walk in another suit.">
+          <output id="cooling-value" for="cooling">370 W</output>
+        </div>
         <div class="bars" id="bars"></div>
       </section>
 
       <section class="panel-sec" aria-label="Route comparison">
+        <div class="walk-goal" id="walk-goal" hidden>
+          <label>Walk <select id="walk-pick" title="Ready-made walks with a science goal, or a walk of your own"></select></label>
+          <span id="walk-goal-text"></span>
+        </div>
         <div class="routes" id="routes"></div>
       </section>
 
@@ -98,7 +107,7 @@
       <!-- At the foot of the map: the hint for a walk of your own, and what
            lies under the pointer. -->
       <div class="map-foot">
-        <p class="own-hint" id="own-hint" hidden></p>
+        <p class="own-hint" id="own-hint" hidden><b id="own-verdict"></b><span id="own-hint-text"></span></p>
         <span class="map-coord" id="cursor-coord"></span>
       </div>
     </div>
@@ -137,7 +146,7 @@
   </dialog>
 
   <footer class="foot">
-    <span>Made with NASA open data.</span>
+    <span title="Mars Reconnaissance Orbiter (HiRISE, CTX, elevation), Mars Odyssey (THEMIS), Curiosity (RAD, REMS, cameras, path), Mars Global Surveyor (MOLA), Viking Orbiters. Orbiter positions: NASA/JPL Horizons">Made with NASA open data from five missions: MRO, Mars Odyssey, Curiosity, MGS, Viking.</span>
     <a href="CREDITS.md">Sources and credits</a>
     <details class="chip-pop up" id="map-credits" name="note">
       <summary>Map credits</summary>

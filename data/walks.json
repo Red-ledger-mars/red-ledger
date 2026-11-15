@@ -1,0 +1,62 @@
+{
+ "note": "Ready-made walks. The first is the stored walk (data/walk.json, planned ahead in data/routes.json). The others are planned in the page by js/planner.js when chosen. Every stop but one is a place where Curiosity worked (the survey's west bench is ground the rover did not drive to): the position is the rover's end-of-drive position on the sols given (NASA's waypoint file), and the text is from NASA's mission updates, read and rechecked on 14 Nov 2026. The goals are the team's.",
+ "own": {
+  "name": "Your own walk",
+  "goal": "You place the stops. The planner finds both routes there and back."
+ },
+ "places": {
+  "campo": {
+   "id": "campo",
+   "name": "Campo Marte drill site",
+   "lat": -4.8144,
+   "lon": 137.38158,
+   "sol": 4893,
+   "text": "In May 2026 Curiosity drilled Campo Marte here, in layered sulfate rock just above the boxwork. Its first try, at a thinner block nearby named Atacama, ended with the drill lodged in the rock.",
+   "source": "https://science.nasa.gov/blog/curiosity-blog-sols-4900-4907-pasadena-we-have-a-drill-sample/"
+  },
+  "contact": {
+   "id": "contact",
+   "name": "Layer contact",
+   "lat": -4.82143,
+   "lon": 137.38582,
+   "sol": 4977,
+   "text": "In August 2026 Curiosity worked here for six sols, at a place where two rock layers meet and cross-bedded rock is cut off by other layers.",
+   "source": "https://science.nasa.gov/blog/curiosity-blog-sols-4975-4981-happy-14th-landing-anniversary/"
+  }
+ },
+ "walks": [
+  {
+   "id": "survey",
+   "name": "Ridge and hollow survey",
+   "stored": true,
+   "goal": "Sample a boxwork ridge and the hollow beside it, where Curiosity drilled both, then go on to ground the rover did not drive to."
+  },
+  {
+   "id": "first",
+   "name": "First sample run",
+   "stops": [
+    "altadena"
+   ],
+   "goal": "Go back to Altadena, the first place Curiosity drilled the boxwork bedrock."
+  },
+  {
+   "id": "sulfate",
+   "name": "Sulfate above the boxwork",
+   "stops": [
+    "ridges",
+    "campo"
+   ],
+   "goal": "Compare the boxwork with the layered sulfate rock just above it, at two of Curiosity's drill sites."
+  },
+  {
+   "id": "contact",
+   "name": "Climb to the layer contact",
+   "stops": [
+    "ridges",
+    "campo",
+    "contact"
+   ],
+   "goal": "Follow Curiosity's climb to the place where two rock layers meet, at the far end of the surveyed patch."
+  }
+ ]
+}

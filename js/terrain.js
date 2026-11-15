@@ -113,6 +113,7 @@ export async function loadTerrain() {
 // full at 30. No claim is made here about what a suited walker can climb.
 export const SLOPE_RAMP = {
   title: 'Slope',
+  note: 'The body-cost route takes no ground steeper than 24°. Rocks and ridges smaller than the 4 m elevation grid are not seen.',
   unit: '°',
   min: 12,
   max: 30,

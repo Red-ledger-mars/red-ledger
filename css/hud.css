@@ -823,3 +823,35 @@ kbd {
 .rec .panel-sec:last-child { display: none; }
 .rec .loads button:not([aria-pressed="true"]) { display: none; }
 .rec .start select { appearance: none; border: 0; background: none; padding: 0; }
+
+/* ---- From the science side's features, in this page's look ---- */
+
+/* The page's opening line rests where the pointer readout is, until the
+   pointer is over the map. A sentence, so it may wrap. */
+.map-coord.opening { color: var(--text); white-space: normal; }
+
+/* The suit's cooling: a slider in the same row as the carried load. The
+   control stays neutral; heat is the only colour in the panel. */
+.loads.suit { gap: 12px; }
+.suit label { flex: none; }
+.suit input { flex: 1; min-width: 0; accent-color: var(--text); }
+.suit output { flex: none; min-width: 48px; font-size: 13px; color: var(--text); text-align: right; font-variant-numeric: tabular-nums; }
+.rec .suit input { display: none; }
+
+/* The walk now shown, and what it is for, above the two routes. */
+.walk-goal { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 12px; font-size: 13px; line-height: 20px; color: var(--text); }
+.walk-goal[hidden] { display: none; }
+.walk-goal label { display: flex; flex: none; align-items: center; gap: 8px; color: var(--dim); white-space: nowrap; }
+.walk-goal select { height: 32px; padding: 0 8px; font-size: 13px; color: var(--text); background: var(--raised); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; }
+.walk-goal option { color: #111; }
+.walk-goal span { flex: 1 1 220px; color: var(--dim); }
+.free .walk-goal { display: none; }
+.rec .walk-goal select { appearance: none; border: 0; background: none; padding: 0; }
+
+/* What a walk of your own comes to, in one line over the hint. */
+.own-hint b { display: block; margin-bottom: 4px; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text); }
+.own-hint b:empty { display: none; }
+
+/* What the choice of route changes: one sentence, then what it costs. */
+.delta { flex-direction: column; flex-wrap: nowrap; gap: 4px; }
+.delta b { font-weight: 500; line-height: 18px; }

@@ -87,7 +87,7 @@ export const SOURCES = {
   dose: {
     label: 'Guo et al. 2015, Curiosity RAD, arXiv:1507.03473',
     url: 'https://arxiv.org/abs/1507.03473',
-    what: 'Dose equivalent on the surface at Gale crater about 0.7 mSv per day.',
+    what: 'Dose equivalent on the surface at Gale crater about 0.7 mSv per day, the average Curiosity measured in 2012 to 2014 with no solar particle event. NASA\'s career limit is set in effective dose, so the share of the limit shown is approximate.',
     status: 'primary',
   },
   shielding: {
@@ -164,7 +164,7 @@ export function walkCostEarth(i) {
 //    before the data was collected, the level cost is multiplied by 1.364
 //    and that spread is carried as the uncertainty.
 // 2. On slopes the first model applied one gravity factor to the whole
-//    cost and predicted up to twice what was measured. The extra cost of a
+//    cost and predicted up to 2.2 times what was measured. The extra cost of a
 //    slope is mostly work against weight, and weight scales with gravity.
 //    So the slope part of the cost is now scaled by gravity itself.
 export const SUIT_FACTOR = 1.364;
@@ -264,7 +264,7 @@ export const doseFactor = (skyPct) => 1 - MODEL.dosePerSkyPoint * (skyPct - MODE
 
 // The pace on level ground at which the walker makes exactly the heat the
 // suit removes. Faster than this, heat builds up even with no slope.
-export const heatNeutralPace = (loadKg = 0) => MODEL.coolingW / (walkCostMars(0) * totalMassKg(loadKg));
+export const heatNeutralPace = (loadKg = 0, coolingW = MODEL.coolingW) => coolingW / (walkCostMars(0) * totalMassKg(loadKg));
 
 // Work rate on level ground at the planned pace, watts.
 export const levelWorkW = (loadKg = 0) => walkCostMars(0) * totalMassKg(loadKg) * MODEL.paceMs;
@@ -276,3 +276,13 @@ export const tempRiseC = (heatKJkg) => heatKJkg / MODEL.bodySpecificHeat;
 // after the energy used so far and the cheapest way home from that point.
 export const energyLeftPct = (kcal, backKcal) =>
   ((MODEL.energyBudgetKcal - kcal - backKcal) / MODEL.energyBudgetKcal) * 100;
+
+// Stored body heat as text. One decimal, but two when the value is within
+// 0.05 of NASA's limit, rounded away from the limit, so that the number shown
+// is never on the other side of the limit from the words beside it.
+export function heatText(heatKJkg) {
+  const limit = MODEL.heatLimitKJkg;
+  if (Math.abs(heatKJkg - limit) >= 0.05) return heatKJkg.toFixed(1);
+  const shown = heatKJkg > limit ? Math.ceil(heatKJkg * 100) / 100 : Math.floor(heatKJkg * 100) / 100;
+  return shown.toFixed(2);
+}
