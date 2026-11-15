@@ -59,6 +59,9 @@
         <div class="walk-goal" id="walk-goal" hidden>
           <label>Walk <select id="walk-pick" title="Ready-made walks with a science goal, or a walk of your own"></select></label>
           <span id="walk-goal-text"></span>
+          <!-- What a walk of your own comes to, in one sentence, where the
+               goal of a ready-made walk goes. -->
+          <b class="own-verdict" id="own-verdict" hidden></b>
         </div>
         <div class="routes" id="routes"></div>
       </section>
@@ -104,10 +107,10 @@
           <button type="button" class="close" id="target-close" aria-label="Close"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
         </aside>
       </div>
-      <!-- At the foot of the map: the hint for a walk of your own, and what
-           lies under the pointer. -->
+      <!-- At the foot of the map: the one-line hint for a walk of your own,
+           or what lies under the pointer. -->
       <div class="map-foot">
-        <p class="own-hint" id="own-hint" hidden><b id="own-verdict"></b><span id="own-hint-text"></span></p>
+        <p class="own-hint" id="own-hint" hidden><span id="own-hint-text"></span></p>
         <span class="map-coord" id="cursor-coord"></span>
       </div>
     </div>

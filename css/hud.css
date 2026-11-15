@@ -480,26 +480,33 @@ kbd {
   cursor: pointer;
 }
 
-/* Your own walk: the viewer places the stops on the map. The hint sits at
-   the foot of the map, next to the buttons it belongs to. */
+/* Your own walk: the viewer places the stops on the map. One line at the
+   foot of the map says what to do next; the walk's verdict sits in the
+   panel, over the routes it sums up. While no stop is placed, the routes
+   on screen are the survey's, and they step back so the dashed frame is
+   the one thing to look at. */
 .own .leaflet-container { cursor: crosshair; }
 .stop-own { background: var(--bg); color: var(--text); border: 2px solid var(--text); cursor: pointer; }
 .map-foot { position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .map-coord { max-width: 100%; padding: 4px 8px; font-size: 12px; line-height: 16px; color: var(--dim); white-space: pre; overflow: hidden; text-overflow: ellipsis; background: var(--panel); border: 1px solid transparent; border-radius: 6px; box-shadow: var(--ring); }
 .map-coord:empty, #view3d:not([hidden]) ~ .map-window .map-coord { display: none; }
+/* The page's opening line rests while the viewer walks or places stops. */
+.own .map-coord.opening, .free .map-coord.opening { display: none; }
 .own-hint {
-  max-width: min(480px, 100%);
+  max-width: min(640px, 100%);
   margin: 0;
-  padding: 8px 12px;
+  padding: 6px 10px;
   font-size: 13px;
   line-height: 20px;
   background: var(--panel);
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 6px;
   box-shadow: var(--ring-strong);
 }
 .own-hint[hidden] { display: none; }
 .own #free, .free #own { display: none; }
+.routes, .route-line, .rest-mark { transition: opacity 150ms ease-out; }
+.own-empty .routes, .own-empty .route-line, .own-empty .rest-mark { opacity: 0.4; }
 
 /* The walk strip: the buttons, the start time, and the elevation profile
    with the slider lying over it */
@@ -559,8 +566,9 @@ kbd {
   border-radius: 0;
 }
 
-/* Free walk: the viewer steers. The planned-route controls step back. */
-.free #progress, .free #play, .free .start { display: none; }
+/* Free walk: the viewer steers. The planned-route controls step back, and
+   the profile of the planned route, which the walker has left, goes. */
+.free #progress, .free #play, .free .start, .free .track { display: none; }
 .free #progress-text { text-align: left; color: var(--text); }
 .free .routes { opacity: 0.45; pointer-events: none; }
 
@@ -845,12 +853,16 @@ kbd {
 .walk-goal select { height: 32px; padding: 0 8px; font-size: 13px; color: var(--text); background: var(--raised); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; }
 .walk-goal option { color: #111; }
 .walk-goal span { flex: 1 1 220px; color: var(--dim); }
+.walk-goal span[hidden] { display: none; }
 .free .walk-goal { display: none; }
 .rec .walk-goal select { appearance: none; border: 0; background: none; padding: 0; }
 
-/* What a walk of your own comes to, in one line over the hint. */
-.own-hint b { display: block; margin-bottom: 4px; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text); }
-.own-hint b:empty { display: none; }
+/* What a walk of your own comes to, in one line where the goal of a
+   ready-made walk goes. It fades while the next plan is being made, with
+   the route cards it sums up. */
+.own-verdict { flex: 1 1 100%; font-size: 13px; line-height: 20px; font-weight: 500; color: var(--text); transition: opacity 150ms ease-out; }
+.own-verdict[hidden] { display: none; }
+.panel-sec:has(.routes[aria-busy="true"]) .own-verdict { opacity: 0.55; }
 
 /* What the choice of route changes: one sentence, then what it costs. */
 .delta { flex-direction: column; flex-wrap: nowrap; gap: 4px; }

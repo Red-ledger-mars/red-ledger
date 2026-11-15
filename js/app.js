@@ -830,10 +830,12 @@ function selectRoute(id, ease = false) {
 // Draws a route onto the map from its start to its end.
 function drawIn(def, ms) {
   const latlngs = state.routes[def.id].points.map((p) => [p.lat, p.lon]);
-  const casing = L.polyline([], { color: '#0c0908', weight: 6.5, opacity: 0.65, lineJoin: 'round', interactive: false }).addTo(map);
+  // The class lets the page's styles step the lines back while they are
+  // not the viewer's own.
+  const casing = L.polyline([], { className: 'route-line', color: '#0c0908', weight: 6.5, opacity: 0.65, lineJoin: 'round', interactive: false }).addTo(map);
   // A click on a route chooses it; it must not also reach the map, where it
   // would place a stop in a walk of the viewer's own.
-  const line = L.polyline([], { color: def.color, weight: 3.5, opacity: 0.7, lineJoin: 'round', bubblingMouseEvents: false }).addTo(map);
+  const line = L.polyline([], { className: 'route-line', color: def.color, weight: 3.5, opacity: 0.7, lineJoin: 'round', bubblingMouseEvents: false }).addTo(map);
   line.on('click', () => selectRoute(def.id, true));
   state.lines[def.id] = { line, casing };
   return new Promise((done) => {
@@ -1352,8 +1354,18 @@ function showVerdict() {
         ? `Forecast: you make it there and back with ${t.restCount === 1 ? '1 rest' : `${t.restCount} rests`} to shed body heat, ${home}.`
         : `Forecast: you make it there and back with no rest, ${home}.`;
   }
+  // The verdict takes the place of the walk's goal line in the panel; the
+  // hint at the foot of the map shows only while there is something to say.
   $('own-verdict').textContent = verdict;
-  $('own-hint').hidden = !verdict && !$('own-hint-text').textContent;
+  $('own-verdict').hidden = !verdict;
+  $('walk-goal-text').hidden = !!verdict;
+  $('own-hint').hidden = !$('own-hint-text').textContent;
+}
+
+// While a walk of the viewer's own has no stop yet, the routes on screen
+// are the survey's, and the page marks them as such.
+function markOwnEmpty() {
+  document.body.classList.toggle('own-empty', !!state.own && !state.own.stops.length);
 }
 
 // Redraws the viewer's stops with their numbers. The habitat mark stays
@@ -1377,6 +1389,7 @@ function drawOwnStops() {
     planOwn();
   }).addTo(map));
   state.stopMarkers = [own.surveyed[0], ...own.markers];
+  markOwnEmpty();
 }
 
 // Plans the walk through the viewer's stops for the load now shown.
@@ -1446,8 +1459,9 @@ function startOwn(preset = null) {
   };
   map.flyToBounds(state.terrain.bounds, { ...boundsPadding(), duration: 0.8, animate: !calm });
   document.body.classList.add('own');
+  markOwnEmpty();
   $('own').setAttribute('aria-pressed', 'true');
-  $('own').textContent = 'Planned walk';
+  $('own').textContent = preset ? 'Leave this walk' : 'End own walk';
   state.own.preset = preset;
   showWalkGoal();
   if (!preset) { ownSay(OWN_HINT); return; }
@@ -1466,6 +1480,7 @@ function endOwn() {
   state.stopMarkers = own.surveyed;
   state.stopMarkers.slice(1).forEach((marker) => marker.addTo(map));
   document.body.classList.remove('own');
+  markOwnEmpty();
   $('own').setAttribute('aria-pressed', 'false');
   $('own').textContent = 'Own walk';
   $('routes').removeAttribute('aria-busy');
