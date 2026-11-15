@@ -131,7 +131,7 @@ export function planWalk(terrain, walk, pricing, back, sky, options = {}) {
   }
   const stops = stopAt.map((index, i) => ({ index, place: places[i] }));
   const loadKg = options.loadKg ?? 0;
-  const route = describe(terrain, cells, stops, back, sky, { loadKg, rests: options.rests ?? true });
+  const route = describe(terrain, cells, stops, back, sky, { loadKg, rests: options.rests ?? true, suitFactor: options.suitFactor, coolingW: options.coolingW });
   if (options.rests ?? true) {
     // The same walk with no rests, to show what the planner prevented.
     const peak = (extra) => describe(terrain, cells, stops, back, sky, { loadKg, rests: false, ...extra }).totals;
@@ -227,6 +227,59 @@ function describe(terrain, cells, stops, back, sky, { loadKg, rests, suitFactor,
       steepestDeg: Math.atan(steepest) * 180 / Math.PI,
       // Metres walked on ground steeper than any walking measurement covers.
       beyondMeasured,
+    },
+  };
+}
+
+// The same route walked under another suit: a different cooling limit, or
+// another value of the suit factor. The path is kept; the body state along
+// it is worked out again with the rest rule of describe(). Each step is
+// rebuilt from the stored length and gradient of the route's points, so a
+// route read from data/routes.json can be priced again without the terrain.
+// The cooling a suit needs for no rest does not depend on the suit, and is
+// kept from the route as planned.
+export function reprice(route, { loadKg = 0, coolingW = MODEL.coolingW, suitFactor } = {}) {
+  const walk = (options) => {
+    const ledger = new Ledger(options.coolingW);
+    const points = [];
+    const restStops = [];
+    let restSeconds = 0;
+    let now = { speed: MODEL.paceMs, metabolicW: 0 };
+    route.points.forEach((p, k) => {
+      if (k > 0) {
+        const length = p.dist - route.points[k - 1].dist;
+        const run = length / Math.hypot(1, p.gradient);
+        if (options.rests && ledger.needsRest) {
+          const seconds = ledger.rest(p.skyPct);
+          restSeconds += seconds;
+          restStops.push({ dist: route.points[k - 1].dist, seconds, lat: route.points[k - 1].lat, lon: route.points[k - 1].lon });
+        }
+        now = step(run, p.gradient * run, loadKg, options.suitFactor);
+        ledger.add(now, p.skyPct);
+      }
+      points.push({ ...p, seconds: ledger.seconds, kcal: ledger.kcal, heat: ledger.heatKJkg, dose: ledger.doseUSv, speed: now.speed, metabolicW: now.metabolicW });
+    });
+    return { ledger, points, restStops, restSeconds };
+  };
+  const rested = walk({ coolingW, suitFactor, rests: true });
+  const unrested = walk({ coolingW, suitFactor, rests: false });
+  return {
+    ...route,
+    points: rested.points,
+    restStops: rested.restStops,
+    stops: route.stops.map((stop) => ({ ...stop, dist: rested.points[stop.index].dist })),
+    totals: {
+      ...route.totals,
+      seconds: rested.ledger.seconds,
+      kcal: rested.ledger.kcal,
+      peakHeat: rested.ledger.peakHeatKJkg,
+      restSeconds: rested.restSeconds,
+      restCount: rested.restStops.length,
+      dose: rested.ledger.doseUSv,
+      peakHeatNoRest: unrested.ledger.peakHeatKJkg,
+      secondsNoRest: unrested.ledger.seconds,
+      overHeatLimitM: unrested.ledger.overLimitM,
+      peakHeatRange: SUIT_FACTOR_RANGE.map((factor) => walk({ coolingW, suitFactor: factor, rests: false }).ledger.peakHeatKJkg),
     },
   };
 }

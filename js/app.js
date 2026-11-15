@@ -3,17 +3,21 @@ import { loadTerrain, slopeImage, SLOPE_RAMP } from './terrain.js';
 import { loadSky, skyImage, SKY_RAMP } from './sky.js';
 import { loadComms, commsImage, COMMS_RAMP } from './comms.js';
 import { buildBrief, doctorChecks, forecastFile, forecastCsv, NOT_MODELLED } from './brief.js';
-import { planWalk, pointAt, returnCost } from './route.js';
+import { planWalk, pointAt, returnCost, reprice } from './route.js';
 import { createPlanner } from './planner.js';
 import { loadReach, REACH_LEGEND } from './reach.js';
-import { SOURCES, MODEL, MAX_MEASURED_GRADIENT, tempRiseC, step, Ledger, heatNeutralPace, levelWorkW } from './body.js';
+import { SOURCES, MODEL, MAX_MEASURED_GRADIENT, SUIT_FACTOR_RANGE, tempRiseC, step, Ledger, heatNeutralPace, levelWorkW, energyLeftPct, heatText } from './body.js';
 
 const L = window.L;
 const $ = (id) => document.getElementById(id);
 const wait = (ms) => new Promise((done) => setTimeout(done, ms));
 const fmt = (value, digits = 0) => value.toLocaleString('en', { minimumFractionDigits: digits, maximumFractionDigits: digits });
 // Differences are written with a real minus sign and always show their sign.
-const signed = (value, digits = 0) => `${value < 0 ? '−' : '+'}${fmt(Math.abs(value), digits)}`;
+// A difference with its sign; one that rounds to nothing is shown as ±0.
+const signed = (value, digits = 0) => {
+  const size = fmt(Math.abs(value), digits);
+  return `${Number(size) === 0 ? '±' : value < 0 ? '−' : '+'}${size}`;
+};
 
 // The four lines of the body ledger.
 const BARS = [
@@ -26,7 +30,7 @@ const BARS = [
 // The two routes for the same walk. `pricing` names a rule in route.js.
 const ROUTES = [
   { id: 'direct', pricing: 'direct', name: 'Direct route', hint: 'shortest over the ground', color: '#ffb547' },
-  { id: 'body', pricing: 'body', name: 'Body-cost route', hint: 'least walking energy', color: '#63d6c1' },
+  { id: 'body', pricing: 'body', name: 'Body-cost route', hint: 'least walking energy, nothing steeper than 24°', color: '#63d6c1' },
 ];
 
 const state = {
@@ -36,6 +40,9 @@ const state = {
   photos: [],
   plans: {},        // carried load in kg -> { direct, body }
   loadKg: 0,        // the carried load now shown
+  coolingW: MODEL.coolingW, // heat the suit removes, set by the slider
+  planned: null,    // the routes now shown, as planned for the model's own suit
+  opening: '',      // the sentence shown where the pointer readout rests
   restMarks: [],    // map marks where the plan makes the walker rest
   routes: {},       // id -> described route for the load now shown
   lines: {},        // id -> { line, casing } on the map
@@ -53,6 +60,7 @@ const state = {
   checks: null,     // the crew doctor's own checks, from data/brief_checks.json
   free: null,       // the free walk in progress, or null
   own: null,        // the walk the viewer is placing, or null
+  walks: null,      // the ready-made walks, from data/walks.json
   reach: null,      // the body-reach grid, loaded when its layer is first shown
   overlay: 'none',  // the overlay now shown
   sequence: false,  // true while the recorded sequence is playing
@@ -94,13 +102,13 @@ map.on('mousemove', (e) => {
   if (state.overlay === 'reach' && state.reach) {
     const reach = state.reach.at(lat, lng, state.loadKg);
     $('legend-note').textContent = reach?.reachable
-      ? `Here and back: ${reach.minutes} min, ${reach.rests === 0 ? 'no rest' : reach.rests === 1 ? '1 rest' : `${reach.rests} rests`}, about ${reach.peakHeatKJkg.toFixed(1)} kJ/kg if not rested`
+      ? `Here and back in a ${MODEL.coolingW} W suit: ${reach.minutes} min, ${reach.rests === 0 ? 'no rest' : reach.rests === 1 ? '1 rest' : `${reach.rests} rests`}, about ${reach.peakHeatKJkg.toFixed(1)} kJ/kg if not rested`
       : REACH_NOTE;
   }
-  $('cursor-coord').textContent = text;
+  showCoord(text);
 });
 map.on('mouseout', () => {
-  $('cursor-coord').textContent = '';
+  showCoord('');
   if (state.overlay === 'reach') $('legend-note').textContent = REACH_NOTE;
 });
 
@@ -114,20 +122,21 @@ function fitBars() {
 window.addEventListener('resize', fitBars);
 
 // The part of the window not covered by panels, in screen pixels. The
-// camera keeps the walk inside it. On a wide screen the ledger sits beside
-// the map; on a narrow one it sits above it.
+// camera keeps the walk inside it. The page's grid leaves one cell free for
+// the map (.map-window), beside the panel on a wide screen and above it on a
+// narrow one. The view and layer buttons lie along the top of that cell.
 function clearArea() {
-  const ledger = document.querySelector('.ledger').getBoundingClientRect();
-  const walk = document.querySelector('.walk').getBoundingClientRect();
-  const top = document.querySelector('.top').getBoundingClientRect();
-  const beside = ledger.width < window.innerWidth * 0.6;
-  const area = beside
-    ? { left: ledger.right + 28, top: top.bottom + 12, right: window.innerWidth - 36, bottom: walk.top - 28 }
-    : { left: 20, top: ledger.bottom + 16, right: window.innerWidth - 20, bottom: walk.top - 16 };
-  // On a short window the panels can leave almost no map. Fitting the walk
-  // into that sliver zooms far past the imagery, so use the whole window.
+  const cell = document.querySelector('.map-window').getBoundingClientRect();
+  const area = { left: cell.left + 28, top: cell.top + 56, right: cell.right - 36, bottom: cell.bottom - 28 };
+  // On a short window the cell can leave almost no map. Fitting the walk
+  // into that sliver zooms far past the imagery, so use the whole cell, or
+  // the whole window if the cell itself is a sliver.
   if (area.right - area.left < 160 || area.bottom - area.top < 120) {
-    return { left: 20, top: top.bottom + 12, right: window.innerWidth - 20, bottom: window.innerHeight - 20 };
+    if (cell.width < 160 || cell.height < 120) {
+      const top = document.querySelector('.top').getBoundingClientRect();
+      return { left: 20, top: top.bottom + 12, right: window.innerWidth - 20, bottom: window.innerHeight - 20 };
+    }
+    return { left: cell.left + 8, top: cell.top + 8, right: cell.right - 8, bottom: cell.bottom - 8 };
   }
   return area;
 }
@@ -147,7 +156,7 @@ function boundsPadding() {
 /* Imagery and overlays */
 
 // What the reach layer shows, said under its legend.
-const REACH_NOTE = 'To walk from the habitat to a point and back, body-cost route, load shown. Point at the map for one place.';
+const REACH_NOTE = `To walk from the habitat to a point and back, body-cost route, load shown, ${MODEL.coolingW} W suit. Point at the map for one place.`;
 
 // Imagery is always on. One overlay at a time goes on top of it, so the
 // picture of the ground is never buried under several layers.
@@ -224,7 +233,9 @@ function setOverlay(id) {
     // A layer that is made on first use is shown as soon as it is ready,
     // unless another layer was chosen in the meantime.
     if (on && !overlay.leaf && overlay.make) {
-      overlay.make(overlay).then(() => { if (state.overlay === id) setOverlay(id); }).catch(() => {});
+      // Asked for twice before it is ready, it is still made once.
+      overlay.making ??= overlay.make(overlay).then(() => { if (state.overlay === id) setOverlay(id); })
+        .catch(() => {}).finally(() => { overlay.making = null; });
       continue;
     }
     if (!overlay.leaf) continue;
@@ -255,7 +266,7 @@ function showLegend(ramp) {
     $('legend').hidden = false;
     return;
   }
-  $('legend-note').textContent = '';
+  $('legend-note').textContent = ramp.note ?? '';
   for (let x = 0; x < strip.width; x++) {
     const [r, g, b, a] = ramp.color(ramp.min + ((ramp.max - ramp.min) * x) / (strip.width - 1));
     ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
@@ -284,6 +295,13 @@ async function buildRoverPath() {
     .addTo(map);
 }
 
+// The line under the site name: what is under the pointer, or, with the
+// pointer off the map, the one sentence the whole page is about.
+function showCoord(text) {
+  $('cursor-coord').textContent = text || state.opening;
+  $('cursor-coord').classList.toggle('opening', !text);
+}
+
 // What Curiosity's weather station measured while the rover was in this
 // area. The feed is published for outreach, so it is labelled as such.
 async function buildWeather() {
@@ -294,6 +312,8 @@ async function buildWeather() {
     <p>Ground <b>${summary.ground_min_c.min} to ${summary.ground_max_c.max} °C</b></p>
     <p>Pressure <b>${summary.pressure_pa.min} to ${summary.pressure_pa.max} Pa</b>, under 1% of Earth's at sea level</p>
     <p><a href="${source}" target="_blank" rel="noopener">Curiosity REMS weather station</a>, published for outreach.</p>`;
+  state.opening = `Air here falls to ${summary.air_min_c.min} °C. What stops a walker is body heat.`;
+  if ($('cursor-coord').textContent === '') showCoord('');
   // How far away help is, on the sol the orbiter positions are for.
   const comms = await fetch('data/comms/summary.json').then((r) => (r.ok ? r.json() : null)).catch(() => null);
   if (comms) {
@@ -378,7 +398,7 @@ function renderLedger(ease = false) {
   // who never stops; during the walk it follows the plan, rests included.
   const heat = live ? p.heat : t.peakHeatNoRest;
   const rests = t.restCount
-    ? ` · the plan adds ${t.restCount === 1 ? 'a rest' : `${t.restCount} rests`} of ${(t.restSeconds / 60).toFixed(0)} min`
+    ? ` · the plan adds ${t.restCount === 1 ? `a rest of ${(t.restSeconds / 60).toFixed(0)} min` : `${t.restCount} rests, ${(t.restSeconds / 60).toFixed(0)} min in all`}`
     : '';
   setBar('heat', {
     value: heat,
@@ -410,20 +430,34 @@ function buildSources() {
 
 async function buildProof() {
   const get = (file) => fetch(`data/${file}`).then((r) => r.json());
-  const [check, people, slopes] = await Promise.all([
+  const [check, people, slopes, suits] = await Promise.all([
     get('shielding/validation.json'), get('validation/model_vs_measured.json'), get('validation/model_revised_vs_measured.json'),
+    get('validation/sensitivity.json'),
   ]);
+  // The suit table: one row for each walk at the middle of the measured
+  // spread, and the hardest walk at both ends of it.
+  const middle = (walk) => walk.rows.find((row) => row.factor === 'middle').cells;
+  const cellText = (cell, join = '<br>') => `${cell.rests === 0 ? 'no rest' : cell.rests === 1 ? '1 rest' : `${cell.rests} rests`}${join}${cell.minutes} min`;
+  const hardest = suits.walks.reduce((x, y) => (y.km > x.km ? y : x));
+  const atModel = suits.cooling_w.indexOf(suits.model_cooling_w);
+  const end = (factor) => hardest.rows.find((row) => row.factor === factor).cells[atModel];
+  const mostSaved = Math.max(...suits.walks.map((walk) => walk.route_choice.direct.rests - walk.route_choice.body.rests));
   const within = check.rows.filter((row) => Math.abs(row.difference_pct_points) <= 1).length;
   const level = people.rows.filter((row) => row.suited);
   const pct = (ratio) => `${ratio >= 1 ? '+' : '−'}${Math.abs(Math.round((ratio - 1) * 100))}%`;
+  // The suited level measurements by speed, and those nearest walking pace.
+  const bySpeed = [...level].sort((x, y) => x.speed_m_s - y.speed_m_s);
+  const slow = bySpeed.filter((row) => row.speed_m_s <= 1.35).map((row) => row.ratio).sort((x, y) => x - y);
+  const slowMedian = (slow[Math.floor((slow.length - 1) / 2)] + slow[Math.ceil((slow.length - 1) / 2)]) / 2;
   $('proof-body').innerHTML = `
     <h3>1. The body model, tested against NASA's measurements of people</h3>
-    <p>NASA measured how hard people work when they walk in a spacesuit at low gravity. Before collecting those measurements we fixed the test in the project's history: the model's prediction, and the rule that it stands only if the measurements lie within 15% of it.</p>
+    <p>NASA measured how hard people work when they walk in a spacesuit at low gravity. Before collecting those measurements we fixed the test in the project's history: the model's prediction, and the rule that it stands only if the measurements lie within 15% of it. The rule is in <a href="https://github.com/Red-ledger-mars/red-ledger/commit/ea6f315" target="_blank" rel="noopener">this commit</a> of the public code; the measurements and the result came 20 minutes later, in <a href="https://github.com/Red-ledger-mars/red-ledger/commit/b6f9b1d" target="_blank" rel="noopener">this one</a>.</p>
     <table>
-      <thead><tr><th>Level ground, suited</th><th>Measured</th><th>First model</th><th>Measured against model</th></tr></thead>
-      <tbody>${level.map((row) => `<tr class="off"><td>${row.gravity_g > 0.3 ? 'Mars' : 'Moon'} gravity, ${row.speed_m_s.toFixed(2)} m/s</td><td>${Math.round(row.measured_w)} W</td><td>${row.predicted_w} W</td><td>${pct(row.ratio)}</td></tr>`).join('')}</tbody>
+      <thead><tr><th>Level ground, suited</th><th>Measured</th><th>First model</th><th>Measured against model</th><th>After the correction</th></tr></thead>
+      <tbody>${level.map((row) => `<tr class="off"><td>${row.gravity_g > 0.3 ? 'Mars' : 'Moon'} gravity, ${row.speed_m_s.toFixed(2)} m/s</td><td>${Math.round(row.measured_w)} W</td><td>${row.predicted_w} W</td><td>${pct(row.ratio)}</td><td>${pct(row.ratio / people.correction)}</td></tr>`).join('')}</tbody>
     </table>
     <p><b>It failed.</b> People used ${Math.round((people.suited.median_ratio - 1) * 100)}% more energy than the model said (median; from ${pct(people.suited.lowest_ratio)} to ${pct(people.suited.highest_ratio)}). By the rule set in advance, the level cost is now multiplied by ${people.correction}, and the spread is shown on the heat numbers.</p>
+    <p>One limit of this correction: it is a single number for all speeds, but the measured excess falls with speed, from ${pct(bySpeed[0].ratio)} at ${bySpeed[0].speed_m_s.toFixed(2)} m/s to ${pct(bySpeed.at(-1).ratio)} at ${bySpeed.at(-1).speed_m_s.toFixed(2)} m/s. The ${slow.length} measurements at 1.34 m/s or slower, the nearest to the walker's ${MODEL.paceMs.toFixed(1)} m/s, have a median of ${slowMedian.toFixed(2)}. That lies inside the spread carried on every heat number (up to ${SUIT_FACTOR_RANGE[1]}), so at walking pace the true value may sit in the upper half of each range.</p>
     <p>The sloped measurements showed a second fault: the first model predicted up to ${Math.max(...slopes.rows.map((row) => row.first_model_w / row.measured_w)).toFixed(1)} times the measured cost of a climb, because it scaled the whole cost by one gravity factor. Climbing is work against weight, so the slope part is now scaled by gravity itself. The revised model against sloped measurements that played no part in the correction:</p>
     <table>
       <thead><tr><th>Slope, suited</th><th>Measured</th><th>First model</th><th>Revised model</th></tr></thead>
@@ -431,7 +465,14 @@ async function buildProof() {
     </table>
     <p><b>All ${slopes.revised_model.points} lie within ${Math.round((Math.max(slopes.revised_model.highest - 1, 1 - slopes.revised_model.lowest)) * 100)}% of the revised model</b> (median ${pct(slopes.revised_model.median_ratio)}). The change was made after seeing these measurements, so this shows the model is consistent with them; it is not a blind prediction. All but one value were read from the reports' plotted lines, the sloped walking speed is known only as a range, and none of the sloped tests was at Mars gravity.</p>
     <p>Sources: <a href="https://ntrs.nasa.gov/citations/20070016007" target="_blank" rel="noopener">NASA Walkback Test</a>, <a href="https://ntrs.nasa.gov/citations/20110003409" target="_blank" rel="noopener">NASA Integrated Suit Test 2, NASA/TP-2010-216125</a>.</p>
-    <h3>2. The radiation layer, tested against Curiosity</h3>
+    <h3>2. What decides the walk: the suit, more than the route</h3>
+    <p>The same walks on their body-cost routes, carrying ${suits.load_kg} kg, priced again for suits that remove less or more heat than the ${suits.model_cooling_w} W of this model.</p>
+    <table>
+      <thead><tr><th>Walk</th>${suits.cooling_w.map((w) => `<th>${w} W${w === suits.model_cooling_w ? ' (model)' : ''}</th>`).join('')}</tr></thead>
+      <tbody>${suits.walks.map((walk) => `<tr><td>${walk.name}, ${walk.km} km</td>${middle(walk).map((cell) => `<td>${cellText(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table>
+    <p><b>With ${suits.cooling_w.at(-1)} W of cooling none of these walks needs a rest.</b> The choice of route changes the count by ${mostSaved === 1 ? 'one rest' : `${mostSaved} rests`} at most. The spread measured on people matters as much as the suit: at ${suits.model_cooling_w} W, the ${hardest.name.toLowerCase()} needs ${cellText(end('low'), ' and ')} at the low end of the spread and ${cellText(end('high'), ' and ')} at the high end. So the question this map puts to a suit designer is how many watts a Mars suit must remove. Made by <code>tools/sensitivity.mjs</code>.</p>
+    <h3>3. The radiation layer, tested against Curiosity</h3>
     <p>In eight measurement periods at five places the Curiosity rover measured less radiation where terrain blocked part of the sky. We computed the share of sky blocked at the same rover positions from NASA's elevation model and compared it with the published values.</p>
     <table>
       <thead><tr><th>Place</th><th>Sky blocked, published</th><th>Sky blocked, ours</th><th>Dose drop measured</th></tr></thead>
@@ -440,7 +481,7 @@ async function buildProof() {
     </table>
     <p><b>${within} of ${check.rows.length} agree within 1 percentage point.</b> Mean difference ${check.summary.mean_absolute_difference_pct_points.toFixed(1)} points. Maria Gordon Notch is a narrow valley and reads 9 points low: our elevation grid is 4 m and the paper used 1 m. This checks the terrain computation. It does not check the dose model.</p>
     <p>Source: <a href="https://elib.dlr.de/224554/" target="_blank" rel="noopener">Guo et al. 2026, JGR Planets 131(4), Table 1</a>. Rover positions: NASA/JPL-Caltech.</p>
-    <h3>3. The orbiter passes, computed twice</h3>
+    <h3>4. The orbiter passes, computed twice</h3>
     <p>A second computation of the relay orbiter passes, made from spacecraft position vectors with code that shares nothing with the first, found the same 13 passes. Rise and set times agree within 1 minute. The check first placed the observer on a simple sphere, and the height of an orbiter above the horizon then differed by up to 0.8 degree. With the observer placed as in the first computation (on the planet's ellipsoid, about 4 km below the reference level) the two agree within 0.05 degree. The record is in <a href="data/comms/check_passes.json" target="_blank" rel="noopener">data/comms/check_passes.json</a>.</p>
     <p>The Sun's rise and day length from the same method match Curiosity's weather record within 1 minute.</p>`;
   const dialog = $('proof');
@@ -471,6 +512,7 @@ function openBrief() {
     contact: state.contact[def.id] ?? null,
     startMinute: state.startMinute,
     lightMinutes: state.lightMinutes,
+    coolingW: state.coolingW,
   };
   const brief = buildBrief(args);
   const list = (lines) => `<ul>${lines.map((line) => `<li>${line}</li>`).join('')}</ul>`;
@@ -489,7 +531,7 @@ function openBrief() {
     <p class="brief-files">The same forecast, point by point, for an onboard system to compare with what a suit measures:
       <button type="button" id="forecast-json">Download JSON</button>
       <button type="button" id="forecast-csv">Download CSV</button></p>`;
-  const name = `red-ledger-forecast-${def.id}-${state.loadKg}kg`;
+  const name = `red-ledger-forecast-${def.id}-${state.loadKg}kg-${state.coolingW}W`;
   $('forecast-json').addEventListener('click', () => download(`${name}.json`, JSON.stringify(forecastFile({ ...args, sources: SOURCES }), null, 1), 'application/json'));
   $('forecast-csv').addEventListener('click', () => download(`${name}.csv`, forecastCsv(route, args.contact), 'text/csv'));
   $('brief').showModal();
@@ -580,11 +622,9 @@ function buildStartTimes() {
   for (let minute = 640; minute <= 1360; minute += 20) {
     const share = contactShare(state.comms.routeContact(state.routes.body.points, minute));
     if (share > best.share) best = { minute, share };
-    const option = document.createElement('option');
-    option.value = String(minute);
-    option.textContent = `${state.comms.localTime(minute)} · ${Math.round(share * 100)}% in contact`;
-    select.append(option);
+    select.append(new Option('', String(minute)));
   }
+  labelStartTimes();
   state.startMinute = best.minute;
   select.value = String(best.minute);
   select.addEventListener('change', () => {
@@ -595,6 +635,17 @@ function buildStartTimes() {
     drawProfile();
     renderWalk();
   });
+}
+
+// Writes beside each start time how much of the body-cost route now shown
+// has an orbiter in view. Called again when the walk, load or suit changes.
+function labelStartTimes() {
+  if (!state.comms) return;
+  for (const option of $('start-time').options) {
+    const minute = Number(option.value);
+    const share = contactShare(state.comms.routeContact(state.routes.body.points, minute));
+    option.textContent = `${state.comms.localTime(minute)} · ${Math.round(share * 100)}% in contact`;
+  }
 }
 
 // The two route cards and the difference between them. Called again
@@ -614,28 +665,54 @@ function buildRouteCards() {
     btn.innerHTML = `
       <div class="route-name">${def.name}<small>${def.hint}</small></div>
       <div class="route-big">
-        <span><b>${(t.seconds / 60).toFixed(0)} min</b>${t.restCount ? `incl. ${(t.restSeconds / 60).toFixed(0)} min rest` : 'no rest needed'}</span>
-        <span><b>${t.kcal.toFixed(0)} kcal</b>energy</span>
-        <span${over ? ' class="over"' : ''}><b>${t.peakHeatNoRest.toFixed(1)} kJ/kg</b>${over ? 'over NASA limit unless rested' : 'peak body heat'}</span>
+        <span><b>${(t.seconds / 60).toFixed(0)} min</b><small>${t.restCount ? `incl. ${(t.restSeconds / 60).toFixed(0)} min rest` : 'no rest needed'}</small></span>
+        <span><b>${t.kcal.toFixed(0)} kcal</b><small>energy</small></span>
+        <span${over ? ' class="over"' : ''}><b>${heatText(t.peakHeatNoRest)} kJ/kg</b><small>${over ? 'over NASA limit unless rested' : 'peak body heat'}</small></span>
       </div>
       <div class="route-small">${(t.dist / 1000).toFixed(2)} km · ${t.climb.toFixed(0)} m climb · steepest ${t.steepestDeg.toFixed(0)}°${
   t.beyondMeasured > 0
     ? `<span class="route-flag" title="${t.beyondMeasured.toFixed(0)} m of this route is steeper than any walking study has measured (over ${steepLimit}°). The energy there is an extrapolation.">${t.beyondMeasured.toFixed(0)} m beyond tested slope</span>`
     : ''}</div>
-      <div class="route-small need">${over
-    ? `To walk it with no rest the suit must remove <b>${t.coolingNeededW} W</b> (this model's suit: ${MODEL.coolingW} W)`
-    : `A suit that removes <b>${t.coolingNeededW} W</b> is enough to walk it with no rest (this model's suit: ${MODEL.coolingW} W)`}</div>${contactLine(def.id)}`;
+      <div class="route-small need">${needLine(t)}</div>${contactLine(def.id)}`;
     btn.addEventListener('click', () => selectRoute(def.id, true));
     return btn;
   };
   const delta = document.createElement('div');
   delta.className = 'delta';
-  delta.innerHTML = `
-    <span>Body-cost against direct</span>
-    <b>${signed(b.peakHeatNoRest - a.peakHeatNoRest, 1)} kJ/kg heat</b>
-    <b>${signed((b.seconds - a.seconds) / 60)} min</b>
-    <span>${signed((b.dist - a.dist) / 1000, 2)} km · ${signed(b.kcal - a.kcal)} kcal</span>`;
+  // What the choice of route changes, said in one sentence.
+  const longer = Math.round((b.dist - a.dist) / 10) * 10;
+  const fewer = a.restCount - b.restCount;
+  // The minutes as the two cards show them, so the sentence agrees with them.
+  const sooner = Math.round(a.seconds / 60) - Math.round(b.seconds / 60);
+  const count = (n) => (n === 1 ? 'one rest' : `${n} rests`);
+  const shown = (value, places = 0) => Number(value.toFixed(places));
+  const cost = `${signed(shown(b.peakHeatNoRest, 1) - shown(a.peakHeatNoRest, 1), 1)} kJ/kg peak heat · ${signed(shown(b.kcal) - shown(a.kcal))} kcal`;
+  const placed = state.own?.stops.length && !state.own.preset;
+  delta.innerHTML = fewer === 0 && Math.abs(sooner) < 2
+    ? placed
+      ? `<b>Here the shortest way is already close to the cheapest.</b>
+    <span>No detour saves a rest. The two routes split where the straight line crosses steep ground, as on the ridge and hollow survey.</span>`
+      : `<b>Both routes need the same number of rests and take about the same time.</b>
+    <span>On the body-cost route: ${cost}</span>`
+    : `<b>The body-cost route is ${Math.abs(longer)} m ${longer >= 0 ? 'longer' : 'shorter'}${
+      fewer > 0 ? `, needs ${count(fewer)} fewer` : fewer < 0 ? `, needs ${count(-fewer)} more` : ''}${
+      sooner > 0 ? ` and is home ${sooner} min sooner` : sooner < 0 ? ` and takes ${-sooner} min longer` : ''}.</b>
+    <span>${cost}</span>`;
   $('routes').replaceChildren(card(ROUTES[0]), delta, card(ROUTES[1]));
+  showVerdict();
+}
+
+// One line on a route card: the cooling a suit needs to keep this walk under
+// NASA's heat limit with no rest. The plan itself rests earlier, at a share
+// of the limit, so a walk can be under the limit and still have a rest.
+function needLine(t) {
+  const suit = `(this suit: ${state.coolingW} W)`;
+  if (t.peakHeatNoRest > MODEL.heatLimitKJkg) return `To stay under NASA's limit with no rest the suit must remove <b>${t.coolingNeededW} W</b> ${suit}`;
+  // The search for that cooling starts at the heat of a body at rest.
+  if (t.coolingNeededW <= MODEL.restW + 1) return `Too short to reach NASA's heat limit, even in a suit that removes only the ${MODEL.restW} W of a body at rest ${suit}`;
+  return t.restCount
+    ? `A suit that removes <b>${t.coolingNeededW} W</b> stays under NASA's limit with no rest ${suit}. The plan rests earlier, at ${MODEL.restAt * 100}% of the limit`
+    : `A suit that removes <b>${t.coolingNeededW} W</b> is enough to walk it with no rest ${suit}`;
 }
 
 // One line on a route card: how much of the walk has an orbiter in view.
@@ -660,7 +737,13 @@ function drawRestMarks() {
 // Shows a pair of routes: the planned walk for a load, or a walk the viewer
 // placed. The lines, the cards, the orbiter contact and the 3D view follow.
 function showRoutes(routes, ease = true) {
-  state.routes = routes;
+  state.planned = routes;
+  // With another suit chosen, the same paths are priced again for it.
+  state.routes = state.coolingW === MODEL.coolingW ? routes : Object.fromEntries(ROUTES.map((def) => {
+    const route = reprice(routes[def.id], { loadKg: state.loadKg, coolingW: state.coolingW });
+    route.totals.lowestLeft = Math.min(...route.points.map((p) => energyLeftPct(p.kcal, p.backKcal)));
+    return [def.id, route];
+  }));
   for (const def of ROUTES) {
     const lines = state.lines[def.id];
     if (!lines) continue;
@@ -669,9 +752,31 @@ function showRoutes(routes, ease = true) {
     lines.casing.setLatLngs(latlngs);
   }
   computeContact();
+  labelStartTimes();
   buildRouteCards();
   state.view3d?.setRoutes(state.routes);
   if (state.lines[state.active]) selectRoute(state.active, ease);
+}
+
+// The sentence under the bars: what the walker makes against what the suit
+// removes, for the load and the suit now chosen.
+function showLedgerNote() {
+  const { loadKg, coolingW } = state;
+  const work = Math.round(levelWorkW(loadKg));
+  $('ledger-note').innerHTML = `An ${MODEL.bodyMassKg} kg walker in a ${MODEL.suitMassKg} kg suit${loadKg ? `, carrying ${loadKg} kg` : ''}. On flat ground at ${MODEL.paceMs.toFixed(1)} m/s the walker makes <b>${work} W</b> of heat; the suit removes <b>${coolingW} W</b>. ${
+    work > coolingW ? `Heat stops building only below ${heatNeutralPace(loadKg, coolingW).toFixed(2)} m/s.` : 'On flat ground no heat builds up; it builds on the climbs.'}`;
+}
+
+// Switches the suit's cooling: the same routes are priced again.
+function setCooling(coolingW) {
+  state.coolingW = coolingW;
+  $('cooling').value = String(coolingW);
+  $('cooling-value').textContent = `${coolingW} W`;
+  showLedgerNote();
+  // A free walk goes on in the new suit; the routes are priced when it ends.
+  if (state.free) { state.free.ledger.coolingW = coolingW; return; }
+  setPlaying(false);
+  if (state.planned) showRoutes(state.planned, false);
 }
 
 // Switches the carried load: the routes, the cards and the ledger all change.
@@ -680,7 +785,7 @@ function setLoad(loadKg, ease = true) {
   setPlaying(false);
   state.loadKg = loadKg;
   for (const btn of $('loads').children) btn.setAttribute('aria-pressed', String(Number(btn.dataset.kg) === loadKg));
-  $('ledger-note').innerHTML = `An ${MODEL.bodyMassKg} kg walker in a ${MODEL.suitMassKg} kg suit${loadKg ? `, carrying ${loadKg} kg` : ''}. On flat ground at ${MODEL.paceMs.toFixed(1)} m/s the walker makes <b>${Math.round(levelWorkW(loadKg))} W</b> of heat; the suit removes <b>${MODEL.coolingW} W</b>. Heat stops building only below ${heatNeutralPace(loadKg).toFixed(2)} m/s.`;
+  showLedgerNote();
   // The reach layer is drawn for the load shown.
   const reachLayer = state.overlays.find((overlay) => overlay.id === 'reach')?.leaf;
   if (reachLayer && state.reach) reachLayer.setUrl(state.reach.image(loadKg));
@@ -716,6 +821,7 @@ function selectRoute(id, ease = false) {
   }
   drawRestMarks();
   drawProfile();
+  showVerdict();
   state.view3d?.setRoute(id);
   if (state.view3d?.isShown()) setFollow(false);
   renderWalk(ease);
@@ -837,8 +943,8 @@ function drawProfile() {
       ctx.fillRect(x(route.points[i - 1].dist), canvas.height - h, Math.max(1, x(route.points[i].dist) - x(route.points[i - 1].dist)), h);
     }
   }
-  ctx.fillStyle = '#c4b5a5';
-  ctx.font = `${12 * devicePixelRatio}px ui-monospace, monospace`;
+  ctx.fillStyle = '#a1a1a6';
+  ctx.font = `${12 * devicePixelRatio}px Inter, system-ui, sans-serif`;
   route.stops.forEach((s, i) => {
     const label = i === 0 || i === route.stops.length - 1 ? 'H' : String(i);
     ctx.globalAlpha = 0.5;
@@ -1015,6 +1121,10 @@ function buildWalkControls() {
   $('target-close').addEventListener('click', () => { $('target').hidden = true; });
   window.addEventListener('resize', drawProfile);
 
+  // A click anywhere ends a recording sequence before the control acts, so
+  // the sequence never waits on a walk the viewer has stopped.
+  document.addEventListener('pointerdown', stopSequence, true);
+
   $('free').disabled = false;
   $('free').addEventListener('click', () => (state.free ? endFree() : startFree()));
   window.addEventListener('keyup', (e) => keysDown.delete(e.key));
@@ -1028,13 +1138,18 @@ function buildWalkControls() {
       if (e.key === 'Escape') endFree();
       return;
     }
+    // During a recording sequence only Escape (stop) and R are bound.
+    if (state.sequence) {
+      if (e.key === 'Escape') stopSequence();
+      if (e.key === 'r' || e.key === 'R') document.body.classList.toggle('rec');
+      return;
+    }
     if (e.target.closest?.('input, button, summary, dialog, select') && e.key !== ' ') return;
     if (e.key === ' ') { e.preventDefault(); if (state.playing) setPlaying(false); else startWalk(); }
     if (e.key === 'r' || e.key === 'R') document.body.classList.toggle('rec');
     if (e.key === 'v' || e.key === 'V') setView3D($('view3d').hidden, true);
     if (e.key === 'p' || e.key === 'P') runSequence(e.shiftKey);
     if (e.key === 'o' || e.key === 'O') { if (state.own) endOwn(); else startOwn(); }
-    if (e.key === 'Escape') stopSequence();
     if (e.key === 'd' || e.key === 'D') selectRoute('direct', true);
     if (e.key === 'b' || e.key === 'B') selectRoute('body', true);
     if (e.key === 'l' || e.key === 'L') {
@@ -1086,7 +1201,7 @@ async function startFree() {
     lat: home.lat,
     lon: home.lon,
     heading,
-    ledger: new Ledger(),
+    ledger: new Ledger(state.coolingW),
     dist: 0,
     rests: 0,
     peakHeat: 0,
@@ -1115,7 +1230,8 @@ function endFree() {
   $('free').textContent = 'Free walk';
   state.view3d?.clearTrail?.();
   state.view3d?.setRoutesVisible?.(true);
-  selectRoute(state.active);
+  // The suit may have changed during the free walk.
+  if (state.planned) showRoutes(state.planned, false); else selectRoute(state.active);
 }
 
 // One step of the free walk. The same body model as the planned routes runs
@@ -1214,12 +1330,30 @@ function renderFree() {
 // The search for a walk the viewer placed runs in a worker (js/planner.js),
 // with the same route code and body model as the planned walk.
 const OWN_MAX_STOPS = 4;
-const OWN_HINT = `Click the ground inside the dashed frame to place a stop (up to ${OWN_MAX_STOPS}). Click a stop to remove it.`;
+const OWN_HINT = `Click the ground inside the dashed frame to place a stop (up to ${OWN_MAX_STOPS}). Until then the routes and numbers are those of the ridge and hollow survey.`;
 let planner = null;
 
 function ownSay(text) {
-  $('own-hint').hidden = !text;
-  $('own-hint').textContent = text;
+  $('own-hint-text').textContent = text;
+  showVerdict();
+}
+
+// What a walk the viewer placed comes to, in one sentence, for the route
+// now chosen. A forecast of the plan, so it says so.
+function showVerdict() {
+  const own = state.own;
+  const t = own?.stops.length && !own.preset && state.routes ? state.routes[state.active].totals : null;
+  let verdict = '';
+  if (t) {
+    const home = `home in ${(t.seconds / 60).toFixed(0)} min`;
+    verdict = t.lowestLeft <= 0
+      ? 'Forecast: the backpack runs out of energy before you are home.'
+      : t.restCount
+        ? `Forecast: you make it there and back with ${t.restCount === 1 ? '1 rest' : `${t.restCount} rests`} to shed body heat, ${home}.`
+        : `Forecast: you make it there and back with no rest, ${home}.`;
+  }
+  $('own-verdict').textContent = verdict;
+  $('own-hint').hidden = !verdict && !$('own-hint-text').textContent;
 }
 
 // Redraws the viewer's stops with their numbers. The habitat mark stays
@@ -1227,13 +1361,18 @@ function ownSay(text) {
 function drawOwnStops() {
   const own = state.own;
   own.markers.forEach((marker) => marker.remove());
+  // A stop of a ready-made walk is a real place: a click shows what
+  // Curiosity did there. A stop the viewer placed is removed by a click.
   own.markers = own.stops.map((stop, i) => L.marker([stop.lat, stop.lon], {
-    icon: L.divIcon({ className: 'stop stop-own', html: String(i + 1), iconSize: [28, 28] }),
-    title: `${stop.name}. Click to remove it.`,
+    icon: L.divIcon({ className: stop.own === false ? 'stop' : 'stop stop-own', html: String(i + 1), iconSize: [28, 28] }),
+    title: stop.own === false ? stop.name : `${stop.name}. Click to remove it.`,
     zIndexOffset: 500,
   }).on('click', () => {
+    if (stop.own === false) { showPlace(stop); return; }
     own.stops.splice(own.stops.indexOf(stop), 1);
-    own.stops.forEach((s, k) => { s.name = `Your stop ${k + 1}`; });
+    own.stops.forEach((s, k) => { if (s.own !== false) s.name = `Your stop ${k + 1}`; });
+    own.preset = null;
+    showWalkGoal();
     drawOwnStops();
     planOwn();
   }).addTo(map));
@@ -1246,15 +1385,18 @@ async function planOwn() {
   const turn = ++own.turn;
   setPlaying(false);
   if (!own.stops.length) {
+    own.planned = [];
+    $('routes').removeAttribute('aria-busy');
     showRoutes(state.plans[state.loadKg]);
     ownSay(OWN_HINT);
     return;
   }
   ownSay('Planning your walk…');
   $('routes').setAttribute('aria-busy', 'true');
-  // Takes the newest stop back when no walk can be planned through it.
+  // When no walk can be planned, the stops go back to those of the walk on
+  // screen. Several clicks may have been made since that walk was planned.
   const refuse = (why) => {
-    own.stops.pop();
+    own.stops = [...own.planned];
     drawOwnStops();
     ownSay(`${why} Choose another point.`);
   };
@@ -1266,10 +1408,13 @@ async function planOwn() {
       refuse(`No route reaches that point on ground of ${Math.round(Math.atan(MAX_MEASURED_GRADIENT) * 180 / Math.PI)}° or less, the steepest slope walking cost has been measured on.`);
       return;
     }
+    own.planned = [...own.stops];
     showRoutes({ direct: result.direct, body: result.body });
-    ownSay(own.stops.length < OWN_MAX_STOPS
-      ? `Your walk has ${own.stops.length === 1 ? '1 stop' : `${own.stops.length} stops`}. Click the ground to add one, or a stop to remove it.`
-      : `Your walk has ${OWN_MAX_STOPS} stops, the most a walk here can have. Click a stop to remove it.`);
+    // Only a stop the viewer placed can be removed.
+    const remove = own.stops.some((stop) => stop.own !== false) ? 'click a stop you placed to remove it' : '';
+    ownSay(own.preset ? '' : own.stops.length < OWN_MAX_STOPS
+      ? `Your walk has ${own.stops.length === 1 ? '1 stop' : `${own.stops.length} stops`}. Click the ground to add one${remove ? `, or ${remove}` : ''}.`
+      : `Your walk has ${OWN_MAX_STOPS} stops, the most a walk here can have.${remove ? ` To change it, ${remove}.` : ''}`);
   } catch (error) {
     if (state.own === own && turn === own.turn) refuse(error.message);
   } finally {
@@ -1277,8 +1422,10 @@ async function planOwn() {
   }
 }
 
-function startOwn() {
-  if (state.own) return;
+// Starts a walk planned in the page: a ready-made one when `preset` is
+// given, else an empty walk for the viewer to place.
+function startOwn(preset = null) {
+  if (state.own || !state.ready) return;
   endFree();
   stopSequence();
   setPlaying(false);
@@ -1290,6 +1437,7 @@ function startOwn() {
   state.stopMarkers.slice(1).forEach((marker) => marker.remove());
   state.own = {
     stops: [],
+    planned: [],   // the stops of the walk whose routes are on screen
     markers: [],
     surveyed: state.stopMarkers,
     turn: 0,
@@ -1300,7 +1448,13 @@ function startOwn() {
   document.body.classList.add('own');
   $('own').setAttribute('aria-pressed', 'true');
   $('own').textContent = 'Planned walk';
-  ownSay(OWN_HINT);
+  state.own.preset = preset;
+  showWalkGoal();
+  if (!preset) { ownSay(OWN_HINT); return; }
+  const places = { ...state.walks.places, ...Object.fromEntries(state.walk.stops.map((stop) => [stop.id, stop])) };
+  state.own.stops = preset.stops.map((id) => ({ ...places[id], own: false }));
+  drawOwnStops();
+  planOwn();
 }
 
 function endOwn() {
@@ -1318,19 +1472,57 @@ function endOwn() {
   $('target').hidden = true;
   ownSay('');
   setPlaying(false);
+  showWalkGoal();
   showRoutes(state.plans[state.loadKg]);
 }
 
+/* Ready-made walks */
+
+// Shows which walk is on screen and what it is for.
+function showWalkGoal() {
+  if (!state.walks) return;
+  const stored = state.walks.walks.find((walk) => walk.stored);
+  const shown = state.own ? (state.own.preset ?? state.walks.own) : stored;
+  $('walk-pick').value = state.own ? (state.own.preset?.id ?? 'own') : stored.id;
+  $('walk-goal-text').textContent = shown.goal;
+}
+
+// Switches to a ready-made walk, or to an empty walk of the viewer's own.
+function pickWalk(id) {
+  const walk = state.walks?.walks.find((entry) => entry.id === id);
+  if (id !== 'own' && !walk) return;
+  if (state.free || state.sequence || !state.ready) { showWalkGoal(); return; }
+  endOwn();
+  if (id === 'own') startOwn();
+  else if (!walk.stored) startOwn(walk);
+}
+
+function buildWalkPick() {
+  if (!state.walks) return;
+  const options = [...state.walks.walks, { id: 'own', name: state.walks.own.name }];
+  $('walk-pick').replaceChildren(...options.map((walk) => new Option(walk.name, walk.id)));
+  $('walk-pick').addEventListener('change', (e) => pickWalk(e.target.value));
+  $('walk-pick').disabled = !state.ready;
+  $('walk-goal').hidden = false;
+  showWalkGoal();
+}
+
 function buildOwnControls() {
-  $('own').disabled = false;
   $('own').addEventListener('click', () => (state.own ? endOwn() : startOwn()));
   map.on('click', (e) => {
     const own = state.own;
     if (!own || state.free || state.sequence) return;
     if (own.stops.length >= OWN_MAX_STOPS) {
-      ownSay(`A walk here has at most ${OWN_MAX_STOPS} stops. Click a stop to remove it.`);
+      ownSay(`A walk here has at most ${OWN_MAX_STOPS} stops. Click a stop you placed to remove it.`);
       return;
     }
+    // A point off the elevation data is never added to the walk.
+    if (!Number.isFinite(state.terrain.elevAt(e.latlng.lat, e.latlng.lng) ?? NaN)) {
+      ownSay('That point is outside the surveyed patch. Choose another point.');
+      return;
+    }
+    own.preset = null;
+    showWalkGoal();
     own.stops.push({
       lat: e.latlng.lat,
       lon: e.latlng.lng,
@@ -1482,12 +1674,22 @@ async function start() {
       state.plans[loadKg][def.id] = route;
     }
   }
-  state.routes = state.plans[0];
+  // The page opens on the heaviest load, the case where the choice of route
+  // matters most. A link can ask for another: #load=0.
+  const loads = Object.keys(state.plans).map(Number);
+  const asked = Number(location.hash.match(/^#load=(\d+)$/)?.[1]);
+  const firstLoad = loads.includes(asked) ? asked : Math.max(...loads);
+  state.routes = state.plans[firstLoad];
   buildLoads();
   buildStartTimes();
-  setLoad(0, false);
+  setLoad(firstLoad, false);
   buildWalkControls();
   buildOwnControls();
+  // A browser can keep the slider's last position over a reload.
+  $('cooling').value = String(MODEL.coolingW);
+  $('cooling').addEventListener('input', (e) => setCooling(Number(e.target.value)));
+  state.walks = await fetch('data/walks.json').then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  buildWalkPick();
 
   // Fly to the walk, then let the two routes draw themselves.
   const all = L.latLngBounds(ROUTES.flatMap((def) => state.routes[def.id].points.map((p) => [p.lat, p.lon])));
@@ -1510,6 +1712,11 @@ async function start() {
   for (const def of ROUTES) await drawIn(def, 900);
   walker.addTo(map);
   selectRoute('direct');
+  // Another walk can be chosen only now, with the first one's stops and
+  // routes on the map to be put away.
+  state.ready = true;
+  $('own').disabled = false;
+  $('walk-pick').disabled = false;
 
   // index.html?rec opens with a clean screen for filming; ?rec=auto also
   // plays the sequence once the page has settled.
@@ -1518,12 +1725,15 @@ async function start() {
   if (rec === 'auto') { await wait(1200); runSequence(); }
 
   // A link can open a part of the page directly: #proof for the tests,
-  // #brief for the walk brief, #own to place a walk of your own, #reach
-  // for the reach layer.
+  // #brief for the walk brief, #own to place a walk of your own,
+  // #walk=<id> for a ready-made walk, #reach for the reach layer, #free to
+  // steer the walker yourself.
   if (location.hash === '#proof') $('proof').showModal();
   if (location.hash === '#brief') openBrief();
   if (location.hash === '#own') startOwn();
+  if (location.hash.startsWith('#walk=')) pickWalk(location.hash.slice(6));
   if (location.hash === '#reach') setOverlay('reach');
+  if (location.hash === '#free') startFree();
 }
 
 start();
