@@ -882,6 +882,8 @@ function loadView3D() {
       routes: state.routes,
       colors: Object.fromEntries(ROUTES.map((def) => [def.id, def.color])),
     });
+    // The walking astronaut instead of the dot; the dot stays if it cannot load.
+    state.view3d.setWalkerFigure?.('img/walker.png');
   })();
   return view3dLoading;
 }
