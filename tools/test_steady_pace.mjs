@@ -79,5 +79,10 @@ for (const [load, routes] of Object.entries(planned.loads)) {
 const talk = steadyPlan(planned.loads[30].direct, { loadKg: 30 });
 check(Math.round(talk.totals.seconds / 60) === 54 && Math.round(planned.loads[30].direct.totals.seconds / 60) === 65, 'survey walk, 30 kg, direct route: 54 min steady against 65 min with rests');
 
+// A cooling value where the limit lies just above a hundredth of a m/s:
+// rounding the pace down must not lose that hundredth.
+const edge = reprice(planned.loads[15].direct, { loadKg: 15, coolingW: 380 });
+check(steadyPlan(edge, { loadKg: 15, coolingW: 380 }).pace === 0.83, '15 kg, direct route, 380 W of cooling: the steady pace is 0.83 m/s');
+
 console.log(failed ? `${failed} check(s) failed` : 'all checks passed');
 process.exit(failed ? 1 : 0);

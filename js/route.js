@@ -341,7 +341,11 @@ export function steadyPlan(route, { loadKg = 0, coolingW = MODEL.coolingW, suitF
       const mid = (low + high) / 2;
       if (walk(mid, dearer).rests) high = mid; else low = mid;
     }
-    return Math.floor(low * 100) / 100;
+    // Rounding down can lose a whole 0.01 m/s when the limit lies just above
+    // one, so the next hundredth is tried as well.
+    const floor = Math.floor(low * 100) / 100;
+    const next = Math.round(floor * 100 + 1) / 100;
+    return next <= MODEL.paceMs && !walk(next, dearer).rests ? next : floor;
   };
   const pace = fastest(1);
   if (pace === null) return { pace: null };

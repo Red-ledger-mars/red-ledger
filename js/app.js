@@ -723,15 +723,15 @@ function paceLine(id) {
   const steady = state.steady[id];
   if (!steady) return '';
   const line = (text) => `<div class="route-small pace">${ASSUMED}${text}</div>`;
-  const untested = 'Not tested: NASA measured suited walking at Mars gravity from 1.12 m/s up.';
+  const untested = 'Not tested: NASA measured suited walking at Mars gravity at 1.12 and 1.34 m/s only.';
   if (steady.pace === null) return line(`Walking slower does not avoid the rests: even at ${SLOWEST_PACE_MS.toFixed(1)} m/s body heat reaches the level where the plan rests. ${untested}`);
   const withRests = Math.round(state.routes[id].totals.seconds / 60);
   const minutes = Math.round(steady.totals.seconds / 60);
   const start = `Or walk slower: a steady <b>${steady.pace.toFixed(2)} m/s</b> needs no rest and is home in <b>${minutes} min</b>`;
   if (minutes >= withRests) return line(`${start}, ${minutes > withRests ? 'later than' : 'the same as'} with the rests. ${untested}`);
   return line(`${start}. ${untested} ${Number.isFinite(steady.evenAt)
-    ? `If a metre at that pace costs <b>${Math.max(1, Math.round((steady.evenAt - 1) * 100))}%</b> more energy than a metre at ${MODEL.paceMs.toFixed(1)} m/s, the rests are as fast.`
-    : `It stays faster than the rests even if a metre at that pace costs twice the energy of a metre at ${MODEL.paceMs.toFixed(1)} m/s.`}`);
+    ? `If walking slower costs <b>${Math.max(1, Math.round((steady.evenAt - 1) * 100))}%</b> more energy per metre, the rests are as fast.`
+    : 'It stays faster than the rests even if walking slower costs twice the energy per metre.'}`);
 }
 
 // One line on a route card: how much of the walk has an orbiter in view.
