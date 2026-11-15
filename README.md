@@ -2,13 +2,15 @@
 
 **Every Mars map shows where things are. This one shows what each step costs a human body.**
 
-**Try it:** https://red-ledger-mars.github.io/red-ledger/ opens on Mars, with three ways in. Nothing to install.
+**Try it:** https://red-ledger-mars.github.io/red-ledger/ opens on Mars. Nothing to install. The three main pages:
 
+- **The globe:** the front page. https://red-ledger-mars.github.io/red-ledger/
 - **The Bill:** one walk, cost by cost. https://red-ledger-mars.github.io/red-ledger/present-b.html
 - **Map tool:** plan a walk and see what it costs. https://red-ledger-mars.github.io/red-ledger/classic.html
-- **The story:** the two routes, how far a body can go, the test. https://red-ledger-mars.github.io/red-ledger/story.html
 
-[![The front page: a globe of Mars with three ways in](img/readme/front-page.jpg)](https://red-ledger-mars.github.io/red-ledger/)
+Also: the story (the two routes, how far a body can go, the test), https://red-ledger-mars.github.io/red-ledger/story.html
+
+[![The front page: a globe of Mars that opens The Bill and the map tool](img/readme/front-page.jpg)](https://red-ledger-mars.github.io/red-ledger/)
 
 | The Bill | Map tool |
 |---|---|

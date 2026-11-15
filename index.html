@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Red Ledger: Mars at walk scale</title>
-  <meta name="description" content="What one walk on Mars costs a human body. A globe of Mars with three ways in: The Bill, the map tool and the story. Made with NASA open data.">
+  <meta name="description" content="What one walk on Mars costs a human body. A globe of Mars that opens The Bill and the map tool. Made with NASA open data.">
   <link rel="stylesheet" href="css/hud.css">
   <link rel="stylesheet" href="css/globe.css">
 </head>
@@ -27,20 +27,19 @@
   <section class="intro" aria-label="About this globe">
     <h1><span class="intro-title">Mars at walk scale</span><strong id="intro-count">1 patch surveyed</strong></h1>
     <p>Every Mars map shows where things are. This one shows what each step costs a human body.</p>
-    <nav class="ways" aria-label="Three ways in">
+    <nav class="ways" aria-label="Two ways in">
       <a class="way" href="present-b.html"><b>The Bill</b><small>One walk at Gale crater, cost by cost</small></a>
       <a class="way" href="classic.html"><b>Map tool</b><small>Plan a walk and see what it costs</small></a>
-      <a class="way" href="story.html"><b>The story</b><small>Two routes, how far a body can go, the test</small></a>
     </nav>
   </section>
 
-  <a class="patch-ring" id="patch-ring" href="story.html" hidden aria-label="Walk Gale crater" tabindex="-1"></a>
+  <a class="patch-ring" id="patch-ring" href="present-b.html" hidden aria-label="Walk Gale crater" tabindex="-1"></a>
   <div class="patch-label" id="patch-label" hidden>
     <b>Gale crater</b>
     <small>Surveyed at walk scale</small>
   </div>
 
-  <p class="hint" id="hint">Drag to turn. Scroll to zoom. The ring at Gale crater opens the story.</p>
+  <p class="hint" id="hint">Drag to turn. Scroll to zoom. The ring at Gale crater opens The Bill.</p>
 
   <aside class="card" id="card" aria-label="Selected point" hidden>
     <button type="button" class="card-close" id="card-close" aria-label="Close">×</button>
@@ -50,7 +49,7 @@
   </aside>
 
   <p class="globe-credit" id="globe-credit"></p>
-  <p class="nogl" id="nogl" hidden>This page needs WebGL to draw the globe. <a href="story.html">Open the story</a> or <a href="classic.html">the map tool</a> instead.</p>
+  <p class="nogl" id="nogl" hidden>This page needs WebGL to draw the globe. <a href="present-b.html">Open The Bill</a> or <a href="classic.html">the map tool</a> instead.</p>
 
   <footer class="foot">
     <span>Made with NASA open data.</span>

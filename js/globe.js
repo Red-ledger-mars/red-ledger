@@ -355,7 +355,7 @@ async function loadPatches() {
 /* Walk: ease the camera to the patch while the ring grows and fades, fade the
    page to the background colour, then open the walk page. */
 
-// `to` is the page to open: the story by default, or the door chosen.
+// `to` is the page to open: The Bill by default, or the way in chosen.
 function walk(to = null) {
   if (state.leaving) return;
   state.leaving = true;
@@ -364,9 +364,9 @@ function walk(to = null) {
   hideHint();
   // In recording mode the walk page is told to play its own sequence, so a
   // single take runs from the whole planet to the end of the walk.
-  // The ring and Enter open the story; a recording goes to the map tool,
+  // The ring and Enter open The Bill; a recording goes to the map tool,
   // which plays the filmed sequence.
-  const href = to ?? (RECORDING ? 'classic.html?rec=auto' : 'story.html');
+  const href = to ?? (RECORDING ? 'classic.html?rec=auto' : 'present-b.html');
   if (state.reduced) { location.href = href; return; }
   const t = facing(state.patches[0] ? state.patches[0].centre.lat : GALE.lat,
     state.patches[0] ? state.patches[0].centre.lon : GALE.lon);
@@ -381,8 +381,8 @@ function walk(to = null) {
   setTimeout(() => { location.href = href; }, GO_MS + 450);
 }
 
-// Three ways in beside the globe: The Bill, the map tool and the story. The
-// ring at the patch opens the story.
+// Two ways in beside the globe: The Bill and the map tool. The ring at the
+// patch opens The Bill.
 for (const el of [$('patch-ring'), ...document.querySelectorAll('.way')]) {
   el.addEventListener('click', (e) => {
     if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;

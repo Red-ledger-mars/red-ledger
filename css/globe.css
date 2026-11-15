@@ -19,7 +19,7 @@
 .intro h1 { margin: 0 0 10px; font: 600 22px/1.2 var(--sans); color: var(--text); }
 .intro h1 strong { display: block; margin-top: 4px; font-size: 19px; font-weight: 700; color: var(--red); }
 .intro p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--dim); }
-/* The three ways in. The first is the one to open first. */
+/* The ways in beside the globe. The first is the one to open first. */
 .ways { display: grid; gap: 6px; margin-top: 12px; }
 .way { display: block; padding: 8px 10px; color: var(--text); text-decoration: none; border: 1px solid var(--line); border-radius: 4px; }
 .way:first-child { border-color: var(--red); }
