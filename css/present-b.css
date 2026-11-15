@@ -48,7 +48,8 @@
   --bar: 52px;
   --side: 36px;
   --kick: calc(var(--text) * 1.35 * 2);
-  --D: min(45vw, 81vh);
+  --D-mid: min(45vw, 81vh);
+  --D: var(--D-mid);
   --disc-left: 8vw;
   --disc-top: calc(var(--bar) + var(--kick) + var(--display) + 22px);
   --till-w: 500px;
@@ -141,7 +142,10 @@ body.red { --type: #ffffff; }
 
 /* The disc: a square that only gives the dial its place, and the stage, a
    16:9 box of the same height centred on it and cut to a circle, so the
-   chase view keeps the walker large. */
+   chase view keeps the walker large. When the circle runs off the bottom of
+   the screen, the stage moves up by --lift so the view (and the walker at its
+   centre) sits in the middle of the part that shows; the cut stays on the
+   disc. */
 #disc {
   position: absolute;
   left: var(--disc-left);
@@ -150,18 +154,40 @@ body.red { --type: #ffffff; }
   height: var(--D);
 }
 #stage {
+  --lift: max(0px, (var(--D) - 100vh + var(--disc-top)) / 2);
   position: absolute;
-  top: var(--disc-top);
+  top: calc(var(--disc-top) - var(--lift));
   height: var(--D);
   width: calc(var(--D) * 16 / 9);
   left: calc(var(--disc-left) + var(--D) / 2 - var(--D) * 8 / 9);
-  clip-path: circle(calc(var(--D) / 2) at 50% 50%);
+  clip-path: circle(calc(var(--D) / 2) at 50% calc(50% + var(--lift)));
   background: var(--chip);
   pointer-events: none;
 }
 #stage .v3d-root { background: var(--sky); }
 #stage .v3d-hint, #stage .v3d-compass, #stage .v3d-badge, #stage .v3d-credit { display: none; }
 #stage .v3d-handle { pointer-events: auto; }
+/* With a mouse, a drag turns the ground while the camera is pulled back; the
+   wheel still moves the walk (present-b.js passes it on). During the walk the
+   walker itself is the handle. */
+@media (hover: hover) and (pointer: fine) {
+  body:not(.walking):not(.free) #stage .v3d-canvas { pointer-events: auto; }
+}
+
+/* The window's size follows the bill (present-b.js sets data-map). Big while
+   the walk plays and the bill is short; back to --D-mid for a long bill; on
+   the face-off small and whole, clear of the wide bill. The bezel's outer
+   edge (24px out) lines up with the masthead. */
+@media (min-width: 901px) {
+  body[data-map="big"] {
+    --D: max(var(--D-mid), min(54vw, 97vh, 100vw - 2 * var(--side) - var(--till-w) - 60px));
+    --disc-left: calc(var(--side) + 24px);
+  }
+  body[data-map="small"] {
+    --D: max(160px, min(var(--D-mid), 100vw - 2 * var(--side) - var(--till-w) - 72px, 100vh - var(--disc-top) - 48px));
+    --disc-left: calc(var(--side) + 24px);
+  }
+}
 
 /* The flat ground when 3D cannot draw: the full disc width, centred. */
 #flat {
@@ -466,7 +492,7 @@ body.wide .tape .big { font-size: min(var(--display), 13vh); }
   position: absolute;
   right: var(--side);
   bottom: 10px;
-  max-width: calc(var(--till-w) + 40px);
+  max-width: var(--till-w);
   margin: 0;
   text-align: right;
   color: var(--ink-2);

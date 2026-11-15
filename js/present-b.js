@@ -138,6 +138,12 @@ async function boot() {
   } else {
     showFlat();
   }
+  // The 3D view zooms on the wheel; on this page the wheel always moves the
+  // walk, so a wheel over the window goes to the page instead.
+  $('stage').addEventListener('wheel', (e) => {
+    e.stopPropagation();
+    if (!dispatchEvent(new WheelEvent('wheel', e))) e.preventDefault();
+  }, { capture: true, passive: false });
   $('stage').addEventListener('v3d-status', (e) => {
     if (!e.detail?.ok) showFlat();
     else document.body.classList.remove('flat');
@@ -225,6 +231,46 @@ function layout() {
   flood.style.setProperty('--cx', `${dial.cx}px`);
   flood.style.setProperty('--cy', `${dial.cy}px`);
   if (state.heat != null) drawArc(state.heat);
+}
+
+/* The window's size follows the bill: big while the walk plays and the bill
+   is short, back to the middle size for a long bill, small beside the wide
+   face-off bill (data-map in the CSS). The size changes once, so the 3D
+   canvas resizes once, and the move is drawn as a transform from the old
+   circle to the new one. */
+
+const WINDOW = { title: 'big', walk: 'big', reach: 'big', free: 'big', routes: 'mid', detail: 'mid', verdict: 'mid', test: 'mid', end: 'small' };
+const flip = { anims: [] };
+
+function circleBox() {
+  const r = $('disc').getBoundingClientRect();
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2, d: r.width };
+}
+
+function setWindow(key) {
+  const size = WINDOW[key];
+  const body = document.body;
+  if (!size || body.dataset.map === size) return; // 'blank' and 'loading' keep what is there
+  const a = circleBox();
+  for (const anim of flip.anims) anim.cancel();
+  body.classList.toggle('wide', key === 'end');
+  body.dataset.map = size;
+  const b = circleBox();
+  layout();
+  const s = a.d / b.d;
+  if (!b.d || !Number.isFinite(s) || (Math.abs(s - 1) < 0.01 && Math.hypot(a.x - b.x, a.y - b.y) < 1)) return;
+  const frames = REDUCED
+    ? [{ opacity: 0 }, { opacity: 1 }]
+    : [{ transform: `translate(${a.x - b.x}px, ${a.y - b.y}px) scale(${s})` }, { transform: 'none' }];
+  const opts = REDUCED ? { duration: 150, easing: 'linear' } : { duration: 700, easing: 'cubic-bezier(0.65, 0, 0.35, 1)' };
+  // The same transform round the new circle's centre on every part, so the
+  // ground, the dial and its label move together off the main thread.
+  const parts = REDUCED ? [$('stage')] : [$('stage'), $('disc'), $('dial'), $('limit')];
+  flip.anims = parts.map((el) => {
+    const r = el.getBoundingClientRect();
+    el.style.transformOrigin = `${b.x - r.left}px ${b.y - r.top}px`;
+    return el.animate(frames, opts);
+  });
 }
 
 function drawArc(heat) {
@@ -375,7 +421,7 @@ async function pump() {
       await wait(Math.max(T.retract, mastChanges ? outMs : 0) + 20);
       if (show.want !== key) { if (show.want === show.key) show.key = null; continue; }
 
-      document.body.classList.toggle('wide', key === 'end');
+      setWindow(key);
       if (mastChanges && key !== 'blank') { mast.innerHTML = next; mast.dataset.html = next; }
       $('paper').innerHTML = paperHtml(key);
       $('paper').scrollTop = 0;
@@ -895,7 +941,7 @@ function bindAuto() {
   });
   for (const type of ['wheel', 'touchstart', 'keydown', 'mousedown']) {
     addEventListener(type, (e) => {
-      if (auto.on && !e.target.closest?.('#play, #start')) setAuto(false);
+      if (auto.on && !e.target.closest?.('#play, #start, #stage .v3d-canvas')) setAuto(false);
     }, { passive: true });
   }
 }
