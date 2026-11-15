@@ -519,7 +519,7 @@ kbd {
 .start { display: flex; flex: none; align-items: center; gap: 8px; margin-left: 8px; font-size: 13px; color: var(--dim); white-space: nowrap; }
 .start[hidden] { display: none; }
 .start select { height: 32px; padding: 0 8px; font-size: 13px; color: var(--text); background: var(--raised); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; }
-.start option { color: #111; }
+.start option { color: var(--text); background: var(--raised); }
 
 #progress-text {
   flex: 1 1 0;
@@ -643,7 +643,9 @@ kbd {
 #view3d .v3d-badge { top: 64px; left: 68px; right: auto; font: 500 12px/16px var(--sans); letter-spacing: 0; border-color: rgba(255, 181, 71, 0.5); border-radius: 6px; }
 #view3d .v3d-compass-needle::before { font: 600 11px/1 var(--sans); }
 #view3d .v3d-credit { left: 12px; bottom: 12px; max-width: calc(100% - 24px); border-radius: 6px; }
-#view3d .v3d-hint { right: 12px; bottom: 12px; border-radius: 6px; }
+/* The hint sits above the credit line, which must stay readable while the
+   AI-made walker figure is on screen. */
+#view3d .v3d-hint { right: 12px; bottom: 44px; border-radius: 6px; }
 
 /* The two sheets: the tests and the walk brief */
 
@@ -851,7 +853,7 @@ kbd {
 .walk-goal[hidden] { display: none; }
 .walk-goal label { display: flex; flex: none; align-items: center; gap: 8px; color: var(--dim); white-space: nowrap; }
 .walk-goal select { height: 32px; padding: 0 8px; font-size: 13px; color: var(--text); background: var(--raised); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; }
-.walk-goal option { color: #111; }
+.walk-goal option { color: var(--text); background: var(--raised); }
 .walk-goal span { flex: 1 1 220px; color: var(--dim); }
 .walk-goal span[hidden] { display: none; }
 .free .walk-goal { display: none; }
