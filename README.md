@@ -8,6 +8,14 @@
 - **Map tool:** plan a walk and see what it costs. https://red-ledger-mars.github.io/red-ledger/classic.html
 - **The story:** the two routes, how far a body can go, the test. https://red-ledger-mars.github.io/red-ledger/story.html
 
+[![The front page: a globe of Mars with three ways in](img/readme/front-page.jpg)](https://red-ledger-mars.github.io/red-ledger/)
+
+| The Bill | Map tool |
+|---|---|
+| [![The Bill: peak body heat on the two routes, 3.73 and 3.02 kJ/kg, against NASA's limit of 3.0](img/readme/the-bill.jpg)](https://red-ledger-mars.github.io/red-ledger/present-b.html) | [![The map tool: two routes to three stops on the boxwork ridges, with the forced rests marked](img/readme/map-tool.jpg)](https://red-ledger-mars.github.io/red-ledger/classic.html) |
+
+Pictures of the live site. Imagery: NASA/JPL-Caltech/University of Arizona and USGS; the walker figure in The Bill is made with AI.
+
 Red Ledger is a helmet display for a single Marswalk at Gale crater (Mount Sharp), the region the Curiosity rover has explored since 2012. It layers data from several NASA missions at the scale of one excursion and prices each walking route in four things: energy burned, heat against the suit's cooling limit, radiation dose, and whether there is enough left to walk back.
 
 Built for the NASA Space Apps Challenge 2026, challenge "Interplanetary Survival Guide: Martian Map", by team Red Ledger (Raipur local event). All work started after the hackathon opened on 14 November 2026, 11:00 IST.
