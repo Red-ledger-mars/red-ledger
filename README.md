@@ -140,3 +140,7 @@ The idea for this project is the team's own. The code in this repository was wri
 ## Licence
 
 Code: MIT. Data and images keep the terms of their sources, listed in CREDITS.md.
+
+## Demo video: use of AI
+
+Claude (Anthropic), an AI coding assistant, wrote the code that draws the animation (4 to 8 s), the end card, the captions and the labels of the 28-second demo video, and edited and mixed it. No AI image, video, voice or music generator was used. The audio has no voice. The opening footage is a NASA animation and Mixkit stock footage, not AI-made. The full list is in [CREDITS.md](CREDITS.md).

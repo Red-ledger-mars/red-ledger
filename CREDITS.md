@@ -93,3 +93,19 @@ These are written instructions ("skills") that the AI coding assistant was given
 ## AI use
 
 See the "Use of AI" section in [README.md](README.md).
+
+## Demo video (28 seconds)
+
+The audio has no voice of any kind: no AI voice and no speech.
+
+| Part | Source | Licence or credit |
+| --- | --- | --- |
+| 0 to 2.5 s, opening footage | NASA animation from "Have Humans Ever Visited Mars" (NASA HQ, 25 Aug 2026), images.nasa.gov | Credit: NASA. Used under NASA's media usage guidelines. Not AI-made. |
+| 2.2 to 4 s, opening footage | Mixkit, "Flying over the mountains on Mars" (#14202) | Mixkit free licence. Not AI-made. |
+| 4 to 8 s and 22 to 28 s, animation and end card | Drawn in code written with Claude (Anthropic) | Made with AI, labelled on screen. |
+| 8 to 22 s, screen capture | The Red Ledger live site | Map imagery and data credits as listed above. |
+| Breath sound, 0 to 4 s | Mixkit sound effect "Cow animal breath" (#1746) | Mixkit free licence. |
+| Music from 3.6 s | "Vastness", Mixkit (#184) | Mixkit free music licence. Artist not confirmed. |
+| Whoosh sounds | Mixkit "Cinematic whoosh fast transition" (#1492) and "Cinematic tunnel reverb woosh" (#1486) | Mixkit free licence. |
+| Fonts in the animations | Big Shoulders Display, Newsreader, and EMS Tech hand lettering (a derivative of Architects Daughter by Kimberly Geswein) | SIL Open Font License 1.1. |
+| Tools | ffmpeg, Playwright with Chromium, Pillow | Open-source tools. |
