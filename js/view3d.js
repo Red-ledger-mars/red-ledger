@@ -536,9 +536,15 @@ function inertView(root, message) {
     show() { shown = true; root.style.display = ''; },
     hide() { shown = false; root.style.display = 'none'; },
     isShown: () => shown,
+    // Every method of the real view, doing nothing, so no caller meets a
+    // missing function when there is no WebGL.
     setWalkerAt: () => false, setTrail: noop, clearTrail: noop, setRoutesVisible: noop,
-    setRoute: noop, setWalker: noop, setMode: noop, setExaggeration: noop,
-    setSlopeTint: noop, resize: noop,
+    setRoute: noop, setRoutes: noop, setWalker: noop, setExaggeration: noop,
+    setMode: () => Promise.resolve(true),
+    setSlopeTint: noop, setOverlay: noop, setMarks: noop, setViewShift: noop,
+    setWalkerFigure: () => Promise.resolve(false), setWalkerResting: noop, setWalkerDrag: noop,
+    status: () => ({ ok: false, why: 'no-webgl' }),
+    resize: noop,
     dispose() { root.remove(); },
     available: false,
   };
