@@ -114,20 +114,21 @@ function fitBars() {
 window.addEventListener('resize', fitBars);
 
 // The part of the window not covered by panels, in screen pixels. The
-// camera keeps the walk inside it. On a wide screen the ledger sits beside
-// the map; on a narrow one it sits above it.
+// camera keeps the walk inside it. The page's grid leaves one cell free for
+// the map (.map-window), beside the panel on a wide screen and above it on a
+// narrow one. The view and layer buttons lie along the top of that cell.
 function clearArea() {
-  const ledger = document.querySelector('.ledger').getBoundingClientRect();
-  const walk = document.querySelector('.walk').getBoundingClientRect();
-  const top = document.querySelector('.top').getBoundingClientRect();
-  const beside = ledger.width < window.innerWidth * 0.6;
-  const area = beside
-    ? { left: ledger.right + 28, top: top.bottom + 12, right: window.innerWidth - 36, bottom: walk.top - 28 }
-    : { left: 20, top: ledger.bottom + 16, right: window.innerWidth - 20, bottom: walk.top - 16 };
-  // On a short window the panels can leave almost no map. Fitting the walk
-  // into that sliver zooms far past the imagery, so use the whole window.
+  const cell = document.querySelector('.map-window').getBoundingClientRect();
+  const area = { left: cell.left + 28, top: cell.top + 56, right: cell.right - 36, bottom: cell.bottom - 28 };
+  // On a short window the cell can leave almost no map. Fitting the walk
+  // into that sliver zooms far past the imagery, so use the whole cell, or
+  // the whole window if the cell itself is a sliver.
   if (area.right - area.left < 160 || area.bottom - area.top < 120) {
-    return { left: 20, top: top.bottom + 12, right: window.innerWidth - 20, bottom: window.innerHeight - 20 };
+    if (cell.width < 160 || cell.height < 120) {
+      const top = document.querySelector('.top').getBoundingClientRect();
+      return { left: 20, top: top.bottom + 12, right: window.innerWidth - 20, bottom: window.innerHeight - 20 };
+    }
+    return { left: cell.left + 8, top: cell.top + 8, right: cell.right - 8, bottom: cell.bottom - 8 };
   }
   return area;
 }
@@ -614,9 +615,9 @@ function buildRouteCards() {
     btn.innerHTML = `
       <div class="route-name">${def.name}<small>${def.hint}</small></div>
       <div class="route-big">
-        <span><b>${(t.seconds / 60).toFixed(0)} min</b>${t.restCount ? `incl. ${(t.restSeconds / 60).toFixed(0)} min rest` : 'no rest needed'}</span>
-        <span><b>${t.kcal.toFixed(0)} kcal</b>energy</span>
-        <span${over ? ' class="over"' : ''}><b>${t.peakHeatNoRest.toFixed(1)} kJ/kg</b>${over ? 'over NASA limit unless rested' : 'peak body heat'}</span>
+        <span><b>${(t.seconds / 60).toFixed(0)} min</b><small>${t.restCount ? `incl. ${(t.restSeconds / 60).toFixed(0)} min rest` : 'no rest needed'}</small></span>
+        <span><b>${t.kcal.toFixed(0)} kcal</b><small>energy</small></span>
+        <span${over ? ' class="over"' : ''}><b>${t.peakHeatNoRest.toFixed(1)} kJ/kg</b><small>${over ? 'over NASA limit unless rested' : 'peak body heat'}</small></span>
       </div>
       <div class="route-small">${(t.dist / 1000).toFixed(2)} km · ${t.climb.toFixed(0)} m climb · steepest ${t.steepestDeg.toFixed(0)}°${
   t.beyondMeasured > 0
@@ -837,8 +838,8 @@ function drawProfile() {
       ctx.fillRect(x(route.points[i - 1].dist), canvas.height - h, Math.max(1, x(route.points[i].dist) - x(route.points[i - 1].dist)), h);
     }
   }
-  ctx.fillStyle = '#c4b5a5';
-  ctx.font = `${12 * devicePixelRatio}px ui-monospace, monospace`;
+  ctx.fillStyle = '#a1a1a6';
+  ctx.font = `${12 * devicePixelRatio}px Inter, system-ui, sans-serif`;
   route.stops.forEach((s, i) => {
     const label = i === 0 || i === route.stops.length - 1 ? 'H' : String(i);
     ctx.globalAlpha = 0.5;

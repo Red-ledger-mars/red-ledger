@@ -11,92 +11,119 @@
 </head>
 <body class="booting">
   <div id="map" aria-label="Map of the walk area at Gale crater, Mars"></div>
-  <div id="view3d" hidden></div>
-  <div class="visor" aria-hidden="true"></div>
 
   <header class="top">
     <div class="brand">
-      <span class="brand-mark">RED LEDGER</span>
+      <a class="brand-mark" href="index.html" title="The whole of Mars">RED LEDGER</a>
       <span class="brand-sub">Marswalk cost display · <a href="index.html">whole Mars</a></span>
     </div>
     <div class="site">
       <span class="site-name">Gale crater · Mount Sharp · boxwork ridges</span>
-      <span class="site-coord" id="cursor-coord"></span>
     </div>
-    <details class="chip-pop" id="weather">
+    <nav class="docs" aria-label="Documents">
+      <button type="button" id="brief-open" title="Walk brief: before, during, after">Walk brief</button>
+      <button type="button" id="proof-open">How we tested it</button>
+      <details class="chip-pop sources" id="sources" name="note">
+        <summary>Sources and assumptions</summary>
+        <div class="pop"><ul id="sources-list"></ul></div>
+      </details>
+    </nav>
+    <details class="chip-pop" id="weather" name="note">
       <summary>Site weather</summary>
       <div class="pop" id="weather-body"></div>
     </details>
-    <nav class="overlays" id="views" aria-label="View">
-      <button type="button" id="view-map" aria-pressed="true">Map</button>
-      <button type="button" id="view-3d" aria-pressed="false" title="The walk on real terrain (key V)">3D</button>
-      <button type="button" id="view-follow" aria-pressed="false" hidden>Follow</button>
-      <button type="button" id="view-height" aria-pressed="false" hidden>Height ×2</button>
-    </nav>
-    <nav class="overlays" id="overlays" aria-label="Map overlay"></nav>
   </header>
 
+  <!-- One grid between the top bar and the footer: the panel on the left, the
+       map window beside it, the walk strip under the map. -->
   <main class="hud">
-  <aside class="ledger" aria-label="Body cost along the route">
-    <header class="ledger-head">
-      <h2>Body ledger</h2>
-      <span class="ledger-mode" id="ledger-mode"></span>
-    </header>
-    <div class="loads">
-      <span><i class="assume"></i>Carrying</span>
-      <nav id="loads" aria-label="Carried load"></nav>
-    </div>
-    <div class="bars" id="bars"></div>
-    <div class="legend" id="legend" hidden>
-      <span class="legend-title" id="legend-title"></span>
-      <canvas id="legend-strip" width="200" height="8"></canvas>
-      <span class="legend-ticks" id="legend-ticks"></span>
-      <span class="legend-note" id="legend-note"></span>
-    </div>
-    <p class="ledger-note" id="ledger-note">Loading the terrain…</p>
-    <div class="ledger-foot">
-      <button type="button" id="brief-open" class="brief-open">Walk brief: before, during, after</button>
-      <button type="button" id="proof-open">How we tested it</button>
-      <details class="sources" id="sources">
-        <summary>Sources and assumptions</summary>
-        <ul id="sources-list"></ul>
-      </details>
-    </div>
-  </aside>
+    <aside class="ledger" aria-label="Body cost along the route">
+      <section class="panel-sec">
+        <header class="ledger-head">
+          <h2>Body ledger</h2>
+          <span class="ledger-mode" id="ledger-mode"></span>
+        </header>
+        <div class="loads">
+          <span><i class="assume"></i>Carrying</span>
+          <nav id="loads" aria-label="Carried load"></nav>
+        </div>
+        <div class="bars" id="bars"></div>
+      </section>
 
-  <aside class="target" id="target" aria-label="Selected stop" hidden>
-    <figure id="target-photo" hidden>
-      <img id="target-img" alt="">
-      <button id="target-swap" type="button"></button>
-      <figcaption id="target-caption"></figcaption>
-    </figure>
-    <div class="target-body">
-      <h3 id="target-name"></h3>
-      <p id="target-text"></p>
-      <p class="credit" id="target-credit"></p>
-    </div>
-    <button type="button" class="close" id="target-close" aria-label="Close">×</button>
-  </aside>
+      <section class="panel-sec" aria-label="Route comparison">
+        <div class="routes" id="routes"></div>
+      </section>
 
-  <section class="walk" aria-label="Route comparison and walk control">
-    <p class="own-hint" id="own-hint" hidden></p>
-    <div class="routes" id="routes"></div>
-    <div class="scrub">
-      <button id="play" type="button" disabled>Walk</button>
-      <button id="free" type="button" class="quiet" disabled title="Steer the walker yourself with the arrow keys; the body model runs on the ground you choose">Free walk</button>
-      <button id="own" type="button" class="quiet" disabled aria-pressed="false" title="Place your own stops on the map; the planner finds both routes there and back and what they cost the body (key O)">Own walk</button>
-      <label class="start" id="start-wrap">Start <select id="start-time" title="Local time on Mars when the walk starts. The share is how much of the body-cost route has a relay orbiter in view."></select></label>
-      <input id="progress" type="range" min="0" max="1000" value="0" disabled aria-label="Position along the route">
-      <span id="progress-text" class="mono"></span>
+      <section class="panel-sec">
+        <p class="ledger-note" id="ledger-note">Loading the terrain…</p>
+      </section>
+    </aside>
+
+    <!-- The 3D view fills the map window when it is open. -->
+    <div id="view3d" hidden></div>
+
+    <!-- What lies over the map: the view and layer buttons, the layer's key,
+         the card of the selected stop. The rest of the window is the map. -->
+    <div class="map-window">
+      <div class="map-tools">
+        <nav class="overlays" id="views" aria-label="View">
+          <button type="button" id="view-map" aria-pressed="true">Map</button>
+          <button type="button" id="view-3d" aria-pressed="false" title="The walk on real terrain (key V)">3D</button>
+          <button type="button" id="view-follow" aria-pressed="false" hidden>Follow</button>
+          <button type="button" id="view-height" aria-pressed="false" hidden>Height ×2</button>
+        </nav>
+        <nav class="overlays" id="overlays" aria-label="Map overlay"></nav>
+      </div>
+      <div class="map-side">
+        <div class="legend" id="legend" hidden>
+          <span class="legend-title" id="legend-title"></span>
+          <canvas id="legend-strip" width="200" height="8"></canvas>
+          <span class="legend-ticks" id="legend-ticks"></span>
+          <span class="legend-note" id="legend-note"></span>
+        </div>
+        <aside class="target" id="target" aria-label="Selected stop" hidden>
+          <figure id="target-photo" hidden>
+            <img id="target-img" alt="">
+            <button id="target-swap" type="button"></button>
+            <figcaption id="target-caption"></figcaption>
+          </figure>
+          <div class="target-body">
+            <h3 id="target-name"></h3>
+            <p id="target-text"></p>
+            <p class="credit" id="target-credit"></p>
+          </div>
+          <button type="button" class="close" id="target-close" aria-label="Close"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+        </aside>
+      </div>
+      <!-- At the foot of the map: the hint for a walk of your own, and what
+           lies under the pointer. -->
+      <div class="map-foot">
+        <p class="own-hint" id="own-hint" hidden></p>
+        <span class="map-coord" id="cursor-coord"></span>
+      </div>
     </div>
-    <canvas id="profile" aria-label="Elevation profile of the route"></canvas>
-  </section>
+
+    <section class="walk" aria-label="Walk control and elevation profile">
+      <div class="scrub">
+        <button id="play" type="button" disabled>Walk</button>
+        <button id="free" type="button" class="quiet" disabled title="Steer the walker yourself with the arrow keys; the body model runs on the ground you choose">Free walk</button>
+        <button id="own" type="button" class="quiet" disabled aria-pressed="false" title="Place your own stops on the map; the planner finds both routes there and back and what they cost the body (key O)">Own walk</button>
+        <label class="start" id="start-wrap">Start <select id="start-time" title="Local time on Mars when the walk starts. The share is how much of the body-cost route has a relay orbiter in view."></select></label>
+        <span id="progress-text"></span>
+      </div>
+      <!-- The slider lies over the elevation profile, so its handle is the
+           walker's place on the profile. -->
+      <div class="track">
+        <canvas id="profile" aria-label="Elevation profile of the route"></canvas>
+        <input id="progress" type="range" min="0" max="1000" value="0" disabled aria-label="Position along the route">
+      </div>
+    </section>
   </main>
 
   <dialog class="proof sheet" id="proof" aria-label="Tests of the model against measurements">
     <header>
       <h2>How we tested our own claims</h2>
-      <button type="button" class="close" id="proof-close" aria-label="Close">×</button>
+      <button type="button" class="close" id="proof-close" aria-label="Close"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
     </header>
     <div id="proof-body"></div>
   </dialog>
@@ -104,7 +131,7 @@
   <dialog class="proof sheet" id="brief" aria-label="Walk brief">
     <header>
       <h2>Walk brief</h2>
-      <button type="button" class="close" id="brief-close" aria-label="Close">×</button>
+      <button type="button" class="close" id="brief-close" aria-label="Close"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
     </header>
     <div id="brief-body"></div>
   </dialog>
@@ -112,9 +139,26 @@
   <footer class="foot">
     <span>Made with NASA open data.</span>
     <a href="CREDITS.md">Sources and credits</a>
-    <details class="chip-pop up" id="map-credits">
+    <details class="chip-pop up" id="map-credits" name="note">
       <summary>Map credits</summary>
       <div class="pop" id="map-credits-body"></div>
+    </details>
+    <details class="chip-pop up" id="keys" name="note">
+      <summary>Keys</summary>
+      <div class="pop">
+        <dl class="keys-list">
+          <div><dt><kbd>Space</kbd></dt><dd>Walk or pause</dd></div>
+          <div><dt><kbd>D</kbd><kbd>B</kbd></dt><dd>Direct or body-cost route</dd></div>
+          <div><dt><kbd>L</kbd></dt><dd>Next carried load</dd></div>
+          <div><dt><kbd>1</kbd>to<kbd>7</kbd></dt><dd>Map layer</dd></div>
+          <div><dt><kbd>V</kbd></dt><dd>Map or 3D</dd></div>
+          <div><dt><kbd>O</kbd></dt><dd>Own walk</dd></div>
+          <div><dt>Arrow keys</dt><dd>Steer in a free walk</dd></div>
+          <div><dt><kbd>R</kbd></dt><dd>Recording mode</dd></div>
+          <div><dt><kbd>P</kbd></dt><dd>Play the recorded sequence</dd></div>
+          <div><dt><kbd>Esc</kbd></dt><dd>Stop the sequence or the free walk</dd></div>
+        </dl>
+      </div>
     </details>
     <span class="assume-key"><i class="assume"></i>marks an assumption, not a measurement</span>
   </footer>
